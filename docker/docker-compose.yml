@@ -10,33 +10,100 @@ services:
     networks:
       - smartpot-network
 
+    # Servicio para cache de Redis
+  cache-smartpot:
+    image: sebastian190030/cache-smartpot:latest
+    container_name: smartpot-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - smartpot-network
+
+  # Servicio para correo de mailpit
+  mail-smartpot:
+    image: sebastian190030/mail-smartpot:latest
+    container_name: smartpot-mail
+    ports:
+      - "8025:8025" # GUI port
+      - "1025:1025" # SMTP Port
+    environment:
+      MP_SMTP_AUTH: "true"
+      MP_SMTP_AUTH_FILE: "/etc/mailpit/authfile"
+    command:
+      - "--smtp-auth-file=/etc/mailpit/authfile"
+      - "--smtp-auth-allow-insecure"
+    networks:
+      - smartpot-network
+
   # Servicio para la API
   api-smartpot:
     image: sebastian190030/api-smartpot:latest
     container_name: smartpot-api
     environment:
+      # Configuración APP
       - APP_NAME=SmartPot-API
       - PORT=8091
       - TITLE=SmartPot API
       - DESCRIPTION=Documentación de la API REST de SmartPot
       - VERSION=1.0.0
       - AUTHOR=SmartPot Developers
+
+      # MongoDB
       - DATA_CONNECTION_METHOD=mongodb
       - DATA_SOURCE_USERNAME=admin
       - DATA_SOURCE_PASSWORD=admin
       - DATA_SOURCE_DOMAIN=db-smartpot:27017
       - DATA_SOURCE_DB=smartpot
       - DATA_PARAMS=authSource=admin&directConnection=true&serverSelectionTimeoutMS=100000&socketTimeoutMS=10000&appName=mongo
+
+      # Redis
+      - CACHE_TYPE=redis
+      - CACHE_HOST=cache-smartpot
+      - CACHE_PORT=6379
+      - CACHE_DB=0
+      - CACHE_USERNAME=default
+      - CACHE_PASSWORD=root
+      - CACHE_TIMEOUT=2000
+      - CACHE_LETTUCE_POOL_MAX_ACTIVE=8
+      - CACHE_LETTUCE_POOL_MAX_WAIT=-1
+      - CACHE_LETTUCE_POOL_MAX_IDLE=8
+      - CACHE_LETTUCE_POOL_MIN_IDLE=8
+
+      # Config cache
+      - CACHE_TIME_TO_LIVE=300000
+      - CACHE_NULL_VALUES=false
+
+      # Email (usando mailpit en local)
+      - MAIL_HOST=mail-smarpot
+      - MAIL_PORT=1025
+      - MAIL_USERNAME=smarpotadmin@example.com
+      - MAIL_PASSWORD=password123
+      - MAIL_PROPERTIES_SMTP_AUTH=true
+      - MAIL_PROPERTIES_SMTP_STARTTLS_ENABLE=false
+
+      # Seguridad
       - SECURITY_JWT_SECRET_KEY=c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476
       - SECURITY_JWT_EXPIRATION=86400000
       - SECURITY_PUBLIC_ROUTES=/auth/login,/auth/verify
+
+      # Rate limiting
+      - RATE_LIMITING_MAX_REQUESTS=5
+      - RATE_LIMITING_TIME_WINDOW=60000
+      - RATE_LIMITING_PUBLIC_ROUTES=/swagger-ui/,/v3/api-docs,/swagger-resources/,/webjars/
+
+      # Headers
       - HEADER_CORS_ALLOWED_ORIGINS=http://localhost:5173
+
+      # Tomcat
       - SERVER_TOMCAT_TIMEOUT=600000
+
+      # Debugger
       - DEBUGGER_MODE=INFO
     ports:
       - "8091:8091"
     depends_on:
       - db-smartpot
+      - cache-smartpot
     networks:
       - smartpot-network
 
