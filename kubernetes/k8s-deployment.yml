@@ -1,4 +1,4 @@
----
+# --- Volumen persistente para MongoDB ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -21,6 +21,8 @@ spec:
   resources:
     requests:
       storage: 1Gi
+
+# --- MongoDB Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -38,7 +40,7 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: mongo:latest
+          image: sebastian190030/db-smartpot:latest
           ports:
             - containerPort: 27017
           volumeMounts:
@@ -48,6 +50,99 @@ spec:
         - name: mongo-data
           persistentVolumeClaim:
             claimName: mongo-data-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-smartpot
+spec:
+  selector:
+    app: db-smartpot
+  ports:
+    - port: 27017
+      targetPort: 27017
+  type: ClusterIP
+
+# --- Redis Deployment + Service ---
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cache-smartpot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cache-smartpot
+  template:
+    metadata:
+      labels:
+        app: cache-smartpot
+    spec:
+      containers:
+        - name: redis
+          image: sebastian190030/cache-smartpot:latest
+          ports:
+            - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cache-smartpot
+spec:
+  selector:
+    app: cache-smartpot
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP
+
+# --- Mailpit Deployment + Service ---
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mail-smartpot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mail-smartpot
+  template:
+    metadata:
+      labels:
+        app: mail-smartpot
+    spec:
+      containers:
+        - name: mailpit
+          image: sebastian190030/mail-smartpot:latest
+          ports:
+            - containerPort: 8025
+            - containerPort: 1025
+          env:
+            - name: MP_SMTP_AUTH
+              value: "true"
+          command:
+            - "--smtp-auth-file=/etc/mailpit/authfile"
+            - "--smtp-auth-allow-insecure"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mail-smartpot
+spec:
+  selector:
+    app: mail-smartpot
+  ports:
+    - name: smtp
+      port: 1025
+      targetPort: 1025
+    - name: gui
+      port: 8025
+      targetPort: 8025
+  type: ClusterIP
+
+# --- API Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -65,9 +160,106 @@ spec:
     spec:
       containers:
         - name: api-container
-          image: smartpot/api:latest
+          image: sebastian190030/api-smartpot:latest
           ports:
             - containerPort: 8091
+          env:
+            - name: APP_NAME
+              value: "SmartPot-API"
+            - name: PORT
+              value: "8091"
+            - name: TITLE
+              value: "SmartPot API"
+            - name: DESCRIPTION
+              value: "Documentación de la API REST de SmartPot"
+            - name: VERSION
+              value: "1.0.0"
+            - name: AUTHOR
+              value: "SmartPot Developers"
+            - name: DATA_CONNECTION_METHOD
+              value: "mongodb"
+            - name: DATA_SOURCE_USERNAME
+              value: "admin"
+            - name: DATA_SOURCE_PASSWORD
+              value: "admin"
+            - name: DATA_SOURCE_DOMAIN
+              value: "db-smartpot:27017"
+            - name: DATA_SOURCE_DB
+              value: "smartpot"
+            - name: DATA_PARAMS
+              value: "authSource=admin&directConnection=true&serverSelectionTimeoutMS=100000&socketTimeoutMS=10000&appName=mongo"
+            - name: CACHE_TYPE
+              value: "redis"
+            - name: CACHE_HOST
+              value: "cache-smartpot"
+            - name: CACHE_PORT
+              value: "6379"
+            - name: CACHE_DB
+              value: "0"
+            - name: CACHE_USERNAME
+              value: "default"
+            - name: CACHE_PASSWORD
+              value: "root"
+            - name: CACHE_TIMEOUT
+              value: "2000"
+            - name: CACHE_LETTUCE_POOL_MAX_ACTIVE
+              value: "8"
+            - name: CACHE_LETTUCE_POOL_MAX_WAIT
+              value: "-1"
+            - name: CACHE_LETTUCE_POOL_MAX_IDLE
+              value: "8"
+            - name: CACHE_LETTUCE_POOL_MIN_IDLE
+              value: "8"
+            - name: CACHE_TIME_TO_LIVE
+              value: "300000"
+            - name: CACHE_NULL_VALUES
+              value: "false"
+            - name: MAIL_HOST
+              value: "mail-smartpot"
+            - name: MAIL_PORT
+              value: "1025"
+            - name: MAIL_USERNAME
+              value: "smarpotadmin@example.com"
+            - name: MAIL_PASSWORD
+              value: "password123"
+            - name: MAIL_PROPERTIES_SMTP_AUTH
+              value: "true"
+            - name: MAIL_PROPERTIES_SMTP_STARTTLS_ENABLE
+              value: "false"
+            - name: SECURITY_JWT_SECRET_KEY
+              value: "c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476"
+            - name: SECURITY_JWT_EXPIRATION
+              value: "86400000"
+            - name: SECURITY_PUBLIC_ROUTES
+              value: "/auth/login,/auth/verify"
+            - name: RATE_LIMITING_MAX_REQUESTS
+              value: "5"
+            - name: RATE_LIMITING_TIME_WINDOW
+              value: "60000"
+            - name: RATE_LIMITING_PUBLIC_ROUTES
+              value: "/swagger-ui/,/v3/api-docs,/swagger-resources/,/webjars/"
+            - name: HEADER_CORS_ALLOWED_ORIGINS
+              value: "http://localhost:5173"
+            - name: SERVER_TOMCAT_TIMEOUT
+              value: "600000"
+            - name: DEBUGGER_MODE
+              value: "INFO"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-smartpot
+spec:
+  selector:
+    app: api-smartpot
+  ports:
+    - port: 8091
+      targetPort: 8091
+      protocol: TCP
+      nodePort: 30001
+  type: NodePort
+
+# --- Web Frontend Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -85,51 +277,23 @@ spec:
     spec:
       containers:
         - name: web-container
-          image: smartpot/web:latest
+          image: sebastian190030/web-smartpot:latest
           ports:
-            - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: db-smartpot
-  namespace: default
-spec:
-  type: NodePort
-  selector:
-    app: db-smartpot
-  ports:
-    - port: 27017
-      targetPort: 27017
-      protocol: TCP
-      nodePort: 30000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: api-smartpot
-  namespace: default
-spec:
-  type: NodePort
-  selector:
-    app: api-smartpot
-  ports:
-    - port: 8091
-      targetPort: 8091
-      protocol: TCP
-      nodePort: 30001
+            - containerPort: 5173
+          env:
+            - name: VITE_API_BASE_URL
+              value: "http://localhost:8091"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: web-smartpot
-  namespace: default
 spec:
-  type: NodePort
   selector:
     app: web-smartpot
   ports:
-    - port: 80
+    - port: 5173
       targetPort: 5173
       protocol: TCP
       nodePort: 30002
+  type: NodePort
