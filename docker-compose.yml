@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Servicio para la base de datos MongoDB
+  db-smartpot:
+    image: sebastian190030/db-smartpot:latest
+    container_name: smartpot-db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=smartpot
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - smartpot-network
+
+  # Servicio para la API
+  api-smartpot:
+    image: sebastian190030/api-smartpot:latest
+    container_name: smartpot-api
+    environment:
+      - APP_NAME=SmartPot-API
+      - PORT=8091
+      - TITLE=SmartPot API
+      - DESCRIPTION=Documentación de la API REST de SmartPot
+      - VERSION=1.0.0
+      - AUTHOR=SmartPot Developers
+      - DATA_CONNECTION_METHOD=mongodb
+      - DATA_SOURCE_USERNAME=admin
+      - DATA_SOURCE_PASSWORD=admin
+      - DATA_SOURCE_DOMAIN=db-smartpot:27017
+      - DATA_SOURCE_DB=smartpot
+      - DATA_PARAMS=directConnection=true&serverSelectionTimeoutMS=60000&appName=mongo
+      - SECURITY_JWT_SECRET_KEY=c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476
+      - SECURITY_JWT_EXPIRATION=86400000
+      - SECURITY_PUBLIC_ROUTES=/auth/login
+      - HEADER_CORS_ALLOWED_ORIGINS=http://web-smartpot:5173
+      - SERVER_TOMCAT_TIMEOUT=600000
+      - DEBUGGER_MODE=DEBUG
+    ports:
+      - "8091:8091"
+    depends_on:
+      - db-smartpot
+    networks:
+      - smartpot-network
+
+  # Servicio para la aplicación web
+  web-smartpot:
+    image: sebastian190030/web-smartpot:latest
+    container_name: smartpot-web
+    environment:
+      - VITE_API_BASE_URL=http://api-smartpot:8091
+    ports:
+      - "5173:5173"
+    networks:
+      - smartpot-network
+
+# Volúmenes para persistencia de datos
+volumes:
+  mongo_data:
+
+# Red de contenedores para comunicación entre servicios
+networks:
+  smartpot-network:
+    driver: bridge
