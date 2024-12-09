@@ -19,19 +19,15 @@ El archivo `docker-compose.yml` define los servicios que componen la infraestruc
 Este servicio ejecuta un contenedor MongoDB, con la configuración necesaria para iniciar la base de datos `smartpot`.
 
 ```yaml
-db-smartpot:
-  image: sebastian190030/db-smartpot:latest
-  container_name: smartpot-db
-  environment:
-    - MONGO_INITDB_ROOT_USERNAME=admin
-    - MONGO_INITDB_ROOT_PASSWORD=admin
-    - MONGO_INITDB_DATABASE=smartpot
-  ports:
-    - "27018:27017"
-  volumes:
-    - mongo_data:/data/db
-  networks:
-    - smartpot-network
+  db-smartpot:
+    image: sebastian190030/db-smartpot:latest
+    container_name: smartpot-db
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - smartpot-network
 ```
 **Configuración clave:**
 - **Imagen**: Usa la imagen de Docker `sebastian190030/db-smartpot:latest`.
@@ -47,7 +43,7 @@ api-smartpot:
   image: sebastian190030/api-smartpot:latest
   container_name: smartpot-api
   environment:
-    - APP_NAME=SmartPot-API
+      - APP_NAME=SmartPot-API
       - PORT=8091
       - TITLE=SmartPot API
       - DESCRIPTION=Documentación de la API REST de SmartPot
@@ -58,13 +54,13 @@ api-smartpot:
       - DATA_SOURCE_PASSWORD=admin
       - DATA_SOURCE_DOMAIN=db-smartpot:27017
       - DATA_SOURCE_DB=smartpot
-      - DATA_PARAMS=directConnection=true&serverSelectionTimeoutMS=60000&appName=mongo
+      - DATA_PARAMS=directConnection=true&serverSelectionTimeoutMS=100000&socketTimeoutMS=10000&appName=mongo
       - SECURITY_JWT_SECRET_KEY=c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476
       - SECURITY_JWT_EXPIRATION=86400000
       - SECURITY_PUBLIC_ROUTES=/auth/login
-      - HEADER_CORS_ALLOWED_ORIGINS=http://web-smartpot:5173
-      - SERVER_TOMCAT_TIMEOUT=60000
-      - DEBUGGER_MODE=DEBUG
+      - HEADER_CORS_ALLOWED_ORIGINS=http://localhost:5173
+      - SERVER_TOMCAT_TIMEOUT=600000
+      - DEBUGGER_MODE=INFO
   ports:
     - "8091:8091"
   depends_on:
@@ -86,7 +82,7 @@ web-smartpot:
   image: sebastian190030/web-smartpot:latest
   container_name: smartpot-web
   environment:
-    - VITE_API_BASE_URL=http://api-smartpot:8091
+    - VITE_API_BASE_URL=http://localhost:8091
   ports:
     - "5173:5173"
   networks:
