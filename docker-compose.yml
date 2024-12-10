@@ -31,7 +31,7 @@ services:
       - DATA_PARAMS=authSource=admin&directConnection=true&serverSelectionTimeoutMS=100000&socketTimeoutMS=10000&appName=mongo
       - SECURITY_JWT_SECRET_KEY=c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476
       - SECURITY_JWT_EXPIRATION=86400000
-      - SECURITY_PUBLIC_ROUTES=/auth/login,/**
+      - SECURITY_PUBLIC_ROUTES=/auth/login,/auth/verify
       - HEADER_CORS_ALLOWED_ORIGINS=http://localhost:5173
       - SERVER_TOMCAT_TIMEOUT=600000
       - DEBUGGER_MODE=INFO
