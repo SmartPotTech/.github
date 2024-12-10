@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Servicio para la base de datos MongoDB
   db-smartpot:
