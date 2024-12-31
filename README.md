@@ -1,4 +1,4 @@
-# **Demostración Local de SmartPot con Docker Compose**
+# **Demostración Local de SmartPot con Docker**
 
 Esta documentación describe cómo levantar y ejecutar el proyecto SmartPot en tu entorno local utilizando Docker Compose. Se describen los servicios involucrados, sus configuraciones y cómo ejecutar los contenedores.
 
@@ -6,6 +6,99 @@ Esta documentación describe cómo levantar y ejecutar el proyecto SmartPot en t
 Asegúrate de tener instalados los siguientes programas:
 - **Docker**: [Instrucciones de instalación](https://docs.docker.com/get-docker/)
 - **Docker Compose**: Viene integrado con Docker Desktop, pero si usas Linux o configuraciones personalizadas, asegúrate de tener Docker Compose instalado. [Instrucciones de instalación](https://docs.docker.com/compose/install/)
+
+## **Cómo Ejecutar el Proyecto**
+
+### **Opción 1: Ejecución Rápida con un Solo Comando**
+
+Si prefieres una forma más rápida de poner en marcha el proyecto, puedes utilizar el siguiente comando en la terminal. Este comando descargará automáticamente el archivo `docker-compose.yml` y levantará los contenedores en un solo paso:
+
+```bash
+curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker-compose.yml -o docker-compose.yml && docker-compose -p smartpot up -d
+```
+
+Este comando realiza las siguientes acciones:
+1. **Descarga el archivo `docker-compose.yml`** desde el repositorio de GitHub.
+2. **Levanta los contenedores** en modo "detached" usando Docker Compose.
+
+Una vez que los contenedores estén en funcionamiento, puedes acceder a los siguientes servicios:
+
+- **Base de Datos (MongoDB)**: `mongodb://admin:admin@localhost:27018/smartpot/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongo`
+- **API SmartPot**: `http://localhost:8091`
+- **Aplicación Web**: `http://localhost:5173`
+
+Para detener todos los servicios, ejecuta el siguiente comando:
+
+```bash
+docker-compose -p smartpot down
+```
+
+---
+
+### **Opción 2: Ejecución Paso a Paso (Versión Extensa)**
+
+Si prefieres realizar los pasos de manera más detallada, sigue estas instrucciones:
+
+#### **Paso 1: Clonar o Descargar el Proyecto**
+Asegúrate de tener todos los archivos necesarios en tu máquina local, incluyendo el archivo `docker-compose.yml`. Si no lo tienes, puedes descargarlo directamente desde el repositorio ejecutando el siguiente comando:
+
+```bash
+curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker-compose.yml -o docker-compose.yml
+```
+
+Este comando descargará el archivo `docker-compose.yml` necesario para continuar con la configuración del proyecto.
+
+#### **Paso 2: Realizar el Pull de las Imágenes Docker**
+Descarga las imágenes de los contenedores necesarios para el proyecto. Ejecuta los siguientes comandos en la terminal para obtener las imágenes más recientes:
+
+```bash
+docker pull sebastian190030/db-smartpot:latest
+docker pull sebastian190030/api-smartpot:latest
+docker pull sebastian190030/web-smartpot:latest
+```
+
+#### **Paso 3: Iniciar los Servicios con Docker Compose**
+
+Desde el directorio donde se encuentra tu archivo `docker-compose.yml`, ejecuta el siguiente comando para iniciar los contenedores:
+
+```bash
+docker-compose -p smartpot up -d
+```
+
+Este comando:
+- **`-p smartpot`**: Le da el nombre `smartpot` al proyecto, lo que afecta los nombres de los contenedores, redes y volúmenes.
+- **`up -d`**: Levanta los contenedores en segundo plano (modo "detached").
+
+#### **Paso 4: Acceder a los Servicios**
+
+Una vez que los contenedores estén en funcionamiento, puedes acceder a los siguientes servicios:
+
+- **Base de Datos (MongoDB)**: Accede a la base de datos usando la URI de conexión `mongodb://admin:admin@localhost:27018/smartpot/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongo`.
+- **API SmartPot**: Accede a la API en `http://localhost:8091`.
+- **Aplicación Web**: Accede a la aplicación frontend en `http://localhost:5173`.
+
+#### **Paso 5: Detener los Servicios**
+
+Para detener todos los servicios y eliminar los contenedores, ejecuta el siguiente comando:
+
+```bash
+docker-compose -p smartpot down
+```
+
+Este comando:
+- Detiene y elimina todos los contenedores, redes y volúmenes definidos en el archivo `docker-compose.yml`.
+
+---
+
+Con esta organización, la documentación ahora tiene:
+
+1. **Opción Rápida** primero, para quienes desean una puesta en marcha más veloz.
+2. **Opción Extensa** después, para quienes prefieren un enfoque más detallado.
+3. **Comando común** para detener los servicios al final.
+
+¡Espero que ahora esté todo en el orden que necesitabas!
+
+
 
 ## **Estructura del Proyecto**
 El archivo `docker-compose.yml` define los servicios que componen la infraestructura del proyecto:
@@ -109,44 +202,3 @@ networks:
   smartpot-network:
     driver: bridge
 ```
-
-## **Cómo Ejecutar el Proyecto**
-
-### **Paso 1: Clonar o Descarga el Proyecto**
-Asegúrate de tener todos los archivos necesarios en tu máquina local, incluyendo el archivo `docker-compose.yml`.
-
-### **Paso 2: Realiza el pull de las imágenes**
-
-   ```bash
-   docker pull sebastian190030/db-smartpot:latest
-   docker pull sebastian190030/api-smartpot:latest
-   docker pull sebastian190030/web-smartpot:latest
-   ```
-
-### **Paso 3: Iniciar los Servicios con Docker Compose**
-
-Desde el directorio donde se encuentra tu archivo `docker-compose.yml`, ejecuta el siguiente comando para iniciar los contenedores:
-
-```bash
-docker-compose -p smartpot up -d
-```
-
-Este comando:
-- **`-p smartpot`**: Le da el nombre `smartpot` al proyecto, lo que afecta los nombres de los contenedores, redes y volúmenes.
-- **`up -d`**: Levanta los contenedores en segundo plano (modo "detached").
-
-### **Paso 4: Acceder a los Servicios**
-
-- **Base de Datos (MongoDB)**: Accede a la base de datos usando la URI de conexión `mongodb://admin:admin@localhost:27018/smartpot/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongo`.
-- **API SmartPot**: Accede a la API en `http://localhost:8091`.
-- **Aplicación Web**: Accede a la aplicación frontend en `http://localhost:5173`.
-
-### **Paso 5: Detener los Servicios**
-
-Para detener todos los servicios, simplemente ejecuta:
-
-```bash
-docker-compose -p smartpot down
-```
-
-Este comando detiene y elimina todos los contenedores, redes y volúmenes definidos en el archivo `docker-compose.yml`.
