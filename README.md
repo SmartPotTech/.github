@@ -9,6 +9,8 @@ Asegúrate de tener instalados los siguientes programas:
 
 ## **Cómo Ejecutar el Proyecto**
 
+Nota Importante: Antes de realizar cualquier paso, asegúrate de tener Docker en ejecución en tu máquina. Si estás utilizando Docker Desktop, abre la aplicación y espera a que esté completamente iniciado antes de continuar con los siguientes pasos.
+
 ### **Opción 1: Ejecución Rápida con un Solo Comando**
 
 Si prefieres una forma más rápida de poner en marcha el proyecto, puedes utilizar el siguiente comando en la terminal. Este comando descargará automáticamente el archivo `docker-compose.yml` y levantará los contenedores en un solo paso:
