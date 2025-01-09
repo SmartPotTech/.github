@@ -47,7 +47,7 @@ spec:
       volumes:
         - name: mongo-data
           persistentVolumeClaim:
-            claimName: mongo-data-claim  # Referencia al PVC creado
+            claimName: mongo-data-claim
 ---
 apiVersion: v1
 kind: Service
@@ -60,6 +60,7 @@ spec:
     - protocol: TCP
       port: 27017
       targetPort: 27017
+  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -129,6 +130,7 @@ spec:
     - protocol: TCP
       port: 8091
       targetPort: 8091
+  type: NodePort
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -164,3 +166,4 @@ spec:
     - protocol: TCP
       port: 5173
       targetPort: 5173
+  type: NodePort
