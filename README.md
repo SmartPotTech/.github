@@ -6,7 +6,7 @@ Este repositorio contiene el código para el proyecto **SmartPot**. Puedes ejecu
 
 ### Opciones de Ejecución Local
 
-- **Ejecutar con Docker**: Para una ejecución rápida utilizando Docker y Docker Compose, sigue la guía [aquí](docker/README.md).
+- **Ejecutar con Docker**: Para una ejecución rápida utilizando Docker y Docker Compose, sigue la guía [Docker](docker/README.md).
 - **Ejecutar con Kubernetes**: Si prefieres usar Kubernetes, puedes seguir las instrucciones en la guía de [Kubernetes](kubernetes/README.md).
 
 ## Estructura del Proyecto
