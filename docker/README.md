@@ -17,7 +17,7 @@ Asegúrate de tener instalados los siguientes programas:
 Si prefieres una forma más rápida de poner en marcha el proyecto, puedes utilizar el siguiente comando en la terminal. Este comando descargará automáticamente el archivo `docker-compose.yml` y levantará los contenedores en un solo paso:
 
 ```bash
-curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker-compose.yml -o docker-compose.yml && docker-compose -p smartpot up -d
+curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/docker-compose.yml -o docker-compose.yml && docker-compose -p smartpot up -d
 ```
 
 Este comando realiza las siguientes acciones:

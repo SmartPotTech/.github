@@ -29,7 +29,7 @@ Antes de continuar, asegúrate de tener instalados y configurados los siguientes
 Para una forma rápida y sencilla de desplegar el proyecto en Minikube, puedes ejecutar el siguiente comando en tu terminal. Este comando descargará automáticamente el archivo `k8s-deployment.yml` desde el repositorio de GitHub y aplicará los recursos de Kubernetes:
 
 ```bash
-curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/k8s-deployment.yml -o k8s-deployment.yml && kubectl apply -f k8s-deployment.yml
+curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/kubernetes/k8s-deployment.yml -o k8s-deployment.yml && kubectl apply -f k8s-deployment.yml
 ```
 
 Este comando realiza lo siguiente:
