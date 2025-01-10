@@ -58,9 +58,10 @@ spec:
     app: db-smartpot
   ports:
     - protocol: TCP
-      port: 27017
-      targetPort: 27017
+      port: 27017       # Puerto expuesto por el servicio
+      targetPort: 27017 # Puerto del contenedor MongoDB
   type: NodePort
+  nodePort: 30000        # Puerto externo para acceso desde fuera de Minikube
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -99,7 +100,7 @@ spec:
             - name: DATA_SOURCE_PASSWORD
               value: "admin"
             - name: DATA_SOURCE_DOMAIN
-              value: "db-smartpot:27017"
+              value: "db-smartpot:27017" # Nombre del servicio de MongoDB
             - name: DATA_SOURCE_DB
               value: "smartpot"
             - name: DATA_PARAMS
@@ -128,9 +129,10 @@ spec:
     app: api-smartpot
   ports:
     - protocol: TCP
-      port: 8091
-      targetPort: 8091
+      port: 8091       # Puerto expuesto por el servicio
+      targetPort: 8091 # Puerto del contenedor API
   type: NodePort
+  nodePort: 30001      # Puerto externo para acceso desde fuera de Minikube
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -151,7 +153,7 @@ spec:
           image: sebastian190030/web-smartpot:latest
           env:
             - name: VITE_API_BASE_URL
-              value: "http://localhost:8091"
+              value: "http://api-smartpot:8091" # URL del servicio de la API
           ports:
             - containerPort: 5173
 ---
@@ -164,6 +166,7 @@ spec:
     app: web-smartpot
   ports:
     - protocol: TCP
-      port: 5173
-      targetPort: 5173
+      port: 80         # Puerto expuesto por el servicio web
+      targetPort: 5173 # Puerto del contenedor web
   type: NodePort
+  nodePort: 30002      # Puerto externo para acceso desde fuera de Minikube
