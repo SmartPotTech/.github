@@ -74,9 +74,9 @@ services:
       - CACHE_NULL_VALUES=false
 
       # Email (usando mailpit en local)
-      - MAIL_HOST=mail-smarpot
+      - MAIL_HOST=mail-smartpot
       - MAIL_PORT=1025
-      - MAIL_USERNAME=smarpotadmin@example.com
+      - MAIL_USERNAME=smartpotadmin@example.com
       - MAIL_PASSWORD=password123
       - MAIL_PROPERTIES_SMTP_AUTH=true
       - MAIL_PROPERTIES_SMTP_STARTTLS_ENABLE=false
