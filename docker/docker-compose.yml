@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # Servicio para la base de datos MongoDB
   db-smartpot:
@@ -10,7 +8,7 @@ services:
     volumes:
       - mongo_data:/data/db
     networks:
-      - smartpot-network
+      - network
     labels:
       "docker_compose_diagram.icon": "mongodb"
       "docker_compose_diagram.cluster": "Database Layer"
@@ -23,7 +21,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - smartpot-network
+      - network
     labels:
       "docker_compose_diagram.icon": "redis"
       "docker_compose_diagram.cluster": "Cache Layer"
@@ -43,7 +41,7 @@ services:
       - "--smtp-auth-file=/etc/mailpit/authfile"
       - "--smtp-auth-allow-insecure"
     networks:
-      - smartpot-network
+      - network
     labels:
       "docker_compose_diagram.icon": "email"
       "docker_compose_diagram.cluster": "Mail Layer"
@@ -101,7 +99,7 @@ services:
       - cache-smartpot
       - mail-smartpot
     networks:
-      - smartpot-network
+      - network
     labels:
       "docker_compose_diagram.icon": "api"
       "docker_compose_diagram.cluster": "Backend Layer"
@@ -118,7 +116,7 @@ services:
     depends_on:
       - api-smartpot
     networks:
-      - smartpot-network
+      - network
     labels:
       "docker_compose_diagram.icon": "react"
       "docker_compose_diagram.cluster": "Frontend Layer"
@@ -130,5 +128,5 @@ volumes:
 
 # Red de contenedores para comunicación entre servicios
 networks:
-  smartpot-network:
+  network:
     driver: bridge
