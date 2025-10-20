@@ -1,0 +1,76 @@
+services:
+  # Servicio para la base de datos MongoDB
+  db-smartpot:
+    image: sebastian190030/db-smartpot:latest
+    container_name: smartpot-db
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+    env_file:
+      - .env.db
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "mongodb"
+      "docker_compose_diagram.cluster": "Database Layer"
+      "docker_compose_diagram.description": "DB"
+
+  # Servicio para cache de Redis
+  cache-smartpot:
+    image: sebastian190030/cache-smartpot:latest
+    container_name: smartpot-cache
+    ports:
+      - "6379:6379"
+    env_file:
+      - .env.cache
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "redis"
+      "docker_compose_diagram.cluster": "Cache Layer"
+      "docker_compose_diagram.description": "DB Cache"
+
+  # Servicio para la API
+  api-smartpot:
+    image: sebastian190030/api-smartpot:latest
+    container_name: smartpot-api
+    ports:
+      - "8091:8091"
+    depends_on:
+      - db-smartpot
+      - cache-smartpot
+    env_file:
+      - .env.api
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "api"
+      "docker_compose_diagram.cluster": "Backend Layer"
+      "docker_compose_diagram.description": "API REST"
+
+  # Servicio para la aplicación web
+  web-smartpot:
+    image: sebastian190030/web-smartpot:latest
+    container_name: smartpot-web
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-smartpot
+    env_file:
+      - .env.web
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "react"
+      "docker_compose_diagram.cluster": "Frontend Layer"
+      "docker_compose_diagram.description": "Web App"
+
+# Volúmenes
+volumes:
+  mongo_data:
+
+# Red compartida
+networks:
+  network:
+    driver: bridge
