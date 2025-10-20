@@ -23,6 +23,7 @@ Antes de ejecutar el entorno, debes tener en el servidor los siguientes archivos
 * `.env.cache`
 * `.env.api`
 * `.env.web`
+* `.env.mail`
 
 > [!IMPORTANT]
 > Los archivos `.env` deben contener las configuraciones específicas de cada servicio.
@@ -61,10 +62,7 @@ El archivo `docker-compose.yml` de dev define una infraestructura compuesta por 
 * **Redis**: Servicio de caché para optimizar el rendimiento.
 * **API SmartPot**: Backend que gestiona la lógica de negocio y expone los endpoints REST.
 * **Web SmartPot**: Interfaz de usuario (frontend) construida con React.
-
-> [!NOTE]
-> El servicio de correo (Mail Service) **no se utiliza** en este entorno, ya que SmartPot usa el **servicio de Gmail** configurado en la API para el envío de correos.
-
+* **Mail SmartPot**: Servicio local de pruebas para envío de correos.
 ---
 
 ## **Descripción de Servicios**
@@ -110,7 +108,31 @@ cache-smartpot:
 
 ---
 
-### 3. **API SmartPot (Backend)**
+### 3. **Mail SmartPot (MailPit)**
+
+Servicio de correo para desarrollo, útil para pruebas locales sin depender de servidores externos.
+
+```yaml
+mail-smartpot:
+  image: sebastian190030/mail-smartpot:latest
+  container_name: smartpot-mail
+  ports:
+    - "8025:8025" # GUI port
+    - "1025:1025" # SMTP Port
+  env_file:
+    - .env.mail
+  command:
+    - "--smtp-auth-file=/etc/mailpit/authfile"
+    - "--smtp-auth-allow-insecure"
+```
+
+* **Puerto SMTP:** `1025`
+* **Interfaz Web:** `8025`
+* **Acceso GUI:** [http://<host>:8025](http://<host>:8025)
+
+---
+
+### 4. **API SmartPot (Backend)**
 
 Gestiona la lógica principal del sistema, la autenticación y la comunicación con la base de datos y Redis.
 
@@ -123,6 +145,7 @@ api-smartpot:
   depends_on:
     - db-smartpot
     - cache-smartpot
+    - mail-smartpot
   env_file:
     - .env.api
 ```
@@ -133,7 +156,7 @@ api-smartpot:
 
 ---
 
-### 4. **Web SmartPot (Frontend)**
+### 5. **Web SmartPot (Frontend)**
 
 Aplicación web de interfaz de usuario, que consume la API para mostrar datos y controlar los dispositivos.
 
@@ -175,6 +198,6 @@ networks:
 
 Una vez desplegado el entorno, podrás acceder a:
 
-* **MongoDB** → `mongodb://user:passoword@<host>:27018/smartpot`
+* **MongoDB** → `mongodb://<user>:<password>@<host>:27018/smartpot`
 * **API SmartPot** → `http://<host>:8091`
 * **Web SmartPot** → `http://<host>:5173`

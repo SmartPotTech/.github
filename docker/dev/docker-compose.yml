@@ -31,6 +31,25 @@ services:
       "docker_compose_diagram.cluster": "Cache Layer"
       "docker_compose_diagram.description": "DB Cache"
 
+    # Servicio para correo de mailpit
+  mail-smartpot:
+    image: sebastian190030/mail-smartpot:latest
+    container_name: smartpot-mail
+    ports:
+      - "8025:8025" # GUI port
+      - "1025:1025" # SMTP Port
+    env_file:
+      - .env.mail
+    command:
+      - "--smtp-auth-file=/etc/mailpit/authfile"
+      - "--smtp-auth-allow-insecure"
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "email"
+      "docker_compose_diagram.cluster": "Mail Layer"
+      "docker_compose_diagram.description": "Mail Service"
+
   # Servicio para la API
   api-smartpot:
     image: sebastian190030/api-smartpot:latest
@@ -40,6 +59,7 @@ services:
     depends_on:
       - db-smartpot
       - cache-smartpot
+      - mail-smartpot
     env_file:
       - .env.api
     networks:
