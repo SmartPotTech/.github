@@ -34,19 +34,18 @@ services:
       "docker_compose_diagram.cluster": "Cache Layer"
       "docker_compose_diagram.description": "DB Cache"
 
-  # Servicio para correo de mailpit
+  # Servicio para correo de MailPit
   mail-smartpot:
     image: sebastian190030/mail-smartpot:latest
     container_name: smartpot-mail
     ports:
-      - "8025:8025" # GUI port
-      - "1025:1025" # SMTP Port
+      - "8025:8025" # Interfaz web
+      - "1025:1025" # SMTP
     environment:
-      MP_SMTP_AUTH: "true"
-      MP_SMTP_AUTH_FILE: "/etc/mailpit/authfile"
-    command:
-      - "--smtp-auth-file=/etc/mailpit/authfile"
-      - "--smtp-auth-allow-insecure"
+      - MAIL_USERNAME=smartpotadmin@example.com
+      - MAIL_PASSWORD=password123
+      - MP_SMTP_AUTH=true
+      - MP_SMTP_AUTH_FILE=/etc/mailpit/authfile
     networks:
       - network
     labels:
