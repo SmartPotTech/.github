@@ -25,8 +25,7 @@ services:
     ports:
       - "6379:6379"
     environment:
-      - REDIS_USER=admin
-      - REDIS_PASSWORD=Ultrasecreta123
+      - REDIS_PASSWORD=admin
       - REDIS_DATABASE=0
     networks:
       - network
