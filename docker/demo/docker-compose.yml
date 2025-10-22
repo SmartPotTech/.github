@@ -25,7 +25,7 @@ services:
     ports:
       - "6379:6379"
     environment:
-      - REDIS_PASSWORD=admin
+      - REDIS_PASSWORD=root
       - REDIS_DATABASE=0
     networks:
       - network
