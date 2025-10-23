@@ -26,7 +26,7 @@ services:
       - "6379:6379"
     environment:
       - REDIS_PASSWORD=root
-      - REDIS_DATABASE=0
+      - REDIS_DATABASE=1
     networks:
       - network
     labels:
