@@ -103,6 +103,8 @@ services:
       - SWAGGER_API_DOCS_PATH=/v3/api-docs
       - SWAGGER_REDOC_ENABLED=true
       - SWAGGER_REDOC_PATH=/redoc
+      - SCALAR_ENABLED=true
+      - SCALAR_PATH=/scalar
       - SWAGGER_API_DOCS_ENABLED=true
       - SWAGGER_UI_DEFAULT_MODEL_EXPAND_DEPTH=1
       - SWAGGER_UI_DEFAULT_MODEL_RENDERING=example
