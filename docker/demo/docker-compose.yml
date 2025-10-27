@@ -93,7 +93,7 @@ services:
       - SECURITY_JWT_EXPIRATION=86400000
       - SECURITY_AES_KEY=Dv23xgwJ0w4mvHEk8yDuRWjMn8t8VdxgOO8rKAmDSBI=
       - SECURITY_SCHEME_NAME=SmartPot-OAuth
-      - SECURITY_PUBLIC_ROUTES=auth/login,auth/verify
+      - SECURITY_PUBLIC_ROUTES=/auth/login,/auth/verify
       - RATE_LIMITING_MAX_REQUESTS=5
       - RATE_LIMITING_TIME_WINDOW=60000
       - RATE_LIMITING_PUBLIC_ROUTES=/swagger-ui/,/v3/api-docs,/swagger-resources/,/webjars/
