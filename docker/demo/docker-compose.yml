@@ -99,6 +99,7 @@ services:
       - RATE_LIMITING_PUBLIC_ROUTES=/swagger-ui/,/v3/api-docs,/swagger-resources/,/webjars/
       - HEADER_CORS_ALLOWED_ORIGINS=http://localhost:5173
       - SERVER_TOMCAT_TIMEOUT=600000
+      - SERVER_FORWARD_HEADERS_STRATEGY=framework
       - SWAGGER_API_DOCS_ENABLED=true
       - SWAGGER_API_DOCS_PATH=/v3/api-docs
       - SWAGGER_REDOC_ENABLED=true
