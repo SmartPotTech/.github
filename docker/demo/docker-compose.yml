@@ -114,6 +114,7 @@ services:
       - SWAGGER_UI_ENABLED=true
       - SWAGGER_UI_PATH=/
       - SWAGGER_UI_URL=/v3/api-docs
+      - OPENAPI_SERVER_URL=http://localhost:8091
       - DEBUGGER_MODE=INFO
     ports:
       - "8091:8091"
