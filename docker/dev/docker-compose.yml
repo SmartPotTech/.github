@@ -72,7 +72,7 @@ services:
   # Servicio para Proxy Python
   proxy-smartpot:
     image: sebastian190030/proxy-smartpot:latest
-    container_name: proxy-smartpot
+    container_name: smartpot-proxy
     ports:
       - "8092:8092"
     depends_on:
