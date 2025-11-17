@@ -69,6 +69,23 @@ services:
       "docker_compose_diagram.cluster": "Backend Layer"
       "docker_compose_diagram.description": "API REST"
 
+  # Servicio para Proxy Python
+  proxy-smartpot:
+    image: sebastian190030/proxy-smartpot:latest
+    container_name: proxy-smartpot
+    ports:
+      - "8092:8092"
+    depends_on:
+      - api-smartpot
+    env_file:
+      - .env.proxy
+    networks:
+      - network
+    labels:
+      "docker_compose_diagram.icon": "python"
+      "docker_compose_diagram.cluster": "Backend Layer"
+      "docker_compose_diagram.description": "API Proxy for Wokwi"
+  
   # Servicio para la aplicación web
   web-smartpot:
     image: sebastian190030/web-smartpot:latest
