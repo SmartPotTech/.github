@@ -49,7 +49,7 @@ Al recibir un reporte, el equipo asignará una persona responsable que coordinar
 | --- | --- |
 | Autenticación | JWT HS256 con expiración, contraseñas con BCrypt, límite de peticiones por IP (más estricto en ingreso y registro) |
 | Macetas | Una cuenta MQTT por maceta con acceso solo a sus tópicos; clave aleatoria de 192 bits cifrada con AES-GCM en la base y mostrada una sola vez |
-| Transporte | HTTPS con HSTS en la web y la API; MQTT sobre TLS 1.2 con CA propia; WebSocket seguro |
+| Transporte | HTTPS con HSTS en la web y la API; MQTT sobre TLS 1.2+ con CA propia; WebSocket seguro |
 | Web | CSP estricta, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` y `Permissions-Policy` |
 | Servicios internos | MongoDB, Redis y la IA en una red sin salida a internet; la IA exige un token de servicio |
 | Contenedores | Solo lectura, sin capacidades de Linux, `no-new-privileges`, usuarios sin privilegios y límites de recursos |
