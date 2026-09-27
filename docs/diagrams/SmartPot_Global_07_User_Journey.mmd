@@ -15,7 +15,7 @@ flowchart LR
   subgraph app["/app · requiere sesión · navegación lateral o inferior"]
     direction TB
     overview["/app · Panel general<br/>salud promedio · en línea · comandos del día<br/>ranking · análisis de la IA · comparador · últimas lecturas"]
-    crops["/app/crops · Mis cultivos<br/>tarjetas · crear cultivo"]
+    crops["/app/crops · Mis cultivos<br/>tarjetas real o virtual · forma<br/>Nuevo cultivo: tipo fijo · especie · forma<br/>vista previa · guía ESP32 o Wokwi"]
     control["/app/control · Control general<br/>automático por cultivo o todos · atajos · órdenes en bloque"]
     actions["/app/actions · Acciones<br/>sugerencias en bloque · historial de órdenes"]
     learningp["/app/learning · Aprendizaje (escritorio)<br/>calidad · modelos · estados · atípicos"]
@@ -27,8 +27,8 @@ flowchart LR
       assistant["Asistente IA<br/>índice y de qué depende · diagnóstico<br/>pronóstico · lo aprendido · acciones"]
       ctrl["Control<br/>modo automático · actuadores · comandos"]
       history["Historial<br/>6 h · 24 h · 7 días · CSV"]
-      devicetab["Dispositivo<br/>conexión MQTT · config.py · rotar clave"]
-      virtualtab["Maceta virtual<br/>escena del clima · lugares · medidores"]
+      virtualtab["Cultivo en vivo<br/>forma y especie · cada actuador encendido<br/>o apagado · clima · simulación si es virtual"]
+      devicetab["Dispositivo · solo reales<br/>guía ESP32 o Wokwi · config.py · rotar clave"]
     end
   end
 
