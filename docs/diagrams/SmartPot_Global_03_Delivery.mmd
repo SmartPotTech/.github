@@ -33,7 +33,7 @@ flowchart TB
     subgraph central[".github · plataforma"]
       direction TB
       qa["qa.yml · en cada cambio a main, cada lunes 11:00 UTC y a mano<br/>API: mvn verify · Web: lint, tipos, pruebas y build<br/>Python: AI, DataGenerator e IoT (ruff y pytest)<br/>Contenedores: Broker, DB, Cache y Mail (build y humo)"]
-      e2e["End-to-End<br/>construye las 8 imágenes · levanta la demo con --wait<br/>scripts/e2e.py: 30 comprobaciones<br/>registro · cultivo · MQTT · ACK · IA · flota · bloque<br/>maceta virtual · aprendizaje · canales · borrado"]
+      e2e["End-to-End<br/>construye las 8 imágenes · levanta la demo con --wait<br/>scripts/e2e.py: 35 comprobaciones<br/>registro · cultivo real · MQTT · ACK · IA · flota · bloque<br/>tipo fijo · cultivo virtual y pausa · aprendizaje · canales · borrado"]
       deploy["deploy.yml central<br/>concurrency smartpot-production<br/>uno en curso · solo el último en espera"]
       validate["Validaciones previas<br/>ENV_FILE: longitudes, llave AES de 32 bytes, perfiles<br/>certificado del broker firmado por la CA y llave que corresponde<br/>SIMULATOR_TOKEN · secreto del webhook"]
       censecrets["Secrets centrales<br/>SERVER_HOST · SERVER_PORT · SERVER_USER · SERVER_KNOWN_HOSTS<br/>SERVER_KEY · DEPLOY_PATH · ENV_FILE<br/>MQTT_CA_CERT · MQTT_SERVER_CERT · MQTT_SERVER_KEY"]
@@ -52,7 +52,7 @@ flowchart TB
 
   subgraph environments["Entornos"]
     direction TB
-    demo["docker/demo<br/>compose.yaml (GHCR) · compose.dockerhub.yaml<br/>datos de ejemplo · 2 macetas fijas · macetas virtuales<br/>Telegram opcional por sondeo largo"]
+    demo["docker/demo<br/>compose.yaml (GHCR) · compose.dockerhub.yaml<br/>datos de ejemplo · 2 cultivos reales simulados · cultivos virtuales<br/>Telegram opcional por sondeo largo"]
     k8s["kubernetes/k8s-deployment.yml<br/>namespace smartpot · Secret · ConfigMap<br/>PVC db-data, broker-data y ai-data<br/>8 Deployments y 8 Services · Pod Security restricted"]
     subgraph server["Servidor de producción"]
       direction TB
