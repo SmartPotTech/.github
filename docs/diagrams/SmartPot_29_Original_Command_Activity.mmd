@@ -1,0 +1,41 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+flowchart TB
+  subgraph u["Usuario (frontend)"]
+    u1(["Ingresa a la página"]) --> u2{"¿Credenciales válidas?"}
+    u2 -->|"No"| u3["Enviar al ingreso"]
+    u2 -->|"Sí"| u4["Página del cultivo"]
+    u4 --> u5["Enviar un comando"]
+    u9["Mostrar el estado del comando"]
+  end
+  subgraph a["API"]
+    a1{"¿Tiene cultivo asociado?"}
+    a1 -->|"No"| a2["Mensaje: cultivo no asociado"]
+    a1 -->|"Sí"| a3["Guardar el comando en la cola"]
+    a4["Guardar el estado del comando"]
+  end
+  subgraph b["Broker MQTT"]
+    b1["Enviar el mensaje a los suscriptores"]
+    b2["Recibir el estado del comando"]
+  end
+  subgraph e["ESP32"]
+    e1["Procesar el actuador asignado"] --> e2["Activar el actuador"]
+    e2 --> e3["Enviar el estado del comando"]
+  end
+  u5 --> a1
+  a3 --> b1
+  b1 --> e1
+  e3 --> b2
+  b2 --> a4
+  a4 --> u9
+  classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef clay fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef deep fill:#0B3D2B,stroke:#06281C,color:#FFFFFF
+  classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  class u1,u3,u4,u5,u9 leaf
+  class a1,u2 sun
+  class a2,a3,a4 core
+  class b1,b2 water
+  class e1,e2,e3 clay
