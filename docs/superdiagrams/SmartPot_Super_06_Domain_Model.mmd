@@ -1,0 +1,324 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "class": {"useMaxWidth": false}}}%%
+classDiagram
+  direction LR
+
+  namespace Cuentas {
+    class User {
+      +String id
+      +String name
+      +String lastName
+      +String email
+      +String passwordHash
+      +UserRole role
+      +Instant createdAt
+      +Instant updatedAt
+    }
+    class PasswordResetToken {
+      +String id
+      +String tokenHash
+      +String userId
+      +Instant expiresAt
+      +Instant createdAt
+    }
+    class UserRole {
+      <<enumeration>>
+      USER
+      ADMIN
+    }
+  }
+
+  namespace Cultivos {
+    class Crop {
+      +String id
+      +String ownerId
+      +String name
+      +CropType type
+      +boolean automationEnabled
+      +Device device
+      +CropHealth health
+      +Instant createdAt
+      +Instant updatedAt
+    }
+    class Device {
+      +String keyCiphertext
+      +Instant keyRotatedAt
+      +boolean online
+      +Instant lastSeenAt
+    }
+    class CropHealth {
+      <<record>>
+      +double index
+      +String level
+      +String label
+      +Instant evaluatedAt
+    }
+    class CropType {
+      <<enumeration>>
+      TOMATO
+      LETTUCE
+      STRAWBERRY
+      BASIL
+      SPINACH
+      PEPPER
+    }
+    class Actuator {
+      +String id
+      +String cropId
+      +ActuatorType type
+      +boolean active
+      +Instant lastChangedAt
+      +Instant createdAt
+    }
+    class ActuatorType {
+      <<enumeration>>
+      WATER_PUMP
+      UV_LIGHT
+      FAN
+      HUMIDIFIER
+      NUTRIENT_DOSER
+      PH_DOSER
+    }
+  }
+
+  namespace Lecturas {
+    class Reading {
+      +String id
+      +String cropId
+      +Instant measuredAt
+      +Measures measures
+      +ReadingSource source
+    }
+    class Measures {
+      +Double temperature
+      +Double humidity
+      +Double brightness
+      +Double ph
+      +Double tds
+      +Double atmosphere
+      +Double soilMoisture
+    }
+    class ReadingSource {
+      <<enumeration>>
+      MQTT
+      HTTP
+    }
+  }
+
+  namespace Comandos {
+    class Command {
+      +String id
+      +String cropId
+      +String actuatorId
+      +ActuatorType actuatorType
+      +CommandAction action
+      +Integer durationSeconds
+      +CommandStatus status
+      +CommandSource source
+      +String reason
+      +String message
+      +Instant createdAt
+      +Instant sentAt
+      +Instant completedAt
+    }
+    class CommandAction {
+      <<enumeration>>
+      ACTIVATE
+      DEACTIVATE
+    }
+    class CommandStatus {
+      <<enumeration>>
+      PENDING
+      SENT
+      EXECUTED
+      FAILED
+      EXPIRED
+    }
+    class CommandSource {
+      <<enumeration>>
+      USER
+      AGENT
+    }
+  }
+
+  namespace Avisos {
+    class Notification {
+      +String id
+      +String userId
+      +String cropId
+      +NotificationType type
+      +String title
+      +String message
+      +boolean read
+      +Instant createdAt
+    }
+    class NotificationType {
+      <<enumeration>>
+      INFO
+      ALERT
+      COMMAND
+      DEVICE
+      AI
+    }
+    class ChannelLink {
+      +String id
+      +String userId
+      +ChannelType type
+      +String address
+      +String displayName
+      +boolean enabled
+      +Set~NotificationType~ events
+      +Instant linkedAt
+      +Instant lastDeliveredAt
+      +int failures
+    }
+    class ChannelType {
+      <<enumeration>>
+      TELEGRAM
+    }
+    class NotificationChannel {
+      <<interface>>
+      +type() ChannelType
+      +isAvailable() boolean
+      +displayName() String
+      +handle() String
+      +linkUrl(code) String
+      +send(link, message)
+    }
+    class TelegramChannel {
+      +send(link, message)
+      -escape(text) String
+    }
+  }
+
+  namespace MacetasVirtuales {
+    class VirtualDevice {
+      +String id
+      +String cropId
+      +String ownerId
+      +VirtualMode mode
+      +Measures manual
+      +VirtualLocation location
+      +int intervalSeconds
+      +Instant createdAt
+      +Instant updatedAt
+    }
+    class VirtualLocation {
+      <<record>>
+      +String name
+      +double latitude
+      +double longitude
+    }
+    class VirtualMode {
+      <<enumeration>>
+      AUTO
+      MANUAL
+      WEATHER
+    }
+  }
+
+  namespace Mensajeria {
+    class MqttGateway {
+      <<interface>>
+      +publish(topic, payload, qos, retained) boolean
+      +isConnected() boolean
+      +isEnabled() boolean
+    }
+    class PahoMqttGateway
+    class DisabledMqttGateway
+    class DeviceProvisioner {
+      +provision(cropId, key, kick) boolean
+      +deprovision(cropId) boolean
+      +onConnected(event)
+    }
+  }
+
+  namespace AsistenteIA {
+    class InsightRequest {
+      +String cropType
+      +Measures measures
+      +List~Measures~ history
+      +List~String~ actuators
+      +int localHour
+    }
+    class InsightResponse {
+      +String cropType
+      +Health health
+      +List~Diagnosis~ diagnosis
+      +List~Conclusion~ conclusions
+      +List~Prediction~ predictions
+      +List~Forecast~ forecasts
+      +Learning learning
+      +List~Action~ actions
+      +String summary
+    }
+    class Diagnosis {
+      +String parameter
+      +double value
+      +String status
+      +String severity
+      +String message
+      +String recommendation
+    }
+    class Forecast {
+      +String parameter
+      +double slopePerHour
+      +String trend
+      +double hoursToLimit
+      +String limit
+      +double confidence
+    }
+    class Action {
+      +String actuator
+      +String action
+      +int durationSeconds
+      +String reason
+    }
+    class Learning {
+      +String source
+      +int readings
+      +List~LearnedPrediction~ predictions
+      +LearnedMoisture moisture
+      +OperatingState state
+      +LearnedAnomaly anomaly
+    }
+  }
+
+  User "1" --> "0..20" Crop : ownerId
+  User "1" --> "0..*" Notification : userId
+  User "1" --> "0..*" ChannelLink : userId
+  User "1" --> "0..*" PasswordResetToken : userId
+  User --> UserRole
+  Crop *-- Device
+  Crop *-- CropHealth
+  Crop --> CropType
+  Crop "1" --> "0..6" Actuator : cropId
+  Crop "1" --> "0..*" Reading : cropId
+  Crop "1" --> "0..*" Command : cropId
+  Crop "1" --> "0..1" VirtualDevice : cropId
+  Actuator --> ActuatorType
+  Actuator "1" --> "0..*" Command : actuatorId
+  Reading *-- Measures
+  Reading --> ReadingSource
+  Command --> CommandAction
+  Command --> CommandStatus
+  Command --> CommandSource
+  Notification --> NotificationType
+  ChannelLink --> ChannelType
+  ChannelLink ..> NotificationType : events
+  NotificationChannel <|.. TelegramChannel
+  NotificationChannel ..> ChannelLink : entrega a
+  VirtualDevice *-- VirtualLocation
+  VirtualDevice --> VirtualMode
+  VirtualDevice *-- Measures : manual
+  MqttGateway <|.. PahoMqttGateway
+  MqttGateway <|.. DisabledMqttGateway
+  DeviceProvisioner ..> MqttGateway
+  DeviceProvisioner ..> Device : clave descifrada
+  InsightRequest ..> Measures
+  InsightRequest ..> Crop : se arma con
+  InsightResponse *-- Diagnosis
+  InsightResponse *-- Forecast
+  InsightResponse *-- Action
+  InsightResponse *-- Learning
+  InsightResponse ..> CropHealth : actualiza
+  Action ..> Command : con modo automático
