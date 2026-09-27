@@ -1,26 +1,33 @@
-# **SmartPot: Automated Hydroponic Garden Management System**
+# SmartPot 🌱
 
-**SmartPot** is a software system designed for managing and automating hydroponic gardens, with a focus on tomato and lettuce crops. By integrating Internet of Things (IoT) technologies, SmartPot provides a comprehensive solution for optimizing plant care, minimizing manual intervention, and ensuring sustainable agricultural practices.
+**Tu huerto hidropónico, en tu bolsillo.** SmartPot mide la temperatura, la humedad, la luz, el pH, los nutrientes y la humedad del sustrato de tus cultivos, te dice qué necesitan y, si quieres, se encarga de regarlos, iluminarlos y ventilarlos.
 
-## **Project Overview:**
+[smartpot.app](https://smartpot.app) · [Documentación](https://github.com/SmartPotTech/.github/tree/main/docs) · [Probar la demo](https://github.com/SmartPotTech/.github/tree/main/docker/demo)
 
-- **Advanced Simulation:** Using the Wokwi platform to simulate sensors and actuators, allowing for precise development and testing without the need for physical hardware.
-- **Complete Software Solution:** Development of a system that includes a database, efficient backend, intuitive frontend, data analytics capabilities, and process automation systems.
-- **Real-time Monitoring:** Virtual sensors measure critical parameters such as humidity, light, temperature, pH, and nutrient levels.
-- **Automated Control:** Algorithms adjust cultivation conditions based on sensor data and crop-specific standards, ensuring optimal plant growth.
-- **Customizable Prototype:** Focused on hydroponic gardens for tomatoes and lettuce, with the flexibility to add or remove sensors and actuators as needed.
+## Cómo funciona
 
-## **Key Features:**
+1. **La maceta** (ESP32 con MicroPython) envía sus lecturas por MQTT cifrado cada pocos segundos.
+2. **La API** las guarda y las compara con el rango ideal de la especie: lechuga, tomate, fresa, albahaca, espinaca o pimentón.
+3. **El asistente de IA** combina un sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo para diagnosticar el cultivo, calcular su índice de salud y proponer acciones. De noche entiende que la planta descansa.
+4. **La app** (PWA instalable) muestra todo en tiempo real, envía alertas y permite encender la bomba, la luz o el ventilador, o dejar que el agente lo haga en modo automático.
 
-- **Real-time Control:** Monitor and control environmental conditions, irrigation, and lighting.
-- **API Integration:** Real-time access to data and control via a custom API.
-- **User Interface:** An intuitive web portal to manage and visualize the garden's status, sensor data, and automated processes.
-- **Automation:** Control of irrigation, lighting, and other environmental factors based on sensor readings.
-- **Data Analysis:** Historical data tracking with reports and analytics to optimize plant growth.
-  
-### Technologies Used:
-- **IoT Integration**: Simulation of hardware using **Wokwi** with virtual sensors (temperature, humidity, pH, light, and nutrient levels). The ESP32 microcontroller is programmed with **MicroPython** to interact with the virtual sensors and send real-time data to the backend.
-- **Backend**: A **Java-based Spring Boot API** developed with **Maven** and **Java 17**, using **Spring Security** and **JWT** for authentication. The backend facilitates communication between the IoT system (simulated in Wokwi) and the user portal, and processes the sensor data from the ESP32.
-- **Frontend**: A dynamic **web portal** built with **React**, **Vite**, and **SWC** for fast development and efficient bundling. The frontend allows for easy monitoring, control of the system, and displays real-time data from the IoT sensors. The portal interacts with the backend via a **RESTful API**.
-- **Database**: A **relational database** (e.g., H2 or MySQL) is used for **storing and managing sensor data**, allowing for analytical reports and data visualization.
-- **API**: A **RESTful API** provides real-time communication between the **IoT ecosystem** and the **management portal**, with endpoints secured using JWT tokens. This API handles both data retrieval and device control commands from the frontend.
+## Repositorios
+
+| Repositorio | Qué hace |
+| --- | --- |
+| [SmartPot-Web](https://github.com/SmartPotTech/SmartPot-Web) | Aplicación web progresiva en React |
+| [SmartPot-API](https://github.com/SmartPotTech/SmartPot-API) | API REST y puente MQTT en Spring Boot |
+| [SmartPot-AI](https://github.com/SmartPotTech/SmartPot-AI) | Asistente de IA en FastAPI y scikit-learn |
+| [SmartPot-Broker](https://github.com/SmartPotTech/SmartPot-Broker) | Broker MQTT Mosquitto con una cuenta por maceta |
+| [SmartPot-IoT](https://github.com/SmartPotTech/SmartPot-IoT) | Firmware de la maceta y simulación en Wokwi |
+| [SmartPot-DataGenerator](https://github.com/SmartPotTech/SmartPot-DataGenerator) | Macetas simuladas para pruebas y demos |
+| [SmartPot-DB](https://github.com/SmartPotTech/SmartPot-DB) · [SmartPot-Cache](https://github.com/SmartPotTech/SmartPot-Cache) · [SmartPot-Mail](https://github.com/SmartPotTech/SmartPot-Mail) | MongoDB, Redis y Mailpit endurecidos |
+| [.github](https://github.com/SmartPotTech/.github) | Entornos, despliegue, QA y documentación |
+
+## Tecnologías
+
+React 19 · TypeScript · Tailwind CSS · Java 21 · Spring Boot 4 · Python 3.13 · FastAPI · scikit-learn · MicroPython · Eclipse Mosquitto · MongoDB · Redis · Docker · Kubernetes · GitHub Actions
+
+## Contribuir
+
+Lee la [guía de contribución](https://github.com/SmartPotTech/.github/blob/main/CONTRIBUTING.md) y la [política de seguridad](https://github.com/SmartPotTech/.github/blob/main/SECURITY.md). Todo el código está bajo licencia MIT.
