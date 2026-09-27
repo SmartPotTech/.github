@@ -95,7 +95,7 @@ services:
       MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD:?Falta MQTT_ADMIN_PASSWORD en el .env}
       MQTT_TLS_MAX_CONNECTIONS: ${MQTT_TLS_MAX_CONNECTIONS:-200}
     ports:
-      # Las macetas se conectan desde internet por TLS; el WebSocket queda detrás de nginx.
+      # Los dispositivos de los cultivos reales se conectan desde internet por TLS; el WebSocket queda detrás de nginx.
       - "${SMARTPOT_MQTT_TLS_BIND:-0.0.0.0}:${SMARTPOT_MQTT_TLS_PORT:-8883}:8883"
       - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MQTT_WS_PORT:-9001}:9001"
     volumes:
@@ -229,7 +229,7 @@ services:
     environment:
       MQTT_HOST: broker-smartpot
       MQTT_PORT: "1883"
-      # Macetas fijas opcionales; las virtuales las pide la API con el token.
+      # Cultivos fijos opcionales; los virtuales los pide la API con el token.
       SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
       SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-60}
       SIMULATOR_UTC_OFFSET: ${SIMULATOR_UTC_OFFSET:--5}

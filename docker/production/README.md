@@ -1,12 +1,12 @@
 # **Despliegue de SmartPot en Producción con Docker**
 
-Esta guía describe el entorno **de producción** de SmartPot: un servidor propio detrás de Nginx con HTTPS, con el broker MQTT expuesto por TLS para las macetas y actualizado automáticamente por GitHub Actions cada vez que cambia `main` en cualquiera de los servicios.
+Esta guía describe el entorno **de producción** de SmartPot: un servidor propio detrás de Nginx con HTTPS, con el broker MQTT expuesto por TLS para los dispositivos de los cultivos reales y actualizado automáticamente por GitHub Actions cada vez que cambia `main` en cualquiera de los servicios.
 
 | Dominio | Servicio |
 | --- | --- |
 | `smartpot.app` (y `www`) | PWA |
 | `api.smartpot.app` | API REST y documentación en `/docs` |
-| `mqtt.smartpot.app:8883` | MQTT sobre TLS (1.2 o superior) para las macetas |
+| `mqtt.smartpot.app:8883` | MQTT sobre TLS (1.2 o superior) para los dispositivos |
 | `wss://mqtt.smartpot.app/mqtt` | MQTT sobre WebSocket seguro |
 | `mail.smartpot.app` | Bandeja de Mailpit (con usuario y contraseña) |
 
@@ -18,7 +18,7 @@ Esta guía describe el entorno **de producción** de SmartPot: un servidor propi
 * Un usuario SSH con acceso a Docker (`root` o con `sudo` sin contraseña).
 * **Nginx** y **Certbot** para publicar los dominios con HTTPS.
 * Registros `A` de `smartpot.app`, `api`, `mqtt` y `mail` apuntando al servidor, y `www` como `CNAME` de `smartpot.app`.
-* El puerto **8883/tcp** abierto en el firewall para las macetas.
+* El puerto **8883/tcp** abierto en el firewall para los dispositivos.
 
 ---
 
@@ -27,7 +27,7 @@ Esta guía describe el entorno **de producción** de SmartPot: un servidor propi
 ```mermaid
 flowchart LR
   B[Navegador] -->|HTTPS 443| N[Nginx + Let's Encrypt]
-  M[Maceta ESP32] -->|MQTT TLS 8883| K[broker-smartpot]
+  M[ESP32 de un cultivo real] -->|MQTT TLS 8883| K[broker-smartpot]
   N -->|127.0.0.1:5173| W[web-smartpot]
   N -->|127.0.0.1:8091| A[api-smartpot]
   N -->|127.0.0.1:9001 wss| K
@@ -55,7 +55,7 @@ flowchart LR
 | `web-smartpot` | `public` | `127.0.0.1:5173` | `PUBLIC_API_URL` |
 | `simulator-smartpot` | `internal` + `public` (solo salida, para el clima) | Ninguno | `SIMULATOR_*` |
 
-Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a cada contenedor solo sus variables: la PWA no ve el secreto JWT y el servicio de IA solo conoce su token. La red `internal` no tiene salida a internet: MongoDB, Redis y la IA no son alcanzables desde fuera. El simulador de macetas virtuales solo usa `public` para consultar el clima y no publica puertos; su API de control la usa únicamente la API de SmartPot, con token.
+Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a cada contenedor solo sus variables: la PWA no ve el secreto JWT y el servicio de IA solo conoce su token. La red `internal` no tiene salida a internet: MongoDB, Redis y la IA no son alcanzables desde fuera. El simulador de cultivos virtuales solo usa `public` para consultar el clima y no publica puertos; su API de control la usa únicamente la API de SmartPot, con token.
 
 ### Endurecimiento aplicado
 
@@ -66,7 +66,7 @@ Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a c
 | Usuarios sin privilegios en todas las imágenes | Imágenes |
 | Límites de CPU y memoria, `ulimits` y rotación de logs (10 MB × 3) | Todos los servicios |
 | Solo el broker escucha fuera de `127.0.0.1`, y solo por TLS | `broker-smartpot` |
-| Cada maceta tiene su propia cuenta MQTT y solo accede a sus tópicos | Seguridad dinámica de Mosquitto |
+| Cada cultivo tiene su propia cuenta MQTT y solo accede a sus tópicos | Seguridad dinámica de Mosquitto |
 | Healthchecks y arranque ordenado (`depends_on: service_healthy`) | Todos los servicios |
 | `.env` y certificados solo durante el despliegue | Workflow de despliegue |
 | Imágenes con SBOM y atestación de procedencia | GHCR |
@@ -142,7 +142,7 @@ CLIENT_NAME=smartpot-device sh scripts/generate-certs.sh certs mqtt.smartpot.app
 ```
 
 > [!IMPORTANT]
-> Usa una llave SSH dedicada al despliegue y genera secretos propios. `SMARTPOT_AES_KEY` cifra las claves de las macetas: si cambia, hay que rotar la clave de cada maceta. Nunca actives `SMARTPOT_SEED_DEMO` en producción.
+> Usa una llave SSH dedicada al despliegue y genera secretos propios. `SMARTPOT_AES_KEY` cifra las claves de los dispositivos: si cambia, hay que rotar la clave de cada cultivo real. Nunca actives `SMARTPOT_SEED_DEMO` en producción.
 
 ### Variables de `ENV_FILE`
 
@@ -160,10 +160,10 @@ CLIENT_NAME=smartpot-device sh scripts/generate-certs.sh certs mqtt.smartpot.app
 | `SMARTPOT_AES_KEY` | Base64 de 32 bytes aleatorios |
 | `SMARTPOT_AI_TOKEN` | Token interno entre la API y la IA, al menos 24 caracteres |
 | `WEB_BASE_URL` / `PUBLIC_API_URL` / `CORS_ALLOWED_ORIGINS` | Dominios públicos de la PWA y la API |
-| `MQTT_PUBLIC_*` / `MQTT_WEBSOCKET_URL` | Lo que la PWA muestra a la maceta para conectarse |
+| `MQTT_PUBLIC_*` / `MQTT_WEBSOCKET_URL` | Lo que la PWA muestra en la guía para conectar el dispositivo |
 | `AI_TIMEZONE` | Zona horaria del descanso nocturno del asistente, `America/Bogota` |
 | `LEARNING_MIN_SAMPLES` / `LEARNING_RETRAIN_EVERY` / `LEARNING_RETENTION_DAYS` | Aprendizaje continuo: lecturas para el primer entrenamiento (200), lecturas nuevas para reentrenar (300) y días que se guardan (60) |
-| `SIMULATOR_TOKEN` | Token entre la API y el simulador, al menos 24 caracteres; sin él las macetas virtuales quedan deshabilitadas |
+| `SIMULATOR_TOKEN` | Token entre la API y el simulador, al menos 24 caracteres; sin él no se pueden crear cultivos virtuales |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_BOT_USERNAME` | Bot creado con [@BotFather](https://t.me/BotFather); vacíos, el canal no se ofrece |
 | `TELEGRAM_MODE` / `TELEGRAM_WEBHOOK_SECRET` | `webhook` en producción: la API registra `PUBLIC_API_URL/api/v1/channels/telegram/webhook` y exige el secreto en cada llamada |
 
@@ -217,7 +217,7 @@ docker exec -i smartpot-db sh -c 'mongorestore --drop --archive --gzip \
   < backups/smartpot-<fecha>.archive.gz
 ```
 
-Las cuentas MQTT no necesitan respaldo: al conectarse, la API vuelve a crear en el broker la cuenta de cada maceta a partir de la base de datos.
+Las cuentas MQTT no necesitan respaldo: al conectarse, la API vuelve a crear en el broker la cuenta de cada cultivo a partir de la base de datos.
 
 ---
 
@@ -235,7 +235,7 @@ done
 nginx -t && systemctl reload nginx
 ```
 
-`mqtt.smartpot.app` solo publica `/mqtt` (WebSocket hacia `127.0.0.1:9001`); las macetas no pasan por nginx, se conectan directo al puerto 8883 con la CA de SmartPot. La PWA necesita HTTPS para registrar el service worker e instalarse.
+`mqtt.smartpot.app` solo publica `/mqtt` (WebSocket hacia `127.0.0.1:9001`); los dispositivos no pasan por nginx, se conectan directo al puerto 8883 con la CA de SmartPot. La PWA necesita HTTPS para registrar el service worker e instalarse.
 
 Firewall: además de SSH, 80 y 443, solo hace falta `8883/tcp`.
 
