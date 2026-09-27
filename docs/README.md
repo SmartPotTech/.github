@@ -2,7 +2,7 @@
 
 | Documento | Qué cuenta | Formato |
 | --- | --- | --- |
-| Documentación técnica de la plataforma | La plataforma tal como funciona hoy: arquitectura, contratos MQTT y REST, asistente de IA y aprendizaje continuo, Telegram, macetas virtuales, datos, PWA, firmware, seguridad, despliegue, calidad y operación | [Markdown](SmartPot_Technical_Documentation.md) · [DOCX](SmartPot_Technical_Documentation.docx) · [PDF](SmartPot_Technical_Documentation.pdf) |
+| Documentación técnica de la plataforma | La plataforma tal como funciona hoy: arquitectura, contratos MQTT y REST, asistente de IA y aprendizaje continuo, Telegram, cultivos reales y virtuales, cultivo en vivo, datos, PWA, firmware, seguridad, despliegue, calidad y operación | [Markdown](SmartPot_Technical_Documentation.md) · [DOCX](SmartPot_Technical_Documentation.docx) · [PDF](SmartPot_Technical_Documentation.pdf) |
 | Recorrido del proyecto | Requisito por requisito y diagrama por diagrama: qué se planeó en la fase de diseño, qué quedó construido y cómo se comprueba | [Markdown](SmartPot_Project_Journey.md) · [DOCX](SmartPot_Project_Journey.docx) · [PDF](SmartPot_Project_Journey.pdf) |
 | Ciclo de vida del software | La lectura crítica de cada etapa: formulación y evaluación, gestión, análisis, diseño, construcción, pruebas y mejora continua, con todos los diagramas | [Markdown](SmartPot_Software_Lifecycle.md) · [DOCX](SmartPot_Software_Lifecycle.docx) · [PDF](SmartPot_Software_Lifecycle.pdf) |
 
@@ -26,7 +26,7 @@ Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos sale
 | 12 Componentes | Flujo | Recorrido, ciclo de vida |
 | 13 Actividad del control automático | Actividad | Recorrido, ciclo de vida |
 | 14 Vinculación de Telegram | Secuencia | Los tres |
-| 15 Maceta virtual con clima real | Secuencia | Los tres |
+| 15 Cultivo virtual con clima real | Secuencia | Los tres |
 | 16 Aprendizaje continuo | Flujo | Los tres |
 | 17 Etapas del proyecto | Flujo | Recorrido, ciclo de vida |
 | 18 Árbol de problemas | Flujo | Ciclo de vida |
@@ -55,11 +55,11 @@ Diagramas independientes, sin límite de tamaño, que muestran la plataforma com
 
 | Diagrama general | Qué muestra | Archivos |
 | --- | --- | --- |
-| 01 Arquitectura completa | Personas y macetas, borde (UFW y Nginx), los ocho contenedores con sus módulos internos, puertos, redes, volúmenes y servicios externos | [MMD](diagrams/SmartPot_Global_01_Architecture.mmd) · [PNG](diagrams/SmartPot_Global_01_Architecture.png) · [SVG](diagrams/SmartPot_Global_01_Architecture.svg) |
-| 02 Operación completa | Secuencia de 16 escenas y más de 150 mensajes numerados: arranque, registro, cultivo, conexión, maceta virtual, lectura con automatización, aprendizaje, Telegram, PWA, órdenes, vinculación, desconexión, rotación de la clave, recuperación de la contraseña, borrado y salud | [MMD](diagrams/SmartPot_Global_02_Operation_Sequence.mmd) · [PNG](diagrams/SmartPot_Global_02_Operation_Sequence.png) · [SVG](diagrams/SmartPot_Global_02_Operation_Sequence.svg) |
+| 01 Arquitectura completa | Personas y dispositivos, borde (UFW y Nginx), los ocho contenedores con sus módulos internos, puertos, redes, volúmenes y servicios externos | [MMD](diagrams/SmartPot_Global_01_Architecture.mmd) · [PNG](diagrams/SmartPot_Global_01_Architecture.png) · [SVG](diagrams/SmartPot_Global_01_Architecture.svg) |
+| 02 Operación completa | Secuencia de 16 escenas y más de 150 mensajes numerados: arranque, registro, cultivo real o virtual, conexión, simulación, lectura con automatización, aprendizaje, Telegram, PWA, órdenes, vinculación, desconexión, rotación de la clave, recuperación de la contraseña, borrado y salud | [MMD](diagrams/SmartPot_Global_02_Operation_Sequence.mmd) · [PNG](diagrams/SmartPot_Global_02_Operation_Sequence.png) · [SVG](diagrams/SmartPot_Global_02_Operation_Sequence.svg) |
 | 03 Entrega continua | Del commit al servidor: CI, QA con E2E, imágenes en GHCR y Docker Hub, despliegue central, secretos y entornos (demo, desarrollo, producción y Kubernetes) | [MMD](diagrams/SmartPot_Global_03_Delivery.mmd) · [PNG](diagrams/SmartPot_Global_03_Delivery.png) · [SVG](diagrams/SmartPot_Global_03_Delivery.svg) |
 | 04 Linaje de los datos | De dónde sale cada dato, por dónde viaja, dónde se guarda (MongoDB, Redis, SQLite, modelos y navegador) y quién lo usa | [MMD](diagrams/SmartPot_Global_04_Data_Lineage.mmd) · [PNG](diagrams/SmartPot_Global_04_Data_Lineage.png) · [SVG](diagrams/SmartPot_Global_04_Data_Lineage.svg) |
-| 05 Máquinas de estado | Sesión, maceta y su cuenta MQTT, comando, evaluación del cultivo, modo automático, aprendizaje por especie, vínculo de Telegram y maceta virtual | [MMD](diagrams/SmartPot_Global_05_State_Machines.mmd) · [PNG](diagrams/SmartPot_Global_05_State_Machines.png) · [SVG](diagrams/SmartPot_Global_05_State_Machines.svg) |
+| 05 Máquinas de estado | Sesión, dispositivo y su cuenta MQTT, comando, evaluación del cultivo, modo automático, aprendizaje por especie, vínculo de Telegram y simulación de un cultivo virtual | [MMD](diagrams/SmartPot_Global_05_State_Machines.mmd) · [PNG](diagrams/SmartPot_Global_05_State_Machines.png) · [SVG](diagrams/SmartPot_Global_05_State_Machines.svg) |
 | 06 Modelo de dominio | Entidades, enumeraciones e interfaces de la API y el contrato de la IA, con relaciones y cardinalidades | [MMD](diagrams/SmartPot_Global_06_Domain_Model.mmd) · [PNG](diagrams/SmartPot_Global_06_Domain_Model.png) · [SVG](diagrams/SmartPot_Global_06_Domain_Model.svg) |
 | 07 Recorrido de la PWA | Cada pantalla, las rutas de la API que llama y el servicio que responde | [MMD](diagrams/SmartPot_Global_07_User_Journey.mmd) · [PNG](diagrams/SmartPot_Global_07_User_Journey.png) · [SVG](diagrams/SmartPot_Global_07_User_Journey.svg) |
 | 08 Decisión de la IA | De la lectura a la orden: diagnóstico, pronóstico, modelos base y aprendidos, las 19 reglas, índice difuso, agente y lo que hace la API | [MMD](diagrams/SmartPot_Global_08_AI_Decision.mmd) · [PNG](diagrams/SmartPot_Global_08_AI_Decision.png) · [SVG](diagrams/SmartPot_Global_08_AI_Decision.svg) |
