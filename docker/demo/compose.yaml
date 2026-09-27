@@ -1,4 +1,5 @@
-# Demo de SmartPot en un solo comando. Las contraseñas son públicas: solo para uso local.
+# Demo de SmartPot en un solo comando con las imágenes de GHCR. Las contraseñas son públicas: solo para uso local.
+# Para usar Docker Hub, suma compose.dockerhub.yaml (ver README).
 name: smartpot-demo
 
 x-hardening: &hardening
@@ -18,6 +19,7 @@ x-hardening: &hardening
 x-demo-secrets:
   mqtt-admin: &mqtt-admin demo-mqtt-admin-password
   ai-token: &ai-token demo-ai-token-for-local-use-only
+  simulator-token: &simulator-token demo-simulator-token-for-local-use
   redis: &redis demo-redis-password-123
   db-app: &db-app demo-app-password-123
   mail: &mail demo-mail-password
@@ -91,6 +93,10 @@ services:
     container_name: smartpot-demo-ai
     environment:
       SMARTPOT_AI_TOKEN: *ai-token
+      # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar.
+      LEARNING_CHECK_SECONDS: "120"
+    volumes:
+      - ai_data:/data
     tmpfs:
       - /tmp
     networks:
@@ -121,6 +127,13 @@ services:
       AI_BASE_URL: http://ai-smartpot:8000
       SMARTPOT_AI_TOKEN: *ai-token
       AI_EVALUATION_INTERVAL: PT1M
+      AI_LEARNING_FLUSH_INTERVAL: PT15S
+      SIMULATOR_BASE_URL: http://simulator-smartpot:8081
+      SIMULATOR_TOKEN: *simulator-token
+      # Opcional: con tu propio bot de @BotFather las alertas llegan por Telegram (sondeo, sin dirección pública).
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_MODE: polling
     ports:
       - "127.0.0.1:8091:8091"
     tmpfs:
@@ -159,17 +172,21 @@ services:
       MQTT_PORT: "1883"
       SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
       SIMULATOR_INTERVAL_SECONDS: "15"
+      SIMULATOR_TOKEN: *simulator-token
     tmpfs:
       - /tmp
     depends_on:
       api-smartpot:
         condition: service_healthy
+    # La red pública solo da salida a internet para consultar el clima; no publica puertos.
     networks:
       - internal
+      - public
 
 volumes:
   db_data:
   broker_data:
+  ai_data:
 
 networks:
   internal:
