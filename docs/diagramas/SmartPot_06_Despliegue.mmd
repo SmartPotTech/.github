@@ -3,7 +3,8 @@ flowchart TB
   subgraph github["GitHub · SmartPotTech"]
     repo["Push a main<br/>en un servicio"] --> ci["CI del repo<br/>pruebas · CodeQL"]
     repo --> pkg["packaging.yml<br/>imagen + SBOM + procedencia"]
-    pkg --> ghcr[("GHCR y Docker Hub")]
+    pkg --> ghcr[("GHCR<br/>registro de despliegue")]
+    pkg --> hub[("Docker Hub<br/>réplica de distribución")]
     pkg --> dep["deploy.yml del repo<br/>request-deploy.yml"]
     dep -->|"workflow_dispatch<br/>DEPLOY_DISPATCH_TOKEN"| queue["Cola smartpot-production<br/>uno en curso · el último en espera"]
     queue --> central["deploy.yml central<br/>(.github)"]
@@ -20,12 +21,13 @@ flowchart TB
   stage --> certs
   stage --> compose
   ghcr -->|"pull"| compose
+  hub -.->|"demo a elección"| demo["Demo local<br/>compose.dockerhub.yaml"]
   central -->|"GET /health"| nginx
   classDef gh fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef key fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef srv fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
-  class repo,ci,pkg,dep gh
+  class repo,ci,pkg,dep,demo gh
   class central core
   class secrets,certs,queue key
   class stage,compose,nginx srv
