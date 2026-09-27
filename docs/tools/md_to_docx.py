@@ -437,13 +437,32 @@ def table(doc: Document, rows: list[list[str]]) -> str:
 
 def callout(doc: Document, kind: str, lines: list[str]) -> str:
     fill, bar, title_color, default_title = CALLOUTS.get(kind, CALLOUTS["NOTE"])
-    text = " ".join(line.strip() for line in lines).strip()
+    # Una línea vacía separa párrafos y las líneas con guion son viñetas dentro del recuadro.
+    parts, current = [], []
+    for line in (line.strip() for line in lines):
+        item = re.match(r"^[-*]\s+(.*)$", line)
+        if not line or item:
+            if current:
+                parts.append(("p", " ".join(current)))
+                current = []
+            if item:
+                parts.append(("li", item.group(1)))
+            continue
+        current.append(line)
+    if current:
+        parts.append(("p", " ".join(current)))
     title = default_title
-    match = re.match(r"^\*\*(.+?)\.\*\*\s*(.*)$", text)
-    if match:
-        title, text = match.group(1), match.group(2)
-    content = (paragraph(run(title.upper(), size=15, color=title_color, bold=True, spacing=40), after=60, line=240)
-               + paragraph(inline(doc, text, size=18), after=0, line=276))
+    if parts and parts[0][0] == "p" and (match := re.match(r"^\*\*(.+?)\.\*\*\s*(.*)$", parts[0][1])):
+        title, parts[0] = match.group(1), ("p", match.group(2))
+    parts = [part for part in parts if part[1]]
+    content = paragraph(run(title.upper(), size=15, color=title_color, bold=True, spacing=40), after=60, line=240)
+    for index, (part, text) in enumerate(parts):
+        after = 0 if index == len(parts) - 1 else (40 if part == "li" else 100)
+        if part == "li":
+            content += paragraph(run("•", size=18, color=bar, bold=True) + "<w:r><w:tab/></w:r>" + inline(doc, text, size=18),
+                                 after=after, line=276, extra='<w:ind w:left="300" w:hanging="220"/>')
+        else:
+            content += paragraph(inline(doc, text, size=18), after=after, line=276)
     return spacer(80) + box(BODY_W, fill, content, left_bar=bar) + spacer(160)
 
 
