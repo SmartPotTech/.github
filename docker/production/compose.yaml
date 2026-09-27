@@ -1,0 +1,246 @@
+name: smartpot
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  ulimits:
+    nofile:
+      soft: 65536
+      hard: 65536
+
+services:
+  db-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-db:${SMARTPOT_DB_TAG:-latest}
+    container_name: smartpot-db
+    profiles:
+      - db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-smartpot-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-}
+      SMARTPOT_DB_NAME: ${SMARTPOT_DB_NAME:-smartpot}
+      SMARTPOT_DB_USERNAME: ${SMARTPOT_DB_USERNAME:-smartpot}
+      SMARTPOT_DB_PASSWORD: ${SMARTPOT_DB_PASSWORD:-}
+      SMARTPOT_SEED_DEMO: ${SMARTPOT_SEED_DEMO:-false}
+    volumes:
+      - db_data:/data/db
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          memory: 256M
+
+  cache-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-cache:${SMARTPOT_CACHE_TAG:-latest}
+    container_name: smartpot-cache
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en el .env}
+      REDIS_MAXMEMORY: ${REDIS_MAXMEMORY:-128mb}
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 192M
+
+  mail-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-mail:${SMARTPOT_MAIL_TAG:-latest}
+    container_name: smartpot-mail
+    profiles:
+      - mail
+    environment:
+      MAIL_USERNAME: ${MAIL_USERNAME:-smartpot}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAILPIT_UI_USERNAME: ${MAILPIT_UI_USERNAME:-admin}
+      MAILPIT_UI_PASSWORD: ${MAILPIT_UI_PASSWORD:-}
+    ports:
+      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MAIL_UI_PORT:-8025}:8025"
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+      - public
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+  broker-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-broker:${SMARTPOT_BROKER_TAG:-latest}
+    container_name: smartpot-broker
+    environment:
+      MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:-smartpot-api}
+      MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD:?Falta MQTT_ADMIN_PASSWORD en el .env}
+      MQTT_TLS_MAX_CONNECTIONS: ${MQTT_TLS_MAX_CONNECTIONS:-200}
+    ports:
+      # Las macetas se conectan desde internet por TLS; el WebSocket queda detrás de nginx.
+      - "${SMARTPOT_MQTT_TLS_BIND:-0.0.0.0}:${SMARTPOT_MQTT_TLS_PORT:-8883}:8883"
+      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MQTT_WS_PORT:-9001}:9001"
+    volumes:
+      - broker_data:/mosquitto/data
+      - ${SMARTPOT_CERTS_DIR:-/etc/mosquitto/certs}:/etc/mosquitto/certs:ro
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+      - public
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  ai-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-ai:${SMARTPOT_AI_TAG:-latest}
+    container_name: smartpot-ai
+    environment:
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 192M
+
+  api-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-api:${SMARTPOT_API_TAG:-latest}
+    container_name: smartpot-api
+    ports:
+      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_API_PORT:-8091}:8091"
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-true}
+      WEB_BASE_URL: ${WEB_BASE_URL:?Falta WEB_BASE_URL en el .env}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:?Falta PUBLIC_API_URL en el .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?Falta CORS_ALLOWED_ORIGINS en el .env}
+      SMARTPOT_JWT_SECRET: ${SMARTPOT_JWT_SECRET:?Falta SMARTPOT_JWT_SECRET en el .env}
+      SMARTPOT_AES_KEY: ${SMARTPOT_AES_KEY:?Falta SMARTPOT_AES_KEY en el .env}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-P7D}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://${SMARTPOT_DB_USERNAME:-smartpot}:${SMARTPOT_DB_PASSWORD:-}@db-smartpot:27017/${SMARTPOT_DB_NAME:-smartpot}?authSource=${SMARTPOT_DB_NAME:-smartpot}}
+      REDIS_HOST: cache-smartpot
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MAIL_ENABLED: ${MAIL_ENABLED:-true}
+      MAIL_HOST: ${MAIL_HOST:-mail-smartpot}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-smartpot}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
+      MAIL_FROM: ${MAIL_FROM:-SmartPot <no-reply@smartpot.app>}
+      MQTT_BROKER_URI: tcp://broker-smartpot:1883
+      MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:-smartpot-api}
+      MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD}
+      MQTT_PUBLIC_HOST: ${MQTT_PUBLIC_HOST:?Falta MQTT_PUBLIC_HOST en el .env}
+      MQTT_PUBLIC_PORT: ${MQTT_PUBLIC_PORT:-8883}
+      MQTT_PUBLIC_TLS: ${MQTT_PUBLIC_TLS:-true}
+      MQTT_WEBSOCKET_URL: ${MQTT_WEBSOCKET_URL:-}
+      AI_BASE_URL: http://ai-smartpot:8000
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN}
+      AI_TIMEZONE: ${AI_TIMEZONE:-America/Bogota}
+    tmpfs:
+      - /tmp
+    depends_on:
+      db-smartpot:
+        condition: service_healthy
+        required: false
+      cache-smartpot:
+        condition: service_healthy
+      broker-smartpot:
+        condition: service_healthy
+      ai-smartpot:
+        condition: service_healthy
+    networks:
+      - internal
+      - public
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 768M
+        reservations:
+          memory: 384M
+
+  web-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-web:${SMARTPOT_WEB_TAG:-latest}
+    container_name: smartpot-web
+    ports:
+      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_WEB_PORT:-5173}:8080"
+    environment:
+      API_URL: ${PUBLIC_API_URL}
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    networks:
+      - public
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 96M
+
+  simulator-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-datagenerator:${SMARTPOT_SIMULATOR_TAG:-latest}
+    container_name: smartpot-simulator
+    profiles:
+      - simulator
+    environment:
+      MQTT_HOST: broker-smartpot
+      MQTT_PORT: "1883"
+      SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
+      SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-60}
+      SIMULATOR_UTC_OFFSET: ${SIMULATOR_UTC_OFFSET:--5}
+    tmpfs:
+      - /tmp
+    depends_on:
+      api-smartpot:
+        condition: service_healthy
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 96M
+
+volumes:
+  db_data:
+  broker_data:
+
+networks:
+  internal:
+    driver: bridge
+    internal: true
+  public:
+    driver: bridge
