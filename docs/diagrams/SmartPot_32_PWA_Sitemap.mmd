@@ -3,8 +3,9 @@ flowchart LR
   inicio["/ · inicio público<br/>indexable"] --> ingreso["/login · /register<br/>/forgot-password"]
   ingreso --> panel["/app · Panel general"]
   panel --> cultivos["/app/crops · Mis cultivos"]
+  cultivos --> nuevo["Nuevo cultivo<br/>real o virtual · especie · forma"]
   cultivos --> detalle["/app/crops/:id"]
-  detalle --> t1["Resumen"] & t2["Asistente IA"] & t3["Control"] & t4["Historial"] & t5["Dispositivo"] & t6["Maceta virtual"] & t7["Ajustes"]
+  detalle --> t1["Resumen"] & t6["Cultivo en vivo<br/>+ simulación si es virtual"] & t2["Asistente IA"] & t3["Control"] & t4["Historial"] & t5["Dispositivo<br/>solo reales"] & t7["Ajustes"]
   panel --> control["/app/control · Control general"]
   panel --> acciones["/app/actions · Acciones"]
   panel --> aprendizaje["/app/learning · Aprendizaje"]
@@ -20,5 +21,5 @@ flowchart LR
   class inicio,ingreso water
   class panel core
   class cultivos,control,acciones,aprendizaje,alertas,perfil leaf
-  class detalle sun
+  class detalle,nuevo sun
   class t1,t2,t3,t4,t5,t6,t7 muted
