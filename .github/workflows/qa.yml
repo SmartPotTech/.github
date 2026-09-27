@@ -1,0 +1,158 @@
+name: QA
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 11 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: API (Spring Boot)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout API
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-API
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        run: mvn -B verify -f pom.xml
+
+  web:
+    name: Web (React)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Web
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-Web
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24.x
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint, type check, test and build
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+
+  python:
+    name: ${{ matrix.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        repository: [ SmartPot-AI, SmartPot-DataGenerator, SmartPot-IoT ]
+    steps:
+      - name: Checkout ${{ matrix.repository }}
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/${{ matrix.repository }}
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Lint and test
+        run: |
+          uv sync --frozen
+          uv run --frozen ruff check .
+          uv run --frozen pytest
+
+  containers:
+    name: ${{ matrix.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - repository: SmartPot-Broker
+            test: sh tests/smoke.sh smartpot-qa:ci
+          - repository: SmartPot-DB
+            test: sh tests/validate.sh smartpot-qa:ci true
+          - repository: SmartPot-Cache
+            test: sh tests/smoke.sh smartpot-qa:ci
+          - repository: SmartPot-Mail
+            test: sh tests/smoke.sh smartpot-qa:ci
+    steps:
+      - name: Checkout ${{ matrix.repository }}
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/${{ matrix.repository }}
+          persist-credentials: false
+
+      - name: Build image
+        run: docker build -t smartpot-qa:ci .
+
+      - name: Run smoke tests
+        run: ${{ matrix.test }}
+
+  e2e:
+    name: End-to-End
+    needs: [ api, web, python, containers ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout QA configuration
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Checkout services
+        run: |
+          for repo in DB Cache Mail Broker AI API Web DataGenerator; do
+            git clone --depth 1 "https://github.com/SmartPotTech/SmartPot-$repo.git" "services/SmartPot-$repo"
+          done
+
+      - name: Build images
+        run: |
+          for repo in DB Cache Mail Broker AI API Web DataGenerator; do
+            name="$(echo "$repo" | tr '[:upper:]' '[:lower:]')"
+            docker build -q -t "ghcr.io/smartpottech/smartpot-$name:latest" "services/SmartPot-$repo"
+          done
+
+      - name: Start demo stack
+        run: docker compose -f docker/demo/compose.yaml up -d --pull never --wait --wait-timeout 300
+
+      - name: Run end-to-end checks
+        run: python3 scripts/e2e.py
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose -f docker/demo/compose.yaml logs --tail 200
+
+      - name: Stop demo stack
+        if: always()
+        run: docker compose -f docker/demo/compose.yaml down -v
