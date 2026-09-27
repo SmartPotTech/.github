@@ -7,10 +7,15 @@ colores, solo mide el ancho natural del diagrama y elige la escala del PNG.
     python docs/tools/render_diagrams.py                              # todos
     python docs/tools/render_diagrams.py SmartPot_02_Reading_Sequence
     python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Technical_Documentation.md
+    python docs/tools/render_diagrams.py --super                      # superdiagramas, solo SVG
 
 `--sync-md` reemplaza, en el Markdown, el bloque ```mermaid que sigue a cada
 `<!-- diagrama: NOMBRE | titulo=... -->` por el contenido de `diagrams/NOMBRE.mmd`, así el
 Markdown (que GitHub dibuja) y las imágenes del DOCX salen de la misma fuente.
+
+`--super` renderiza los superdiagramas de `docs/superdiagrams/`: diagramas independientes de
+cualquier tamaño que no van en un documento. Salen solo en SVG y sin el límite de texto ni de
+aristas que mermaid aplica por defecto.
 
 Requiere Node.js (usa `npx @mermaid-js/mermaid-cli`) y Google Chrome.
 """
@@ -29,6 +34,10 @@ import tempfile
 DOCS = pathlib.Path(__file__).resolve().parent.parent
 DIAGRAMS = DOCS / "diagrams"
 IMAGES = DOCS / "images" / "diagrams"
+SUPER = DOCS / "superdiagrams"
+SUPER_IMAGES = DOCS / "images" / "superdiagrams"
+# Los superdiagramas superan los límites por defecto de mermaid (50 000 caracteres y 500 aristas).
+SUPER_LIMITS = {"maxTextSize": 5_000_000, "maxEdges": 20_000}
 
 # Versión fija: mermaid cambia el motor de diseño entre versiones mayores.
 MERMAID_CLI = "@mermaid-js/mermaid-cli@11"
@@ -42,7 +51,7 @@ CHROME_CANDIDATES = (
 MAX_WIDTH_PX = 4200
 
 MARKER = re.compile(r"<!--\s*diagrama:\s*([\w.-]+)[^>]*-->\s*\n```mermaid\n[^`]*```")
-VIEWBOX = re.compile(r'viewBox="[-\d.]+ [-\d.]+ ([\d.]+) [\d.]+"')
+VIEWBOX = re.compile(r'viewBox="[-\d.]+ [-\d.]+ ([\d.]+) ([\d.]+)"')
 
 
 def find_chrome(explicit: str | None) -> str:
@@ -79,6 +88,21 @@ def render(source: pathlib.Path, workdir: pathlib.Path, puppeteer: pathlib.Path)
     return not errors
 
 
+def render_super(source: pathlib.Path, workdir: pathlib.Path, puppeteer: pathlib.Path) -> bool:
+    config = workdir / "super-config.json"
+    config.write_text(json.dumps(SUPER_LIMITS), encoding="utf-8")
+    target = SUPER_IMAGES / f"{source.stem}.svg"
+    errors = mmdc(source, target, puppeteer, f'-w 4000 -c "{config}"')
+    size = ""
+    if target.exists():
+        match = VIEWBOX.search(target.read_text(encoding="utf-8"))
+        if match:
+            size = f" · {float(match.group(1)):.0f} × {float(match.group(2)):.0f} px"
+    status = "ERROR" if errors else "OK"
+    print(f"{status:5} {source.stem}{size}", *errors[:6], sep="\n      ")
+    return not errors
+
+
 def sync_markdown(markdown: pathlib.Path) -> None:
     text = markdown.read_text(encoding="utf-8")
 
@@ -101,23 +125,25 @@ def main() -> None:
     parser.add_argument("--sync-md", nargs="*", type=pathlib.Path, default=[],
                         help="Markdown cuyos bloques mermaid se reemplazan por los .mmd")
     parser.add_argument("--no-render", action="store_true", help="Solo sincroniza el Markdown")
+    parser.add_argument("--super", action="store_true", help="Renderiza los superdiagramas (solo SVG)")
     parser.add_argument("--chrome", help="Ejecutable de Chrome para puppeteer")
     args = parser.parse_args()
 
     ok = True
+    folder, images = (SUPER, SUPER_IMAGES) if args.super else (DIAGRAMS, IMAGES)
     if not args.no_render:
-        sources = [DIAGRAMS / f"{n}.mmd" for n in args.names] if args.names else sorted(DIAGRAMS.glob("*.mmd"))
+        sources = [folder / f"{n}.mmd" for n in args.names] if args.names else sorted(folder.glob("*.mmd"))
         missing = [s.name for s in sources if not s.exists()]
         if missing:
             sys.exit("No existen: " + ", ".join(missing))
-        IMAGES.mkdir(parents=True, exist_ok=True)
+        images.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory() as tmp:
             workdir = pathlib.Path(tmp)
             puppeteer = workdir / "puppeteer.json"
             puppeteer.write_text(json.dumps({"executablePath": find_chrome(args.chrome), "args": ["--no-sandbox"]}),
                                  encoding="utf-8")
             for source in sources:
-                ok = render(source, workdir, puppeteer) and ok
+                ok = (render_super if args.super else render)(source, workdir, puppeteer) and ok
 
     for markdown in args.sync_md:
         sync_markdown(markdown)
