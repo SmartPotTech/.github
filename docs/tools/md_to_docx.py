@@ -3,6 +3,11 @@
 
     python docs/tools/md_to_docx.py docs/SmartPot_Technical_Documentation.md --pdf
 
+Sirve también para la documentación de cada repositorio: los diagramas se toman de la carpeta
+`diagrams/` que está junto al Markdown (o de `--diagrams`) y la identidad, de `docs/assets` de aquí.
+
+    python ../.github/docs/tools/md_to_docx.py docs/SmartPot_API_Documentation.md --pdf
+
 El DOCX se arma desde cero (estilos, portada, encabezado, pie y piezas de marca de
 `docs/assets`), sin plantillas externas. Del Markdown entiende el subconjunto que usa la
 documentación de SmartPot:
@@ -856,7 +861,12 @@ def main() -> None:
     parser.add_argument("-o", "--output", type=pathlib.Path, help="DOCX de salida (por defecto, junto al .md)")
     parser.add_argument("--pdf", action="store_true", help="Genera también el PDF con LibreOffice")
     parser.add_argument("--soffice", help="Ejecutable de LibreOffice")
+    parser.add_argument("--diagrams", type=pathlib.Path,
+                        help="Carpeta con los PNG de los diagramas (por defecto, diagrams/ junto al .md)")
     args = parser.parse_args()
+
+    global DIAGRAMS
+    DIAGRAMS = (args.diagrams or args.markdown.resolve().parent / "diagrams").resolve()
 
     output = args.output or args.markdown.with_suffix(".docx")
     build(args.markdown, output)
