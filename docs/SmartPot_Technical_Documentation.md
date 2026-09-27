@@ -626,6 +626,8 @@ erDiagram
 
 La API se conecta con un usuario propio (`smartpot`) con permisos `readWrite` solo sobre su base; el usuario administrador de MongoDB no se usa en la aplicación.
 
+Los validadores viven en un solo archivo de SmartPot-DB (`schemas/collections.js`). Una base nueva los recibe al crearse; una existente, con la **migración** (`/opt/smartpot/migrate.js`), que el despliegue ejecuta después de actualizar los contenedores. Es idempotente: crea las colecciones que falten y pone o actualiza cada validador sin tocar los documentos. Si una colección tiene documentos antiguos que no cumplen el esquema, su validación queda en `moderate` para que se puedan seguir actualizando; si no, en `strict`.
+
 ## 8. Aplicación web
 
 ### En palabras simples
@@ -788,9 +790,9 @@ flowchart TB
     secrets["Secrets solo en .github<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
   end
   subgraph servidor["Servidor"]
-    stage[".deploy-<id><br/>compose.yaml · .env · certificados"]
+    stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
     certs["/etc/mosquitto/certs<br/>usuario 1883"]
-    compose["docker compose -p smartpot<br/>pull + up --wait"]
+    compose["docker compose -p smartpot<br/>pull + up --wait<br/>migración de la base"]
     nginx["Nginx + Let's Encrypt"]
   end
   central -->|"SSH + flock"| stage
@@ -809,7 +811,7 @@ flowchart TB
   class stage,compose,nginx srv
 ```
 
-Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub, como réplica, si tiene `DOCKER_USERNAME` y `DOCKER_PASSWORD`) y pide el despliegue al workflow central con `request-deploy.yml`, que espera el resultado. Solo `SmartPotTech/.github` se conecta al servidor, y su `deploy.yml` corre de a uno (`concurrency`): si llegan varios pedidos mientras despliega, queda en espera solo el más reciente, porque cada despliegue descarga todas las imágenes. El workflow valida el `ENV_FILE` (longitudes mínimas, llave AES de 32 bytes, variables por perfil), comprueba que el certificado del broker esté firmado por la CA y que la llave le corresponda, sube la configuración por SSH, instala los certificados con dueño `1883`, descarga las imágenes desde GHCR, actualiza los contenedores y verifica `/health` desde internet. Los despliegues simultáneos esperan su turno con `flock`.
+Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub, como réplica, si tiene `DOCKER_USERNAME` y `DOCKER_PASSWORD`) y pide el despliegue al workflow central con `request-deploy.yml`, que espera el resultado. Solo `SmartPotTech/.github` se conecta al servidor, y su `deploy.yml` corre de a uno (`concurrency`): si llegan varios pedidos mientras despliega, queda en espera solo el más reciente, porque cada despliegue descarga todas las imágenes. El workflow valida el `ENV_FILE` (longitudes mínimas, llave AES de 32 bytes, variables por perfil), comprueba que el certificado del broker esté firmado por la CA y que la llave le corresponda, sube la configuración por SSH, instala los certificados con dueño `1883`, descarga las imágenes desde GHCR, actualiza los contenedores, aplica los esquemas de la base con la migración de SmartPot-DB y verifica `/health` desde internet. Los despliegues simultáneos esperan su turno con `flock`.
 
 | Secret | Contenido |
 | --- | --- |
@@ -921,6 +923,7 @@ flowchart LR
 | Respaldo | `backup_smartpot.sh`: `mongodump` comprimido con 14 días de retención |
 | Restauración | `mongorestore --drop --archive --gzip` sobre `smartpot-db` |
 | Cambiar configuración | Editar el secret `ENV_FILE` y ejecutar **Deploy to Production** |
+| Migrar la base | La ejecuta cada despliegue; a mano: `docker exec smartpot-db mongosh --quiet /opt/smartpot/migrate.js` (en la demo, `smartpot-demo-db`) |
 | Renovar el certificado del broker | Antes de 825 días: `generate-certs.sh` con la CA existente y actualizar `MQTT_SERVER_CERT` y `MQTT_SERVER_KEY` |
 | Rotar la clave de una maceta | Desde la PWA, pestaña Dispositivo (la maceta virtual toma la clave nueva sola) |
 | Aprendizaje | Página Aprendizaje de la PWA; `docker logs smartpot-ai` muestra cada entrenamiento. Lo aprendido vive en el volumen `ai_data` |
