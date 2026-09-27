@@ -34,12 +34,12 @@ flowchart LR
   subgraph mongo["MongoDB · base smartpot"]
     direction TB
     readings[("readings<br/>cropId · measuredAt · measures · source<br/>índice cropId + measuredAt · TTL 365 d")]
-    crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type")]
+    crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type · kind · form")]
     commands[("commands<br/>actuatorType · action · durationSeconds<br/>status · source USER o AGENT · reason<br/>createdAt · sentAt · completedAt · TTL 180 d")]
     actuators[("actuators<br/>type · active · lastChangedAt")]
     notifications[("notifications<br/>type INFO, ALERT, COMMAND, DEVICE o AI<br/>title · message · read · TTL 90 d")]
     links[("channel_links<br/>TELEGRAM · address (chat) · events<br/>enabled · failures · lastDeliveredAt")]
-    vdevices[("virtual_devices<br/>mode · manual · location · intervalSeconds")]
+    vdevices[("virtual_devices<br/>mode · manual · location · intervalSeconds · active")]
     users[("users · password_reset_tokens<br/>hash BCrypt · hash SHA-256 del token")]
   end
 
@@ -69,7 +69,7 @@ flowchart LR
     pwa["PWA<br/>lecturas frente al rango ideal · gráficos con banda<br/>historial 6 h, 24 h y 7 días · CSV<br/>panel general y comparador · asistente<br/>página Aprendizaje"]
     overview["Panel general<br/>KPIs · series $dateTrunc · flota K-Means"]
     telegram["Telegram<br/>avisos elegidos y /estado"]
-    device(["Maceta<br/>ejecuta la orden y confirma"])
+    device(["Dispositivo o simulación<br/>ejecuta la orden y confirma"])
     browser[("Navegador<br/>JWT en sessionStorage o localStorage<br/>caché del app shell")]
   end
 
@@ -80,7 +80,7 @@ flowchart LR
   manual --> rest --> ranges
   ranges -->|"sí"| readings
   status --> crops
-  readings -->|"ReadingRecordedEvent"| feed
+  readings -->|"ReadingRecordedEvent<br/>solo cultivos reales"| feed
   readings -->|"ventana reciente"| request
   crops --> request
   actuators --> request
