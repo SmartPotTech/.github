@@ -2,7 +2,7 @@
 flowchart TB
   persona(["Dueño del cultivo<br/>horticultor, estudiante o maker"])
   smartpot["<b>SmartPot</b><br/>monitorea, diagnostica y automatiza<br/>cultivos hidropónicos"]
-  maceta(["Maceta<br/>ESP32 físico, Wokwi o virtual"])
+  maceta(["Dispositivo de un cultivo real<br/>ESP32 físico o Wokwi"])
   telegram["Telegram<br/>alertas y bot"]
   clima["Open-Meteo<br/>clima actual"]
   github["GitHub y GHCR<br/>código, CI/CD e imágenes"]
@@ -10,7 +10,7 @@ flowchart TB
   maceta <-->|"MQTT: telemetría, comandos y ACK"| smartpot
   smartpot -->|"avisos elegidos"| telegram
   telegram -->|"/start, /estado"| smartpot
-  smartpot -->|"macetas virtuales"| clima
+  smartpot -->|"cultivos virtuales"| clima
   github -->|"despliegue continuo"| smartpot
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
