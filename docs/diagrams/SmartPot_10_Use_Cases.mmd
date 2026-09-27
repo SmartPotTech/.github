@@ -4,19 +4,20 @@ flowchart LR
   subgraph sistema["SmartPot"]
     direction TB
     cu1["CU001 Ingresar a la plataforma"]
-    cu2["CU002 Conectar y calibrar la maceta"]
-    cu3["CU003 Ver el estado de las plantas"]
+    cu2["CU002 Conectar el dispositivo<br/>ESP32 o Wokwi"]
+    cu3["CU003 Ver el cultivo en vivo"]
     cu4["CU004 Regar automáticamente"]
     cu5["CU005 Recibir alertas"]
     cu6["CU006 Consultar el historial"]
-    cu7["CU007 Configurar el cultivo"]
+    cu7["CU007 Crear y configurar el cultivo<br/>real o virtual, especie y forma"]
     cu8["CU008 Gestionar el perfil"]
     cu9["CU009 Controlar actuadores y en bloque"]
-    cu10["CU010 Encender una maceta virtual"]
+    cu10["CU010 Simular un cultivo virtual"]
     cu11["CU011 Vincular Telegram"]
     cu12["CU012 Ver lo aprendido por la IA"]
   end
-  maceta(("Maceta<br/>física o virtual"))
+  maceta(("Dispositivo<br/>ESP32 o Wokwi"))
+  simulador(("Simulador<br/>de SmartPot"))
   agente(("Agente<br/>de IA"))
   persona --- cu1
   persona --- cu2
@@ -31,11 +32,12 @@ flowchart LR
   persona --- cu12
   cu2 --- maceta
   cu3 --- maceta
+  cu10 --- simulador
   cu4 --- agente
   cu5 --- agente
   classDef actor fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef base fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef nuevo fill:#FDF4DD,stroke:#C98D12,color:#17261F
-  class persona,maceta,agente actor
+  class persona,maceta,simulador,agente actor
   class cu1,cu2,cu3,cu4,cu5,cu6,cu7,cu8 base
   class cu9,cu10,cu11,cu12 nuevo
