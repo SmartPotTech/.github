@@ -1,139 +1,236 @@
-# **Despliegue de SmartPot en Entorno de Producción con Docker**
+# **Despliegue de SmartPot en Producción con Docker**
 
-Este documento describe cómo desplegar el entorno **de producción** del proyecto **SmartPot** utilizando **Docker Compose**.
-En este entorno, SmartPot se conecta a servicios externos (base de datos, caché y correo) para garantizar la máxima estabilidad y disponibilidad.
+Esta guía describe el entorno **de producción** de SmartPot: un servidor propio detrás de Nginx con HTTPS, con el broker MQTT expuesto por TLS para las macetas y actualizado automáticamente por GitHub Actions cada vez que cambia `main` en cualquiera de los servicios.
+
+| Dominio | Servicio |
+| --- | --- |
+| `smartpot.app` (y `www`) | PWA |
+| `api.smartpot.app` | API REST y documentación en `/docs` |
+| `mqtt.smartpot.app:8883` | MQTT sobre TLS 1.2 para las macetas |
+| `wss://mqtt.smartpot.app/mqtt` | MQTT sobre WebSocket seguro |
+| `mail.smartpot.app` | Bandeja de Mailpit (con usuario y contraseña) |
 
 ---
 
 ## **Requisitos Previos**
 
-Asegúrate de tener instaladas las siguientes herramientas en el servidor de despliegue:
-
-* **Docker**: [Instrucciones de instalación](https://docs.docker.com/get-docker/)
-* **Docker Compose**: [Instalación oficial](https://docs.docker.com/compose/install/)
-
-> [!NOTE]
-> Se recomienda ejecutar este entorno en un servidor dedicado o una instancia cloud optimizada para producción.
+* **Docker Engine** y **Docker Compose v2.20 o superior**: [Instrucciones de instalación](https://docs.docker.com/engine/install/)
+* Un usuario SSH con acceso a Docker (`root` o con `sudo` sin contraseña).
+* **Nginx** y **Certbot** para publicar los dominios con HTTPS.
+* Registros `A` de `smartpot.app`, `api`, `mqtt` y `mail` apuntando al servidor, y `www` como `CNAME` de `smartpot.app`.
+* El puerto **8883/tcp** abierto en el firewall para las macetas.
 
 ---
 
 ## **Arquitectura del Entorno**
 
-En producción, SmartPot utiliza infraestructura distribuida.
-Solo se ejecutan los **contenedores esenciales (API y Web)**, mientras que los demás servicios se alojan externamente:
+```mermaid
+flowchart LR
+  B[Navegador] -->|HTTPS 443| N[Nginx + Let's Encrypt]
+  M[Maceta ESP32] -->|MQTT TLS 8883| K[broker-smartpot]
+  N -->|127.0.0.1:5173| W[web-smartpot]
+  N -->|127.0.0.1:8091| A[api-smartpot]
+  N -->|127.0.0.1:9001 wss| K
+  N -->|127.0.0.1:8025| E[mail-smartpot]
+  A -->|red interna| D[(db-smartpot)]
+  A -->|red interna| C[(cache-smartpot)]
+  A -->|red interna| I[ai-smartpot]
+  A -->|MQTT 1883 interno| K
+  A -->|SMTP 1025 interno| E
+```
 
-| Servicio     | Tipo             | Ubicación / Proveedor             |
-| ------------ | ---------------- | --------------------------------- |
-| API SmartPot | Docker Container | Servidor Principal                |
-| Web SmartPot | Docker Container | Servidor Principal                |
-| MongoDB      | Externo          | MongoDB Atlas                     |
-| Redis Cache  | Externo          | Servicio en línea                 |
-| SMTP (Email) | Externo          | Gmail (cuenta configurada en API) |
+| Servicio | Red | Puerto en el host | Variables que recibe |
+| --- | --- | --- | --- |
+| `db-smartpot` (perfil `db`) | `internal` | Ninguno | `MONGO_ROOT_*`, `SMARTPOT_DB_*`, `SMARTPOT_SEED_DEMO` |
+| `cache-smartpot` | `internal` | Ninguno | `REDIS_PASSWORD` |
+| `mail-smartpot` (perfil `mail`) | `internal` + `public` | `127.0.0.1:8025` | `MAIL_*`, `MAILPIT_UI_*` |
+| `broker-smartpot` | `internal` + `public` | `0.0.0.0:8883`, `127.0.0.1:9001` | `MQTT_ADMIN_*`, certificados en `SMARTPOT_CERTS_DIR` |
+| `ai-smartpot` | `internal` | Ninguno | `SMARTPOT_AI_TOKEN` |
+| `api-smartpot` | `internal` + `public` | `127.0.0.1:8091` | JWT, AES, conexiones internas, URLs públicas |
+| `web-smartpot` | `public` | `127.0.0.1:5173` | `PUBLIC_API_URL` |
+| `simulator-smartpot` (perfil `simulator`) | `internal` | Ninguno | `SIMULATOR_*` |
+
+Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a cada contenedor solo sus variables: la PWA no ve el secreto JWT y el servicio de IA solo conoce su token. La red `internal` no tiene salida a internet: MongoDB, Redis y la IA no son alcanzables desde fuera.
+
+### Endurecimiento aplicado
+
+| Medida | Dónde |
+| --- | --- |
+| Sistema de archivos de solo lectura con `tmpfs` para lo temporal | Todos los servicios |
+| Sin capacidades de Linux (`cap_drop: ALL`) y `no-new-privileges` | Todos los servicios |
+| Usuarios sin privilegios en todas las imágenes | Imágenes |
+| Límites de CPU y memoria, `ulimits` y rotación de logs (10 MB × 3) | Todos los servicios |
+| Solo el broker escucha fuera de `127.0.0.1`, y solo por TLS | `broker-smartpot` |
+| Cada maceta tiene su propia cuenta MQTT y solo accede a sus tópicos | Seguridad dinámica de Mosquitto |
+| Healthchecks y arranque ordenado (`depends_on: service_healthy`) | Todos los servicios |
+| `.env` y certificados solo durante el despliegue | Workflow de despliegue |
+| Imágenes con SBOM y atestación de procedencia | GHCR |
 
 ---
 
-## **Archivos Requeridos**
+## **Despliegue Automático (GitHub Actions)**
 
-Antes de levantar el entorno, asegúrate de tener los siguientes archivos en el mismo directorio:
+```mermaid
+sequenceDiagram
+  participant R as Repo de un servicio
+  participant G as GHCR
+  participant D as deploy.yml
+  participant S as Servidor
+  R->>G: packaging.yml publica la imagen
+  R->>D: deploy.yml del repo llama al workflow reutilizable
+  D->>D: genera .env desde ENV_FILE, valida secretos y certificados
+  D->>S: SSH: compose.yaml, .env (600) y certificados
+  S->>S: instala certificados en SMARTPOT_CERTS_DIR (usuario 1883)
+  S->>G: docker compose pull
+  S->>S: up -d --wait y borra .env
+  D->>S: GET /health público
+```
 
-* `docker-compose.yml`
-* `.env.api`
-* `.env.web`
+El workflow [`deploy.yml`](../../.github/workflows/deploy.yml) se ejecuta:
+
+* Desde el `deploy.yml` de SmartPot-API, -Web, -AI, -Broker, -DB, -Cache, -Mail y -DataGenerator, cuando su `packaging.yml` publica la imagen desde `main`.
+* Con cualquier cambio en `docker/production` de este repositorio.
+* A mano, desde **Actions → Deploy to Production → Run workflow**.
+
+Cada ejecución despliega la plataforma completa: descarga las imágenes y recrea solo los contenedores cuya imagen o configuración cambió. Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
+
+### Secrets
+
+Se crean en cada repositorio que despliega (o una sola vez como secrets de la organización con acceso a esos repositorios):
+
+| Secret | Ejemplo | Descripción |
+| --- | --- | --- |
+| `SERVER_HOST` | `203.0.113.10` | IP o dominio del servidor |
+| `SERVER_PORT` | `22` | Puerto SSH |
+| `SERVER_USER` | `deploy` | Usuario SSH (`root` o con `sudo` sin contraseña) |
+| `SERVER_KEY` | `-----BEGIN … PRIVATE KEY-----` | Llave privada SSH completa |
+| `SERVER_KNOWN_HOSTS` | `[203.0.113.10]:22 ssh-ed25519 AAAA…` | Huella del servidor |
+| `DEPLOY_PATH` | `/srv/smartpot/production` | Carpeta de despliegue |
+| `ENV_FILE` | Contenido de [`.env.example`](.env.example) | `.env` completo de producción |
+| `MQTT_CA_CERT` | `-----BEGIN CERTIFICATE-----` | `ca.crt` de la CA de SmartPot (público) |
+| `MQTT_SERVER_CERT` | `-----BEGIN CERTIFICATE-----` | `server.crt` para `mqtt.smartpot.app` |
+| `MQTT_SERVER_KEY` | `-----BEGIN PRIVATE KEY-----` | `server.key` del broker |
+
+Los tres secrets `MQTT_*` son opcionales: si no existen, el broker usa los certificados que ya estén en el servidor. Cuando existen, el workflow comprueba que el certificado esté firmado por la CA y que la llave le corresponda, y los instala en `SMARTPOT_CERTS_DIR` con dueño `1883` (el usuario del broker) y la llave en modo `600`. `ca.key` nunca se sube: con ella se firman certificados nuevos.
+
+Los certificados se generan con [`generate-certs.sh`](https://github.com/SmartPotTech/SmartPot-Broker/blob/main/scripts/generate-certs.sh) del broker:
+
+```bash
+CLIENT_NAME=smartpot-device sh scripts/generate-certs.sh certs mqtt.smartpot.app
+```
 
 > [!IMPORTANT]
-> Cada archivo `.env` debe contener las credenciales y configuraciones de producción,
-> incluyendo las URLs de MongoDB Atlas, Redis y Gmail.
+> Usa una llave SSH dedicada al despliegue y genera secretos propios. `SMARTPOT_AES_KEY` cifra las claves de las macetas: si cambia, hay que rotar la clave de cada maceta. Nunca actives `SMARTPOT_SEED_DEMO` en producción.
 
----
+### Variables de `ENV_FILE`
 
-## **Ejecución del Entorno de Producción**
+| Variable | Valor |
+| --- | --- |
+| `COMPOSE_PROFILES` | `db,mail` en un servidor único; quita `db` si MongoDB es externo (define `MONGODB_URI`) |
+| `SMARTPOT_*_PORT` | Puertos del host; todos en `127.0.0.1` salvo `SMARTPOT_MQTT_TLS_PORT` |
+| `SMARTPOT_CERTS_DIR` | Carpeta de los certificados del broker, por defecto `/etc/mosquitto/certs` |
+| `SMARTPOT_*_TAG` | `latest`, `sha-<commit>` o `X.Y.Z` |
+| `MONGO_ROOT_PASSWORD` / `SMARTPOT_DB_PASSWORD` | Contraseñas de MongoDB (administrador y aplicación) |
+| `REDIS_PASSWORD` | Contraseña de Redis |
+| `MAIL_PASSWORD` / `MAILPIT_UI_PASSWORD` | SMTP interno y bandeja web, al menos 12 caracteres |
+| `MQTT_ADMIN_PASSWORD` | Cuenta con la que la API administra el broker, al menos 16 caracteres |
+| `SMARTPOT_JWT_SECRET` | Al menos 32 caracteres |
+| `SMARTPOT_AES_KEY` | Base64 de 32 bytes aleatorios |
+| `SMARTPOT_AI_TOKEN` | Token interno entre la API y la IA, al menos 24 caracteres |
+| `WEB_BASE_URL` / `PUBLIC_API_URL` / `CORS_ALLOWED_ORIGINS` | Dominios públicos de la PWA y la API |
+| `MQTT_PUBLIC_*` / `MQTT_WEBSOCKET_URL` | Lo que la PWA muestra a la maceta para conectarse |
+| `AI_TIMEZONE` | Zona horaria del descanso nocturno del asistente, `America/Bogota` |
 
-Puedes levantar el entorno completo con un solo comando:
+### Operación
+
+Los contenedores conservan su configuración aunque el `.env` se borre. Los secretos son obligatorios en `compose.yaml`, así que sin `.env` cualquier comando de `docker compose` se detiene en lugar de recrear los contenedores sin secretos. Para inspeccionar usa `docker` directamente y, para cambiar la configuración, edita `ENV_FILE` y ejecuta **Deploy to Production**.
 
 ```bash
-curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/production/docker-compose.yml -o docker-compose.yml && docker-compose -p smartpot up -d
+docker ps --filter name=smartpot
+docker logs -f smartpot-api
+docker logs -f smartpot-broker
 ```
 
-Este comando:
+Los despliegues simultáneos no se pisan: cada uno sube su configuración a una carpeta temporal propia (`.deploy-<id>`, permisos `700`) y espera su turno con `flock`.
 
-1. Descarga el archivo `docker-compose.yml` del entorno de producción.
-2. Levanta los contenedores en segundo plano (`-d`) bajo el proyecto `smartpot`.
+> [!CAUTION]
+> `docker compose down -v` borra los volúmenes `db_data` y `broker_data`: usuarios, cultivos, lecturas y cuentas MQTT.
 
-Para detener los contenedores en ejecución:
+---
+
+## **Despliegue Manual**
 
 ```bash
-docker-compose -p smartpot down
+mkdir -p smartpot/production && cd smartpot/production
+base=https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/production
+curl -fsSL $base/compose.yaml -o compose.yaml
+curl -fsSL $base/.env.example -o .env
+chmod 600 .env
+docker compose -p smartpot up -d --wait
 ```
 
 ---
 
-## **Servicios del Entorno**
+## **Respaldos**
 
-### 1. **API SmartPot (Backend)**
+[`backup_smartpot.sh`](backup_smartpot.sh) genera `backups/smartpot-<fecha>.archive.gz` (`mongodump` comprimido, permisos `600`) y elimina los que superan 14 días (`SMARTPOT_BACKUP_DAYS`). Usa las credenciales del propio contenedor.
 
-Gestiona toda la lógica de negocio, autenticación y comunicación con los servicios externos.
-Conecta con **MongoDB Atlas**, **Redis remoto** y **Gmail** según las variables configuradas.
-
-```yaml
-api-smartpot:
-  image: sebastian190030/api-smartpot:latest
-  container_name: smartpot-api
-  ports:
-    - "8091:8091"
-  env_file:
-    - .env.api
-  networks:
-    - network
+```bash
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/production/backup_smartpot.sh -o backup_smartpot.sh
+chmod 700 backup_smartpot.sh
+./backup_smartpot.sh
 ```
 
-* **Puerto Externo:** `8091`
-* **Configuración:** `.env.api`
-* **Dependencias externas:** MongoDB Atlas, Redis y Gmail
+Restaurar un respaldo:
+
+```bash
+docker exec -i smartpot-db sh -c 'mongorestore --drop --archive --gzip \
+  -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin' \
+  < backups/smartpot-<fecha>.archive.gz
+```
+
+Las cuentas MQTT no necesitan respaldo: al conectarse, la API vuelve a crear en el broker la cuenta de cada maceta a partir de la base de datos.
 
 ---
 
-### 2. **Web SmartPot (Frontend)**
+## **Nginx y HTTPS**
 
-Interfaz de usuario desarrollada en React. Consume los endpoints de la API para mostrar datos de sensores, usuarios y cultivos.
+La carpeta [`nginx/`](nginx) tiene un archivo por dominio para `/etc/nginx/sites-available/`. Todos usan el certificado `smartpot.app` de Let's Encrypt, que debe cubrir los cinco nombres:
 
-```yaml
-web-smartpot:
-  image: sebastian190030/web-smartpot:latest
-  container_name: smartpot-web
-  ports:
-    - "5173:5173"
-  depends_on:
-    - api-smartpot
-  env_file:
-    - .env.web
-  networks:
-    - network
+```bash
+certbot certonly --nginx --cert-name smartpot.app \
+  -d smartpot.app -d www.smartpot.app -d api.smartpot.app -d mqtt.smartpot.app -d mail.smartpot.app
+for site in smartpot.app api.smartpot.app mqtt.smartpot.app mail.smartpot.app; do
+  cp nginx/$site.conf /etc/nginx/sites-available/$site
+  ln -sf /etc/nginx/sites-available/$site /etc/nginx/sites-enabled/$site
+done
+nginx -t && systemctl reload nginx
 ```
 
-* **Puerto Externo:** `5173`
-* **Configuración:** `.env.web`
-* **Dependencia:** `api-smartpot`
+`mqtt.smartpot.app` solo publica `/mqtt` (WebSocket hacia `127.0.0.1:9001`); las macetas no pasan por nginx, se conectan directo al puerto 8883 con la CA de SmartPot. La PWA necesita HTTPS para registrar el service worker e instalarse.
+
+Firewall: además de SSH, 80 y 443, solo hace falta `8883/tcp`.
+
+```bash
+ufw allow 8883/tcp comment 'MQTT TLS SmartPot'
+```
 
 ---
 
-## **Red**
+## **Verificación**
 
-```yaml
-networks:
-  network:
-    driver: bridge
+```bash
+curl -fsS https://api.smartpot.app/health
+curl -fsS https://api.smartpot.app/api/v1/crop-profiles | head -c 200
+curl -s -o /dev/null -w "%{http_code}\n" https://api.smartpot.app/api/v1/crops
+curl -sI https://smartpot.app/ | grep -i content-security-policy
+openssl s_client -connect mqtt.smartpot.app:8883 -CAfile ca.crt -brief </dev/null
 ```
 
-* Red interna **bridge** para la comunicación entre la API y la aplicación web.
-
----
-
-## **Acceso al Entorno**
-
-Una vez desplegado:
-
-* **API SmartPot:** `http://<host>:8091`
-* **Web SmartPot:** `http://<host>:5173`
-
-> [!TIP]
-> En un despliegue real, se recomienda usar **Nginx o Traefik** como proxy reverso para manejar certificados SSL y redirecciones HTTPS.
+| Comprobación | Resultado esperado |
+| --- | --- |
+| `/health` | `{"status":"UP","database":"UP","broker":"UP","cache":"UP","ai":"UP"}` |
+| `/api/v1/crop-profiles` | Perfiles de las seis especies |
+| `/api/v1/crops` sin token | `401` |
+| PWA | `200` con `Content-Security-Policy`, `X-Frame-Options` y `Strict-Transport-Security` |
+| Broker | `Verification: OK` y protocolo `TLSv1.2` |
