@@ -43,7 +43,7 @@ flowchart TB
   subgraph despues["Formulación y plataforma actual"]
     direction LR
     f4["<b>Investigación y gestión</b><br/>estudio de mercado, acta<br/>y propuesta de IA predictiva"] --> f5["<b>Plataforma actual</b><br/>MQTT v1, servidor propio, Docker<br/>IA, PWA, seguridad y QA"]
-    f5 --> f6["<b>Aprendizaje y canales</b><br/>aprendizaje continuo, Telegram<br/>desde la API y macetas virtuales"]
+    f5 --> f6["<b>Aprendizaje y canales</b><br/>aprendizaje continuo, Telegram<br/>desde la API y cultivos virtuales"]
   end
   antes --> despues
   classDef past fill:#F2F7F4,stroke:#5B6B63,color:#17261F
@@ -72,7 +72,7 @@ Los repositorios suman 2217 commits, de los cuales 1932 son de personas y el res
 | Gestión de proyectos TI | II | EDT, red de precedencias, ruta crítica, ciclo Scrum, riesgos |
 | Análisis | III | Casos de uso |
 | Diseño | IV | Contexto, contenedores, componentes, clases, actividad, secuencia, estados, datos, mapa de la PWA, redes |
-| Construcción | V | Despliegue, asistente de IA, aprendizaje, Telegram, maceta virtual |
+| Construcción | V | Despliegue, asistente de IA, aprendizaje, Telegram, cultivos reales y virtuales, cultivo en vivo |
 | Pruebas | VI | Pirámide de pruebas, workflow de QA |
 | Mejora continua | VII | Ciclo PDCA, ciclos de mejora |
 
@@ -88,7 +88,7 @@ La idea se formuló como un proyecto de datos y no como un aparato:
 
 | Alcance de la idea | Cómo quedó construido |
 | --- | --- |
-| Captura en tiempo real desde sensores | Telemetría MQTT v1 con credencial por maceta |
+| Captura en tiempo real desde sensores | Telemetría MQTT v1 con credencial por cultivo |
 | Integración y estandarización de las mediciones | Contrato JSON único y validadores `$jsonSchema` en MongoDB |
 | Automatización del riego según lo sensado | Agente de automatización con modo automático y enfriamiento por actuador |
 | Visualizaciones, tabulados y alertas | PWA con panel general, historial, comparador y alertas por Telegram |
@@ -96,7 +96,7 @@ La idea se formuló como un proyecto de datos y no como un aparato:
 | Documentación reproducible | Tres documentos, diagramas en Mermaid y una demo de un solo comando |
 
 > [!TIP]
-> **Lectura crítica.** Plantear SmartPot como un *pipeline* de datos (capturar, limpiar, integrar, decidir, mostrar) fue la mejor decisión de la formulación. Separó el valor del hardware: la maceta solo mide y obedece, y todo lo que aprende la plataforma sirve igual para una maceta física, una simulada en Wokwi o una virtual.
+> **Lectura crítica.** Plantear SmartPot como un *pipeline* de datos (capturar, limpiar, integrar, decidir, mostrar) fue la mejor decisión de la formulación. Separó el valor del hardware: el dispositivo solo mide y obedece, y todo lo que aprende la plataforma sirve igual para una maceta física, una simulada en Wokwi o una virtual.
 
 ### 2.2 Árbol de problemas
 
@@ -223,7 +223,7 @@ flowchart BT
   end
   subgraph apoyos["Medios de apoyo"]
     a1["Aprendizaje práctico<br/><i>demo, documentación, Wokwi</i>"]
-    a2["IoT al alcance<br/><i>macetas virtuales con clima real</i>"]
+    a2["IoT al alcance<br/><i>cultivos virtuales con clima real</i>"]
     a3["Análisis de datos<br/><i>asistente de IA y aprendizaje continuo</i>"]
     a4["Experiencia simple<br/><i>PWA en español y alertas por Telegram</i>"]
   end
@@ -276,7 +276,7 @@ flowchart BT
 | --- | --- | --- |
 | Político | Políticas de agricultura urbana y apoyo institucional | Sin cambios: el proyecto sigue dentro del marco académico |
 | Económico | Herramientas educativas gratuitas y alojamiento económico | Se reemplazaron las capas gratuitas por un servidor propio pequeño para no depender de cuotas |
-| Social | Seguridad alimentaria, aprendizaje práctico y comunidades *maker* | Demo de un solo comando y macetas virtuales para aprender sin hardware |
+| Social | Seguridad alimentaria, aprendizaje práctico y comunidades *maker* | Demo de un solo comando y cultivos virtuales para aprender sin hardware |
 | Tecnológico | Wokwi, Spring Boot, React y ESP32 | Se sumaron MQTT con TLS, Docker, FastAPI con scikit-learn y la PWA instalable |
 | Ecológico | Eficiencia hídrica y menos pesticidas | Riego preventivo y bloqueo de nutrientes; el ahorro real solo se podrá medir con un prototipo físico |
 | Legal | Marco académico y software libre | Licencia MIT, datos personales mínimos, borrado de la cuenta y cultivos seudonimizados para el aprendizaje |
@@ -328,7 +328,7 @@ quadrantChart
 | --- | --- | --- | --- |
 | Fin | Contribuir a la sostenibilidad y eficiencia de la agricultura urbana mediante la tecnología | Menor consumo de agua; más uso de tecnologías de monitoreo | No medible todavía: requiere un prototipo físico y un ciclo de cultivo comparado |
 | Propósito | Optimizar la gestión de cultivos hidropónicos con monitoreo y control automatizados | 95 % de precisión en la gestión de variables; menos tiempo de supervisión manual | El agente actúa solo con el modo automático; «precisión» nunca se definió, así que no hay con qué comparar |
-| Resultado 1 | Prototipo completo en simulación | Validación en Wokwi | Cumplido: firmware en Wokwi y macetas virtuales que publican por MQTT |
+| Resultado 1 | Prototipo completo en simulación | Validación en Wokwi | Cumplido: firmware en Wokwi (cultivo real) y cultivos virtuales que publican por MQTT |
 | Resultado 2 | Plataforma web con backend y frontend | API con 80 % de cobertura de pruebas | Plataforma en producción con 260 pruebas; la cobertura no se mide formalmente |
 | Resultado 3 | Monitoreo y control en tiempo real | Sistema funcional | Cumplido: telemetría, comandos con confirmación y estado en línea |
 | Actividades | Análisis y diseño; desarrollo; pruebas y validación; documentación y cierre | Cronograma y repositorios | Cumplidas en ciclos (parte VII) |
@@ -338,7 +338,7 @@ quadrantChart
 >
 > - **Tiempo en rango:** porcentaje de lecturas de cada cultivo dentro del rango ideal de su especie, por semana.
 > - **Intervenciones manuales:** comandos enviados por la persona frente a los ejecutados por el agente.
-> - **Supuestos explícitos:** la maceta tiene conexión estable, los sensores están calibrados y la persona activa el modo automático.
+> - **Supuestos explícitos:** el dispositivo tiene conexión estable, los sensores están calibrados y la persona activa el modo automático.
 
 ## 6. Estudio de mercado
 
@@ -373,7 +373,7 @@ La oferta se describió como un oligopolio parcial con tres tipos de oferentes: 
 | Recomendación del estudio | Estado |
 | --- | --- |
 | Piloto académico con instituciones | Demo de un solo comando en GHCR y Docker Hub, pensada para aulas y semilleros |
-| Métricas de adopción | Pendiente: la plataforma no registra analítica de uso; se propone un conteo agregado y anónimo de cuentas y macetas activas |
+| Métricas de adopción | Pendiente: la plataforma no registra analítica de uso; se propone un conteo agregado y anónimo de cuentas y cultivos activos |
 | Canal directo, comunidad y academia | Portal en smartpot.app, organización pública en GitHub y documentación en español |
 | Modelo *freemium* | No implementado: hoy todo es gratuito y de código abierto |
 
@@ -382,10 +382,10 @@ La oferta se describió como un oligopolio parcial con tres tipos de oferentes: 
 | Aspecto | Planteado en la formulación y el acta | Resuelto en la plataforma |
 | --- | --- | --- |
 | Localización | Capas gratuitas en la nube | Un servidor virtual propio con Nginx y TLS; dominios `smartpot.app`, `api`, `mqtt` y `mail` |
-| Tamaño | Un MVP para dos especies | Ocho contenedores; seis especies; una lectura cada 5 s como máximo por cultivo; hasta 5 macetas virtuales por cuenta |
+| Tamaño | Un MVP para dos especies | Ocho contenedores; seis especies; una lectura cada 5 s como máximo por cultivo; hasta 5 cultivos virtuales por cuenta; cuatro formas de cultivo |
 | Proceso | ESP32 que envía datos a la API por HTTP | Telemetría y comandos por MQTT v1 con QoS 1, confirmación y última voluntad |
 | Tecnología | Java 17, H2 o MySQL con JPA, React con Vite | Java 21 con Spring Boot 4.1, MongoDB 8, Redis, FastAPI con scikit-learn, React 19 como PWA |
-| Seguridad | JWT, AES y límite de peticiones | Lo anterior más control de dueño, cuenta MQTT por maceta, contenedores endurecidos, CodeQL y SBOM |
+| Seguridad | JWT, AES y límite de peticiones | Lo anterior más control de dueño, cuenta MQTT por cultivo, contenedores endurecidos, CodeQL y SBOM |
 | Insumos para el prototipo físico | Cotización de sensores y actuadores | Sensores de pH y TDS de 25 a 40 USD cada uno, ESP32 de 20 a 30 USD y bombas de 15 a 50 USD: del orden de 85 a 160 USD sin la estructura hidráulica |
 
 > [!NOTE]
@@ -464,7 +464,7 @@ flowchart LR
   subgraph hoy["Estado en septiembre de 2026"]
     direction TB
     h1["<b>Fase 1 · parcial</b><br/>base de conocimiento de seis especies;<br/>sin montaje hidráulico propio"]
-    h2["<b>Fase 2 · cumplida en software</b><br/>firmware MQTT probado en Wokwi<br/>y macetas virtuales"]
+    h2["<b>Fase 2 · cumplida en software</b><br/>firmware MQTT probado en Wokwi<br/>y cultivos virtuales"]
     h3["<b>Fase 3 · en marcha</b><br/>aprendizaje continuo<br/>con lecturas reales"]
     h4["<b>Fase 4 · pendiente</b><br/>prototipo físico y ciclos<br/>de cultivo reales"]
     h1 ~~~ h2 ~~~ h3 ~~~ h4
@@ -522,7 +522,7 @@ Referencias de la propuesta, útiles para el trabajo futuro:
 | --- | --- |
 | Equipo de cuatro personas: gerente, dos desarrolladores y un analista | Cerca de tres de cada cuatro commits humanos los hizo una sola persona |
 | Capas gratuitas de nube como infraestructura | Se abandonaron por un servidor propio: las cuotas y la seguridad no se podían controlar |
-| Hardware físico fuera de alcance | Se respetó; la simulación creció hasta tener macetas virtuales siempre encendidas |
+| Hardware físico fuera de alcance | Se respetó; la simulación creció hasta tener cultivos virtuales siempre encendidos |
 | Scrum con sprints de dos semanas | La línea base del cronograma usó sprints de tres a cinco días y la construcción se hizo en ciclos (sección 15) |
 
 > [!IMPORTANT]
@@ -799,7 +799,7 @@ flowchart TB
 | Iteración | Cinco sprints de dos semanas | Ciclos de mejora con diagnóstico, backlog y criterios de aceptación (parte VII) |
 | Definition of Done | Revisión de código, cobertura mínima y demo | Código con sus pruebas, CI del repositorio en verde, QA de extremo a extremo en verde, documentación al día y despliegue desde GHCR con `/health` en UP |
 | Comunicaciones | Canales, frecuencia y demos | Commits pequeños en inglés con un solo propósito, READMEs por repositorio y estos documentos |
-| Control de cambios | Proceso formal y backlog congelado por sprint | Cada ciclo abre un alcance nuevo; el contrato MQTT versionado (`v1`) protege a las macetas de los cambios |
+| Control de cambios | Proceso formal y backlog congelado por sprint | Cada ciclo abre un alcance nuevo; el contrato MQTT versionado (`v1`) protege a los dispositivos de los cambios |
 | Métricas | Velocidad y *burndown* | Pruebas, estado del QA y despliegues por ciclo (sección 38) |
 
 > [!IMPORTANT]
@@ -827,7 +827,7 @@ El estado de cada requisito está en el [recorrido del proyecto](SmartPot_Projec
 | RF-017 Estado general | Tres niveles fijos | Índice de 0 a 100 con cinco niveles y el aporte de cada variable (implementado así) |
 | RNF-001 Doble verificación | Se justificaba con ISO/IEC 25000, que es un marco de calidad y no exige 2FA | La cuenta admite un segundo factor por aplicación de autenticación; motivo: la característica de seguridad de ISO/IEC 25010 |
 | RNF-002 Paleta | «Un diseño llamativo que garantice la permanencia» no se puede verificar | Los textos cumplen contraste WCAG AA y las series de las gráficas son distinguibles con daltonismo (lo segundo ya se valida) |
-| RNF-003 Tiempo real | En la matriz de 2024 hablaba de «canciones guardadas»: un error de copia de otro proyecto | La PWA muestra una lectura nueva en menos de 30 s desde que la maceta la publica |
+| RNF-003 Tiempo real | En la matriz de 2024 hablaba de «canciones guardadas»: un error de copia de otro proyecto | La PWA muestra una lectura nueva en menos de 30 s desde que el dispositivo la publica |
 | RNF-005 Navegación clara | «Entendible para todas las edades» no es medible | Toda función principal está a dos toques o menos desde el panel |
 
 > [!WARNING]
@@ -843,19 +843,20 @@ flowchart LR
   subgraph sistema["SmartPot"]
     direction TB
     cu1["CU001 Ingresar a la plataforma"]
-    cu2["CU002 Conectar y calibrar la maceta"]
-    cu3["CU003 Ver el estado de las plantas"]
+    cu2["CU002 Conectar el dispositivo<br/>ESP32 o Wokwi"]
+    cu3["CU003 Ver el cultivo en vivo"]
     cu4["CU004 Regar automáticamente"]
     cu5["CU005 Recibir alertas"]
     cu6["CU006 Consultar el historial"]
-    cu7["CU007 Configurar el cultivo"]
+    cu7["CU007 Crear y configurar el cultivo<br/>real o virtual, especie y forma"]
     cu8["CU008 Gestionar el perfil"]
     cu9["CU009 Controlar actuadores y en bloque"]
-    cu10["CU010 Encender una maceta virtual"]
+    cu10["CU010 Simular un cultivo virtual"]
     cu11["CU011 Vincular Telegram"]
     cu12["CU012 Ver lo aprendido por la IA"]
   end
-  maceta(("Maceta<br/>física o virtual"))
+  maceta(("Dispositivo<br/>ESP32 o Wokwi"))
+  simulador(("Simulador<br/>de SmartPot"))
   agente(("Agente<br/>de IA"))
   persona --- cu1
   persona --- cu2
@@ -870,17 +871,18 @@ flowchart LR
   persona --- cu12
   cu2 --- maceta
   cu3 --- maceta
+  cu10 --- simulador
   cu4 --- agente
   cu5 --- agente
   classDef actor fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef base fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef nuevo fill:#FDF4DD,stroke:#C98D12,color:#17261F
-  class persona,maceta,agente actor
+  class persona,maceta,simulador,agente actor
   class cu1,cu2,cu3,cu4,cu5,cu6,cu7,cu8 base
   class cu9,cu10,cu11,cu12 nuevo
 ```
 
-Los ocho casos de uso del diseño se conservan y la construcción sumó cuatro: controlar en bloque, encender una maceta virtual, vincular Telegram y ver lo aprendido por la IA. El cambio de fondo es un actor nuevo: el **agente de IA** aparece como actor secundario de «regar automáticamente» y «recibir alertas». En el diseño la maceta decidía; en la plataforma decide un agente que la persona activa y puede auditar.
+Los ocho casos de uso del diseño se conservan y la construcción sumó cuatro: controlar en bloque, simular un cultivo virtual, vincular Telegram y ver lo aprendido por la IA. El cambio de fondo es un actor nuevo: el **agente de IA** aparece como actor secundario de «regar automáticamente» y «recibir alertas». En el diseño la maceta decidía; en la plataforma decide un agente que la persona activa y puede auditar.
 
 ## 18. Trazabilidad
 
@@ -910,15 +912,15 @@ El acta pedía una matriz de trazabilidad de requisito a módulo y a caso de pru
 
 | Regla | Valor | Por qué |
 | --- | --- | --- |
-| Frecuencia máxima de lecturas | Una cada 5 s por cultivo | Proteger la base de datos y la API de una maceta mal configurada |
+| Frecuencia máxima de lecturas | Una cada 5 s por cultivo | Proteger la base de datos y la API de un dispositivo mal configurado |
 | Retención de lecturas | Un año | Historial útil sin crecimiento indefinido |
 | Evaluación del agente | Cada 5 minutos, con las últimas 48 lecturas | Suficiente para ver tendencias sin saturar la IA |
 | Enfriamiento por actuador | 10 minutos | Evitar que el agente encienda y apague en ciclo |
-| Vencimiento de un comando | 2 minutos sin confirmación | Avisar a la persona si la maceta no responde |
+| Vencimiento de un comando | 2 minutos sin confirmación | Avisar a la persona si el dispositivo no responde |
 | Sensor sospechoso | El agente no actúa | Ante un valor imposible es más seguro no regar |
 | Límite de peticiones | 300 por minuto; 10 por minuto en autenticación | Frenar abuso y fuerza bruta |
 | Recuperación de contraseña | Enlace de un solo uso que vence en 30 minutos | No enviar credenciales por correo |
-| Macetas virtuales | Hasta 5 por cuenta | Mantener acotado el simulador compartido |
+| Cultivos virtuales | Hasta 5 por cuenta; real o virtual no cambia tras crearlo | Mantener acotado el simulador compartido |
 | Descanso nocturno de la luz | De 22:00 a 6:00, hora de Colombia | Respetar el fotoperiodo |
 
 La base de conocimiento nació de la investigación temática del diseño (lechuga y tomate) y hoy cubre seis especies: lechuga, tomate, fresa, albahaca, espinaca y pimentón. El detalle de sus rangos está en el [recorrido del proyecto](SmartPot_Project_Journey.md) y en la [documentación técnica](SmartPot_Technical_Documentation.md).
@@ -935,7 +937,7 @@ La base de conocimiento nació de la investigación temática del diseño (lechu
 flowchart TB
   persona(["Dueño del cultivo<br/>horticultor, estudiante o maker"])
   smartpot["<b>SmartPot</b><br/>monitorea, diagnostica y automatiza<br/>cultivos hidropónicos"]
-  maceta(["Maceta<br/>ESP32 físico, Wokwi o virtual"])
+  maceta(["Dispositivo de un cultivo real<br/>ESP32 físico o Wokwi"])
   telegram["Telegram<br/>alertas y bot"]
   clima["Open-Meteo<br/>clima actual"]
   github["GitHub y GHCR<br/>código, CI/CD e imágenes"]
@@ -943,7 +945,7 @@ flowchart TB
   maceta <-->|"MQTT: telemetría, comandos y ACK"| smartpot
   smartpot -->|"avisos elegidos"| telegram
   telegram -->|"/start, /estado"| smartpot
-  smartpot -->|"macetas virtuales"| clima
+  smartpot -->|"cultivos virtuales"| clima
   github -->|"despliegue continuo"| smartpot
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
@@ -964,9 +966,9 @@ flowchart TB
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
   subgraph campo["Fuentes de lecturas"]
-    maceta["Maceta ESP32<br/>MicroPython · sensores y actuadores"]
-    wokwi["Wokwi<br/>el mismo firmware, a mano"]
-    sim["Macetas virtuales<br/>SmartPot-DataGenerator"]
+    maceta["Cultivo real · ESP32<br/>MicroPython · sensores y actuadores"]
+    wokwi["Cultivo real · Wokwi<br/>el mismo firmware simulado"]
+    sim["Cultivos virtuales<br/>SmartPot-DataGenerator"]
   end
   subgraph usuario["Usuario"]
     pwa["PWA<br/>SmartPot-Web"]
@@ -1011,14 +1013,14 @@ flowchart LR
 
 | Decisión | Alternativa descartada | Por qué | Consecuencia |
 | --- | --- | --- | --- |
-| MQTT v1 entre maceta y plataforma | Consulta periódica por HTTP | Conexión liviana, bidireccional y con estado en línea (última voluntad) | Un broker más que operar y asegurar |
+| MQTT v1 entre dispositivo y plataforma | Consulta periódica por HTTP | Conexión liviana, bidireccional y con estado en línea (última voluntad) | Un broker más que operar y asegurar |
 | MongoDB con validadores | H2 o MySQL con JPA | Lecturas con variables opcionales y consultas por cultivo y fecha | La integridad se protege con `$jsonSchema` e índices |
 | IA como servicio aparte en Python | Reglas dentro de la API en Java | El ecosistema de ciencia de datos está en Python | Contrato HTTP interno con token entre API e IA |
-| El agente decide en la plataforma | La maceta decide sola | Una maceta barata se beneficia de todo lo aprendido | Sin conexión, la maceta solo mide y muestra en su pantalla |
+| El agente decide en la plataforma | El dispositivo decide solo | Un dispositivo barato se beneficia de todo lo aprendido | Sin conexión, el dispositivo solo mide y muestra en su pantalla |
 | Simulador como servicio | Solo Wokwi | Demo y QA que no dependen de una pestaña abierta | Un contenedor más, interno y con token |
 | Servidor propio con Docker | Capas gratuitas en la nube | Sin cuotas y con control total de la seguridad | La operación queda en manos del equipo |
 | PWA | Aplicación móvil nativa | Un solo código para teléfono y escritorio | Sin acceso a funciones nativas avanzadas, que no se necesitan |
-| Telegram en la API | Bot dentro del ESP32 | Permisos y datos de cada cuenta en un solo lugar | La maceta no conoce ningún canal |
+| Telegram en la API | Bot dentro del ESP32 | Permisos y datos de cada cuenta en un solo lugar | El dispositivo no conoce ningún canal |
 | Despliegue central | Cada repositorio despliega | Un solo lugar con acceso al servidor | Los servicios piden el despliegue y el central lo encola |
 
 ## 21. Del diseño original al actual
@@ -1151,6 +1153,8 @@ classDiagram
     +String id
     +String ownerId
     +CropType type
+    +CropKind kind
+    +CropForm form
     +boolean automationEnabled
     +Device device
     +CropHealth health
@@ -1198,6 +1202,19 @@ classDiagram
     +VirtualMode mode
     +Measures manual
     +VirtualLocation location
+    +boolean active
+  }
+  class CropKind {
+    <<enumeration>>
+    REAL
+    VIRTUAL
+  }
+  class CropForm {
+    <<enumeration>>
+    POT
+    NFT
+    TOWER
+    RAFT
   }
   class NotificationChannel {
     <<interface>>
@@ -1213,13 +1230,15 @@ classDiagram
   Actuator "1" --> "*" Command
   User "1" --> "*" Notification
   User "1" --> "*" ChannelLink
-  Crop "1" --> "0..1" VirtualDevice
+  Crop "1" --> "0..1" VirtualDevice : solo si es virtual
+  Crop --> CropKind
+  Crop --> CropForm
   NotificationChannel <|.. TelegramChannel
 ```
 
 | Diseño original | Actual | Lectura |
 | --- | --- | --- |
-| `DeviceController` con sensores, actuadores, API y cultivo | La maceta solo mide y obedece; el dominio vive en la API | La inteligencia se movió a la plataforma |
+| `DeviceController` con sensores, actuadores, API y cultivo | El dispositivo solo mide y obedece; el dominio vive en la API | La inteligencia se movió a la plataforma |
 | `Cultivo.evaluarSalud()` | Índice de salud, diagnóstico y pronóstico en la IA | Un método se volvió un servicio |
 | `FabricaCultivos` con un mapa de cultivos | Perfiles por especie compartidos | La fábrica era, en realidad, datos |
 | `Sesion` con token y último acceso | JWT sin estado | No hace falta guardar sesiones |
@@ -1279,7 +1298,7 @@ flowchart TB
   subgraph web["SmartPot-Web · PWA"]
     w1["Panel general · Cultivos<br/>Control · Acciones"]
     w2["Asistente · Aprendizaje"]
-    w3["Maceta virtual · Perfil y canales"]
+    w3["Nuevo cultivo · Cultivo en vivo<br/>Simulación · Perfil y canales"]
   end
   subgraph api["SmartPot-API · Spring Boot"]
     a1["security · users"]
@@ -1364,8 +1383,8 @@ stateDiagram-v2
   [*] --> PENDING: el usuario o el agente lo solicita
   PENDING --> SENT: publicado en commands (QoS 1)
   PENDING --> FAILED: el broker no está disponible
-  SENT --> EXECUTED: ACK EXECUTED de la maceta
-  SENT --> FAILED: ACK FAILED de la maceta
+  SENT --> EXECUTED: ACK EXECUTED del dispositivo
+  SENT --> FAILED: ACK FAILED del dispositivo
   SENT --> EXPIRED: sin ACK en 2 minutos
   EXECUTED --> [*]
   FAILED --> [*]
@@ -1376,7 +1395,7 @@ El flujo del diseño se mantuvo casi igual: validar sesión, verificar el cultiv
 
 ### 21.4 Comportamiento: datos históricos y una lectura
 
-La secuencia original se centraba en consultar el historial; la actual muestra el camino completo de una lectura, desde la maceta hasta la acción automática, porque ese es hoy el flujo crítico del sistema.
+La secuencia original se centraba en consultar el historial; la actual muestra el camino completo de una lectura, desde el dispositivo hasta la acción automática, porque ese es hoy el flujo crítico del sistema.
 
 <!-- diagrama: SmartPot_30_Original_History_Sequence | titulo=Secuencia del diseño original: datos históricos -->
 ```mermaid
@@ -1410,7 +1429,7 @@ sequenceDiagram
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 sequenceDiagram
   autonumber
-  participant M as Maceta
+  participant M as Dispositivo
   participant B as Broker MQTT
   participant A as API
   participant D as MongoDB
@@ -1443,10 +1462,10 @@ sequenceDiagram
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  inicio(["La maceta publica una lectura"]) --> valida{"¿Valores dentro de<br/>la escala física?"}
+  inicio(["El dispositivo o la simulación<br/>publica una lectura"]) --> valida{"¿Valores dentro de<br/>la escala física?"}
   valida -->|"No"| descarta["Se descarta y se registra"]
-  valida -->|"Sí"| guarda["Guardar la lectura<br/>y marcar la maceta en línea"]
-  guarda --> aprende["Encolar para el<br/>aprendizaje continuo"]
+  valida -->|"Sí"| guarda["Guardar la lectura<br/>y marcar el cultivo en línea"]
+  guarda --> aprende["Si el cultivo es real, encolar<br/>para el aprendizaje continuo"]
   guarda --> evalua{"¿Toca evaluar?<br/>30 s en automático · 5 min si no"}
   evalua -->|"No"| fin(["Fin"])
   evalua -->|"Sí"| ia["El asistente evalúa:<br/>diagnóstico, pronóstico, modelos,<br/>sistema experto y agente"]
@@ -1533,6 +1552,8 @@ erDiagram
     ObjectId ownerId
     string name
     string type "LETTUCE, TOMATO, …"
+    string kind "REAL o VIRTUAL, fijo"
+    string form "POT, NFT, TOWER, RAFT"
     bool automationEnabled
     object device "keyCiphertext AES-GCM, online, lastSeenAt"
     object health "index, level, label, evaluatedAt"
@@ -1580,6 +1601,7 @@ erDiagram
     string mode "AUTO, MANUAL, WEATHER"
     object manual "medidores"
     object location "nombre, latitud, longitud"
+    bool active "false en pausa"
   }
   PASSWORD_RESET_TOKENS {
     ObjectId _id
@@ -1618,8 +1640,9 @@ flowchart LR
   inicio["/ · inicio público<br/>indexable"] --> ingreso["/login · /register<br/>/forgot-password"]
   ingreso --> panel["/app · Panel general"]
   panel --> cultivos["/app/crops · Mis cultivos"]
+  cultivos --> nuevo["Nuevo cultivo<br/>real o virtual · especie · forma"]
   cultivos --> detalle["/app/crops/:id"]
-  detalle --> t1["Resumen"] & t2["Asistente IA"] & t3["Control"] & t4["Historial"] & t5["Dispositivo"] & t6["Maceta virtual"] & t7["Ajustes"]
+  detalle --> t1["Resumen"] & t6["Cultivo en vivo<br/>+ simulación si es virtual"] & t2["Asistente IA"] & t3["Control"] & t4["Historial"] & t5["Dispositivo<br/>solo reales"] & t7["Ajustes"]
   panel --> control["/app/control · Control general"]
   panel --> acciones["/app/actions · Acciones"]
   panel --> aprendizaje["/app/learning · Aprendizaje"]
@@ -1635,7 +1658,7 @@ flowchart LR
   class inicio,ingreso water
   class panel core
   class cultivos,control,acciones,aprendizaje,alertas,perfil leaf
-  class detalle sun
+  class detalle,nuevo sun
   class t1,t2,t3,t4,t5,t6,t7 muted
 ```
 
@@ -1696,7 +1719,7 @@ flowchart LR
 
 | Amenaza | Control |
 | --- | --- |
-| Suplantación de una maceta | Usuario MQTT por cultivo con clave generada por la API, cifrada con AES-GCM y ACL por tópico |
+| Suplantación de un dispositivo | Usuario MQTT por cultivo con clave generada por la API, cifrada con AES-GCM y ACL por tópico |
 | Acceso a cultivos ajenos | Control de dueño en cada servicio, probado con la cadena de seguridad real |
 | Fuerza bruta | BCrypt de costo 12 y límite de peticiones por IP |
 | Escucha en la red | TLS en la web y en la API; MQTT en el puerto 8883 con una autoridad certificadora propia |
@@ -1824,34 +1847,42 @@ sequenceDiagram
   A->>T: ⚠️ Atención en Lechugas del balcón
 ```
 
-### 27.2 Macetas virtuales
+### 27.2 Cultivos reales y virtuales
 
-<!-- diagrama: SmartPot_15_Virtual_Pot_Sequence | titulo=Maceta virtual con clima real -->
+La primera versión encendía una «maceta virtual» sobre cualquier cultivo, incluso uno con hardware, y dibujaba siempre una maceta. La revisión separó los dos mundos y los hizo fieles: el tipo se elige al crear el cultivo y no cambia (el API rechaza el cambio); un cultivo virtual no entrega credenciales, nace con los seis actuadores, se pausa sin perder su configuración y no alimenta el aprendizaje; Wokwi, al ejecutar el firmware real, cuenta como cultivo real. Cada cultivo tiene además su forma (maceta, tubos NFT, torre vertical o balsa flotante) y se ve en vivo con cada actuador encendido o apagado; si no está conectado, no se ilustra.
+
+<!-- diagrama: SmartPot_15_Virtual_Crop_Sequence | titulo=Cultivo virtual con clima real -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 sequenceDiagram
   autonumber
-  actor P as Persona
+  participant P as Persona
   participant W as PWA
   participant A as API
   participant S as Simulador
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Maceta virtual › Clima real › Medellín
-  W->>A: PUT /crops/{id}/virtual-device
-  A->>A: dueño del cultivo · descifra la clave
+  P->>W: Nuevo cultivo › Virtual › Balsa flotante › Clima real › Medellín
+  W->>A: POST /crops {kind: VIRTUAL, form, virtual}
+  A->>A: hasta 5 virtuales · el modo clima exige lugar
+  A->>A: cultivo, seis actuadores y cuenta MQTT
   A->>S: PUT /v1/pots/{id} (clave, modo, lugar)
+  A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: clima actual (caché 10 min)
-  S->>B: conecta como la maceta (usuario = cultivo)
+  S->>B: conecta con la cuenta del cultivo
   loop cada intervalo
     S->>B: telemetría según sol, nubes, lluvia y temperatura
-    B->>A: lectura → asistente → agente
+    B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  A->>B: comando (regar)
+  P->>W: Cultivo en vivo › Bomba de agua 15 s
+  W->>A: POST /crops/{id}/commands
+  A->>B: comando
   B->>S: comando
   S->>B: ACK EXECUTED y el sustrato sube
-  W->>A: GET estado (escena, lecturas, actuadores)
-  Note over A,S: Cada minuto la API recrea las macetas<br/>que falten tras un reinicio
+  W->>A: GET /crops/{id}/virtual-device
+  A-->>W: clima, lecturas y actuadores encendidos
+  W-->>P: la balsa con la bomba en marcha
+  Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
 ```
 
 ## 28. Aprendizaje continuo
@@ -1942,7 +1973,7 @@ flowchart LR
   web --> e2e
   py --> e2e
   ct --> e2e
-  e2e --> flow["registro → cultivo → telemetría MQTT → comando con ACK<br/>→ asistente → panel general → órdenes en bloque<br/>→ maceta virtual → aprendizaje → canales → borrado"]
+  e2e --> flow["registro → cultivo → telemetría MQTT → comando con ACK<br/>→ asistente → panel general → órdenes en bloque<br/>→ cultivo virtual → aprendizaje → canales → borrado"]
   classDef start fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef job fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef final fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
@@ -1961,7 +1992,7 @@ La base son 260 pruebas unitarias y de componentes (106 en la API, 73 en la IA, 
 | --- | --- | --- |
 | Simulación IoT, API con JWT, portal en tiempo real y automatización | Cumplido | Probado por el E2E |
 | Cobertura de al menos 80 % en módulos críticos | Sin medir | Publicar la cobertura en el CI de API, IA y PWA y fijar el umbral por módulo |
-| Latencia de la API menor a 500 ms | Sin medir formalmente | Prueba de carga con varias macetas simuladas y registro del percentil 95 |
+| Latencia de la API menor a 500 ms | Sin medir formalmente | Prueba de carga con varios cultivos simulados y registro del percentil 95 |
 | TLS y JWT | Cumplido | Verificado en producción y en las pruebas del broker |
 | Pruebas unitarias, de integración y de aceptación sin defectos críticos | Cumplido | La aceptación por caso de uso está en el [recorrido del proyecto](SmartPot_Project_Journey.md) |
 | Documentación: requisitos, manual, C4, modelo de datos y despliegue | Cumplido | Estos tres documentos, los READMEs y la guía de la demo |
@@ -1971,7 +2002,7 @@ La base son 260 pruebas unitarias y de componentes (106 en la API, 73 en la IA, 
 
 ## 31. Calidad de los modelos
 
-Las pruebas de la IA entrenan con dos macetas simuladas durante tres días y exigen que cada modelo supere a su línea base en el 20 % de lecturas más recientes: F1 de 0,89 frente a 0,46 para anticipar el secado, F1 de 0,92 frente a 0,49 para anticipar el calor y un error de 1,2 % frente a 4,5 % al estimar la humedad del sustrato en una hora. Son series simuladas: en producción cada especie muestra sus puntajes reales en la página Aprendizaje.
+Las pruebas de la IA entrenan con dos cultivos simulados durante tres días y exigen que cada modelo supere a su línea base en el 20 % de lecturas más recientes: F1 de 0,89 frente a 0,46 para anticipar el secado, F1 de 0,92 frente a 0,49 para anticipar el calor y un error de 1,2 % frente a 4,5 % al estimar la humedad del sustrato en una hora. Son series simuladas: en producción cada especie muestra sus puntajes reales en la página Aprendizaje.
 
 <!-- parte: PARTE VII | Mejora continua -->
 
@@ -2011,9 +2042,10 @@ flowchart TB
   c0["<b>Ciclo 0 · Primera plataforma</b><br/>API y portal web, base en la nube, ESP32 por HTTP"]
   c1["<b>Ciclo 1 · Reestructuración</b><br/>producción caída → MQTT v1, seguridad, servidor propio, IA inicial y QA"]
   c2["<b>Ciclo 2 · Mirada de conjunto</b><br/>panel general, control y acciones en bloque, pronóstico y cola de despliegues"]
-  c3["<b>Ciclo 3 · Aprender y conectar</b><br/>aprendizaje continuo, Telegram, macetas virtuales y despliegue desde GHCR"]
-  c4["<b>Próximo ciclo</b><br/>2FA, temas, reportes programados, más canales y prototipo físico"]
-  c0 --> c1 --> c2 --> c3 -.-> c4
+  c3["<b>Ciclo 3 · Aprender y conectar</b><br/>aprendizaje continuo, Telegram, cultivos virtuales y despliegue desde GHCR"]
+  c4["<b>Ciclo 4 · Cultivos a la medida</b><br/>real o virtual fijo, cuatro formas, cultivo en vivo y guía ESP32 o Wokwi"]
+  c5["<b>Próximo ciclo</b><br/>2FA, temas, reportes programados, más canales y prototipo físico"]
+  c0 --> c1 --> c2 --> c3 --> c4 -.-> c5
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
@@ -2024,8 +2056,9 @@ flowchart TB
   class c0 muted
   class c1 water
   class c2 leaf
-  class c3 core
-  class c4 sun
+  class c3 leaf
+  class c4 core
+  class c5 sun
 ```
 
 | Ciclo | Disparador | Cambios principales | Evidencia |
@@ -2034,6 +2067,7 @@ flowchart TB
 | 1 · Reestructuración | Producción caída, servicios expuestos y rutas sin control de dueño | MQTT v1, servidor propio, seguridad, IA inicial, documentación y QA | Plataforma en smartpot.app; QA con E2E en verde |
 | 2 · Mirada de conjunto | Una persona con varios cultivos no tenía vista general | Panel general, control y acciones en bloque, pronóstico y cola de despliegues | Nuevos endpoints y 21 comprobaciones E2E |
 | 3 · Aprender y conectar | La IA no mejoraba con el uso y no había avisos fuera de la PWA | Aprendizaje continuo, Telegram, macetas virtuales con clima real y despliegue desde GHCR | 260 pruebas y 30 comprobaciones E2E |
+| 4 · Cultivos a la medida | La maceta virtual mezclaba simulación y hardware, y no todo cultivo es una maceta | Cultivo real o virtual fijo al crearlo, cuatro formas, cultivo en vivo con cada actuador, guía ESP32 o Wokwi y aprendizaje solo con cultivos reales | 279 pruebas y 35 comprobaciones E2E |
 | Próximo | Pendientes de requisitos y de la investigación | Sección 36 | — |
 
 ## 34. Mejora que ocurre sola
@@ -2056,7 +2090,7 @@ flowchart TB
 | Cobertura de pruebas | Porcentaje de líneas cubiertas en módulos críticos | CI de cada repositorio | 80 % (criterio del acta) |
 | Frecuencia de despliegue | Despliegues a producción por semana | Workflow central | Al menos uno por ciclo |
 | Cambios fallidos | Despliegues que requieren revertir | Workflow central y `/health` | Cero |
-| Adopción | Cuentas y macetas activas, en forma agregada y anónima | API | Línea base en el piloto académico |
+| Adopción | Cuentas y cultivos activos, en forma agregada y anónima | API | Línea base en el piloto académico |
 
 ## 36. Backlog del próximo ciclo
 
