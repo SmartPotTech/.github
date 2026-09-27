@@ -1,35 +1,93 @@
-# --- Volumen persistente para MongoDB ---
 apiVersion: v1
-kind: PersistentVolume
+kind: Namespace
 metadata:
-  name: mongo-data
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /data/db
+  name: smartpot
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: smartpot-secrets
+  namespace: smartpot
+type: Opaque
+stringData:
+  MONGO_ROOT_PASSWORD: k8s-root-password-local
+  SMARTPOT_DB_PASSWORD: k8s-app-password-local
+  MONGODB_URI: mongodb://smartpot:k8s-app-password-local@db-smartpot:27017/smartpot?authSource=smartpot
+  REDIS_PASSWORD: k8s-redis-password-local
+  MAIL_PASSWORD: k8s-mail-password-local
+  MAILPIT_UI_PASSWORD: k8s-mailpit-ui-local
+  MQTT_ADMIN_PASSWORD: k8s-mqtt-admin-password-local
+  SMARTPOT_JWT_SECRET: k8s-jwt-secret-only-for-local-clusters-0123456789
+  SMARTPOT_AES_KEY: ZGVtby1vbmx5LXNtYXJ0cG90LWFlcy1rZXktMzJieXQ=
+  SMARTPOT_AI_TOKEN: k8s-ai-token-only-for-local-clusters
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: smartpot-config
+  namespace: smartpot
+data:
+  MONGO_INITDB_ROOT_USERNAME: smartpot-root
+  SMARTPOT_SEED_DEMO: "true"
+  MAIL_USERNAME: smartpot
+  MAILPIT_UI_USERNAME: admin
+  MQTT_ADMIN_USERNAME: smartpot-api
+  WEB_BASE_URL: http://localhost:30173
+  PUBLIC_API_URL: http://localhost:30091
+  CORS_ALLOWED_ORIGINS: http://localhost:30173
+  REDIS_HOST: cache-smartpot
+  MAIL_HOST: mail-smartpot
+  MAIL_SMTP_AUTH: "true"
+  MQTT_BROKER_URI: tcp://broker-smartpot:1883
+  MQTT_PUBLIC_HOST: localhost
+  MQTT_PUBLIC_PORT: "31883"
+  MQTT_WEBSOCKET_URL: ws://localhost:30901
+  AI_BASE_URL: http://ai-smartpot:8000
+  AI_TIMEZONE: America/Bogota
+  API_URL: http://localhost:30091
+  MQTT_HOST: broker-smartpot
+  MQTT_PORT: "1883"
+  SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
+  SIMULATOR_INTERVAL_SECONDS: "15"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mongo-data-claim
+  name: db-data
+  namespace: smartpot
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
-
-# --- MongoDB Deployment + Service ---
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: broker-data
+  namespace: smartpot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Mi
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: db-smartpot
+  namespace: smartpot
+  labels:
+    app: db-smartpot
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: db-smartpot
@@ -38,23 +96,75 @@ spec:
       labels:
         app: db-smartpot
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: mongodb
-          image: sebastian190030/db-smartpot:latest
+          image: ghcr.io/smartpottech/smartpot-db:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 27017
+          envFrom:
+            - configMapRef:
+                name: smartpot-config
+          env:
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MONGO_ROOT_PASSWORD
+            - name: SMARTPOT_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SMARTPOT_DB_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          readinessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
           volumeMounts:
-            - mountPath: /data/db
-              name: mongo-data
+            - name: db-data
+              mountPath: /data/db
+            - name: tmp
+              mountPath: /tmp
       volumes:
-        - name: mongo-data
+        - name: db-data
           persistentVolumeClaim:
-            claimName: mongo-data-claim
+            claimName: db-data
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: db-smartpot
+  namespace: smartpot
 spec:
   selector:
     app: db-smartpot
@@ -62,13 +172,14 @@ spec:
     - port: 27017
       targetPort: 27017
   type: ClusterIP
-
-# --- Redis Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: cache-smartpot
+  namespace: smartpot
+  labels:
+    app: cache-smartpot
 spec:
   replicas: 1
   selector:
@@ -79,16 +190,58 @@ spec:
       labels:
         app: cache-smartpot
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: redis
-          image: sebastian190030/cache-smartpot:latest
+          image: ghcr.io/smartpottech/smartpot-cache:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 6379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: REDIS_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 192Mi
+          readinessProbe:
+            tcpSocket:
+              port: 6379
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: cache-smartpot
+  namespace: smartpot
 spec:
   selector:
     app: cache-smartpot
@@ -96,13 +249,14 @@ spec:
     - port: 6379
       targetPort: 6379
   type: ClusterIP
-
-# --- Mailpit Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mail-smartpot
+  namespace: smartpot
+  labels:
+    app: mail-smartpot
 spec:
   replicas: 1
   selector:
@@ -113,23 +267,62 @@ spec:
       labels:
         app: mail-smartpot
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: mailpit
-          image: sebastian190030/mail-smartpot:latest
+          image: ghcr.io/smartpottech/smartpot-mail:latest
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8025
             - containerPort: 1025
+            - containerPort: 8025
+          envFrom:
+            - configMapRef:
+                name: smartpot-config
           env:
-            - name: MP_SMTP_AUTH
-              value: "true"
-          command:
-            - "--smtp-auth-file=/etc/mailpit/authfile"
-            - "--smtp-auth-allow-insecure"
+            - name: MAIL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MAIL_PASSWORD
+            - name: MAILPIT_UI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MAILPIT_UI_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          readinessProbe:
+            exec:
+              command: ["/mailpit", "readyz"]
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: mail-smartpot
+  namespace: smartpot
 spec:
   selector:
     app: mail-smartpot
@@ -137,17 +330,193 @@ spec:
     - name: smtp
       port: 1025
       targetPort: 1025
-    - name: gui
+    - name: ui
       port: 8025
       targetPort: 8025
+      nodePort: 30825
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broker-smartpot
+  namespace: smartpot
+  labels:
+    app: broker-smartpot
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: broker-smartpot
+  template:
+    metadata:
+      labels:
+        app: broker-smartpot
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1883
+        runAsGroup: 1883
+        fsGroup: 1883
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mosquitto
+          image: ghcr.io/smartpottech/smartpot-broker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1883
+            - containerPort: 9001
+          envFrom:
+            - configMapRef:
+                name: smartpot-config
+          env:
+            - name: MQTT_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MQTT_ADMIN_PASSWORD
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          readinessProbe:
+            tcpSocket:
+              port: 1883
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 1883
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          volumeMounts:
+            - name: broker-data
+              mountPath: /mosquitto/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: broker-data
+          persistentVolumeClaim:
+            claimName: broker-data
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: broker-smartpot
+  namespace: smartpot
+spec:
+  selector:
+    app: broker-smartpot
+  ports:
+    - name: mqtt
+      port: 1883
+      targetPort: 1883
+      nodePort: 31883
+    - name: websocket
+      port: 9001
+      targetPort: 9001
+      nodePort: 30901
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-smartpot
+  namespace: smartpot
+  labels:
+    app: ai-smartpot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-smartpot
+  template:
+    metadata:
+      labels:
+        app: ai-smartpot
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ai
+          image: ghcr.io/smartpottech/smartpot-ai:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          env:
+            - name: SMARTPOT_AI_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SMARTPOT_AI_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-smartpot
+  namespace: smartpot
+spec:
+  selector:
+    app: ai-smartpot
+  ports:
+    - port: 8000
+      targetPort: 8000
   type: ClusterIP
-
-# --- API Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: api-smartpot
+  namespace: smartpot
+  labels:
+    app: api-smartpot
 spec:
   replicas: 1
   selector:
@@ -158,113 +527,115 @@ spec:
       labels:
         app: api-smartpot
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-        - name: api-container
-          image: sebastian190030/api-smartpot:latest
+        - name: api
+          image: ghcr.io/smartpottech/smartpot-api:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8091
+          envFrom:
+            - configMapRef:
+                name: smartpot-config
           env:
-            - name: APP_NAME
-              value: "SmartPot-API"
-            - name: PORT
-              value: "8091"
-            - name: TITLE
-              value: "SmartPot API"
-            - name: DESCRIPTION
-              value: "Documentación de la API REST de SmartPot"
-            - name: VERSION
-              value: "1.0.0"
-            - name: AUTHOR
-              value: "SmartPot Developers"
-            - name: DATA_CONNECTION_METHOD
-              value: "mongodb"
-            - name: DATA_SOURCE_USERNAME
-              value: "admin"
-            - name: DATA_SOURCE_PASSWORD
-              value: "admin"
-            - name: DATA_SOURCE_DOMAIN
-              value: "db-smartpot:27017"
-            - name: DATA_SOURCE_DB
-              value: "smartpot"
-            - name: DATA_PARAMS
-              value: "authSource=admin&directConnection=true&serverSelectionTimeoutMS=100000&socketTimeoutMS=10000&appName=mongo"
-            - name: CACHE_TYPE
-              value: "redis"
-            - name: CACHE_HOST
-              value: "cache-smartpot"
-            - name: CACHE_PORT
-              value: "6379"
-            - name: CACHE_DB
-              value: "0"
-            - name: CACHE_USERNAME
-              value: "default"
-            - name: CACHE_PASSWORD
-              value: "root"
-            - name: CACHE_TIMEOUT
-              value: "2000"
-            - name: CACHE_LETTUCE_POOL_MAX_ACTIVE
-              value: "8"
-            - name: CACHE_LETTUCE_POOL_MAX_WAIT
-              value: "-1"
-            - name: CACHE_LETTUCE_POOL_MAX_IDLE
-              value: "8"
-            - name: CACHE_LETTUCE_POOL_MIN_IDLE
-              value: "8"
-            - name: CACHE_TIME_TO_LIVE
-              value: "300000"
-            - name: CACHE_NULL_VALUES
-              value: "false"
-            - name: MAIL_HOST
-              value: "mail-smartpot"
-            - name: MAIL_PORT
-              value: "1025"
-            - name: MAIL_USERNAME
-              value: "smarpotadmin@example.com"
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MONGODB_URI
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: REDIS_PASSWORD
             - name: MAIL_PASSWORD
-              value: "password123"
-            - name: MAIL_PROPERTIES_SMTP_AUTH
-              value: "true"
-            - name: MAIL_PROPERTIES_SMTP_STARTTLS_ENABLE
-              value: "false"
-            - name: SECURITY_JWT_SECRET_KEY
-              value: "c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476"
-            - name: SECURITY_JWT_EXPIRATION
-              value: "86400000"
-            - name: SECURITY_PUBLIC_ROUTES
-              value: "/auth/login,/auth/verify"
-            - name: RATE_LIMITING_MAX_REQUESTS
-              value: "5"
-            - name: RATE_LIMITING_TIME_WINDOW
-              value: "60000"
-            - name: RATE_LIMITING_PUBLIC_ROUTES
-              value: "/swagger-ui/,/v3/api-docs,/swagger-resources/,/webjars/"
-            - name: HEADER_CORS_ALLOWED_ORIGINS
-              value: "http://localhost:5173"
-            - name: SERVER_TOMCAT_TIMEOUT
-              value: "600000"
-            - name: DEBUGGER_MODE
-              value: "INFO"
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MAIL_PASSWORD
+            - name: MQTT_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: MQTT_ADMIN_PASSWORD
+            - name: SMARTPOT_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SMARTPOT_JWT_SECRET
+            - name: SMARTPOT_AES_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SMARTPOT_AES_KEY
+            - name: SMARTPOT_AI_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SMARTPOT_AI_TOKEN
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 250m
+              memory: 384Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8091
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8091
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8091
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: api-smartpot
+  namespace: smartpot
 spec:
   selector:
     app: api-smartpot
   ports:
     - port: 8091
       targetPort: 8091
-      protocol: TCP
-      nodePort: 30001
+      nodePort: 30091
   type: NodePort
-
-# --- Web Frontend Deployment + Service ---
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web-smartpot
+  namespace: smartpot
+  labels:
+    app: web-smartpot
 spec:
   replicas: 1
   selector:
@@ -275,25 +646,119 @@ spec:
       labels:
         app: web-smartpot
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
       containers:
-        - name: web-container
-          image: sebastian190030/web-smartpot:latest
+        - name: web
+          image: ghcr.io/smartpottech/smartpot-web:latest
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 5173
+            - containerPort: 8080
           env:
-            - name: VITE_API_BASE_URL
-              value: "http://localhost:8091"
+            - name: API_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: smartpot-config
+                  key: API_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 96Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            periodSeconds: 30
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: nginx-conf
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: web-smartpot
+  namespace: smartpot
 spec:
   selector:
     app: web-smartpot
   ports:
-    - port: 5173
-      targetPort: 5173
-      protocol: TCP
-      nodePort: 30002
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30173
   type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simulator-smartpot
+  namespace: smartpot
+  labels:
+    app: simulator-smartpot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: simulator-smartpot
+  template:
+    metadata:
+      labels:
+        app: simulator-smartpot
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: simulator
+          image: ghcr.io/smartpottech/smartpot-datagenerator:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: smartpot-config
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 96Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
