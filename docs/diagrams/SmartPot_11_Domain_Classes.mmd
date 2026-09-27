@@ -11,6 +11,8 @@ classDiagram
     +String id
     +String ownerId
     +CropType type
+    +CropKind kind
+    +CropForm form
     +boolean automationEnabled
     +Device device
     +CropHealth health
@@ -58,6 +60,19 @@ classDiagram
     +VirtualMode mode
     +Measures manual
     +VirtualLocation location
+    +boolean active
+  }
+  class CropKind {
+    <<enumeration>>
+    REAL
+    VIRTUAL
+  }
+  class CropForm {
+    <<enumeration>>
+    POT
+    NFT
+    TOWER
+    RAFT
   }
   class NotificationChannel {
     <<interface>>
@@ -73,5 +88,7 @@ classDiagram
   Actuator "1" --> "*" Command
   User "1" --> "*" Notification
   User "1" --> "*" ChannelLink
-  Crop "1" --> "0..1" VirtualDevice
+  Crop "1" --> "0..1" VirtualDevice : solo si es virtual
+  Crop --> CropKind
+  Crop --> CropForm
   NotificationChannel <|.. TelegramChannel
