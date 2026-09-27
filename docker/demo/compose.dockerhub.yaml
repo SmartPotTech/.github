@@ -1,0 +1,20 @@
+# La misma demo con las imágenes de Docker Hub. Se usa junto a compose.yaml:
+#   docker compose -f compose.yaml -f compose.dockerhub.yaml up -d --wait
+# Las imágenes son las mismas que en GHCR; solo cambia el registro desde el que se descargan.
+services:
+  db-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/db-smartpot:latest
+  cache-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/cache-smartpot:latest
+  mail-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/mail-smartpot:latest
+  broker-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/broker-smartpot:latest
+  ai-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/ai-smartpot:latest
+  api-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/api-smartpot:latest
+  web-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/web-smartpot:latest
+  simulator-smartpot:
+    image: docker.io/${SMARTPOT_DOCKERHUB_NAMESPACE:-sebastian190030}/datagenerator-smartpot:latest
