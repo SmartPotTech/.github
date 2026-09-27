@@ -1,0 +1,111 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "state": {"useMaxWidth": false}}}%%
+stateDiagram-v2
+  direction LR
+
+  state "Sesión de la persona" as sesion {
+    direction LR
+    [*] --> Anonima
+    Anonima --> Autenticada : ingreso o registro (JWT 7 días)
+    Autenticada --> Anonima : cierre de sesión o JWT vencido
+    Anonima --> Recuperando : olvidé mi contraseña
+    Recuperando --> Anonima : enlace vencido (30 min)
+    Recuperando --> Autenticada : contraseña nueva y nuevo ingreso
+    Anonima --> Limitada : más de 10 peticiones por minuto a auth
+    Limitada --> Anonima : pasa el minuto (429 con Retry-After)
+  }
+
+  state "Maceta y su cuenta MQTT" as maceta {
+    direction LR
+    [*] --> Aprovisionada : crear cultivo (createClient)
+    Aprovisionada --> EnLinea : CONNECT con la clave · status online
+    EnLinea --> Desconectada : última voluntad offline
+    Desconectada --> EnLinea : reconecta
+    EnLinea --> Rotada : rotar la clave (disableClient y enableClient)
+    Rotada --> EnLinea : reconecta con la clave nueva
+    Aprovisionada --> Retirada : borrar el cultivo (deleteClient)
+    Desconectada --> Retirada : borrar el cultivo
+    Retirada --> [*]
+  }
+
+  state "Comando" as comando {
+    direction LR
+    [*] --> PENDING : orden de la persona o del agente
+    PENDING --> SENT : publicado con QoS 1
+    PENDING --> FAILED : broker no disponible
+    SENT --> EXECUTED : ACK EXECUTED
+    SENT --> FAILED : ACK FAILED
+    SENT --> EXPIRED : sin ACK en 2 min
+    EXECUTED --> [*]
+    FAILED --> [*] : alerta al dueño
+    EXPIRED --> [*] : alerta al dueño
+  }
+
+  state "Evaluación del cultivo" as salud {
+    direction LR
+    [*] --> SinLecturas
+    SinLecturas --> Evaluado : primera lectura válida
+    state Evaluado {
+      direction LR
+      EXCELLENT --> GOOD : baja el índice
+      GOOD --> FAIR
+      FAIR --> POOR
+      POOR --> CRITICAL
+      CRITICAL --> POOR : se corrige
+      POOR --> FAIR
+      FAIR --> GOOD
+      GOOD --> EXCELLENT
+    }
+    Evaluado --> Bloqueado : posible falla de sensor
+    Bloqueado --> Evaluado : lecturas coherentes
+  }
+
+  state "Modo automático" as automatico {
+    direction LR
+    [*] --> Sugerencias
+    Sugerencias --> Automatico : la persona lo activa (uno o varios cultivos)
+    Automatico --> Sugerencias : la persona lo desactiva
+    state Automatico {
+      direction LR
+      Libre --> Enfriando : el agente actúa sobre un actuador
+      Enfriando --> Libre : pasan 10 minutos
+    }
+  }
+
+  state "Aprendizaje por especie" as aprendizaje {
+    direction LR
+    [*] --> JuntandoDatos
+    JuntandoDatos --> Entrenando : 200 lecturas etiquetadas
+    Entrenando --> AlDia : el retador supera a la línea base y al campeón
+    Entrenando --> Pendiente : faltan casos positivos
+    Entrenando --> AlDia : se conserva el campeón
+    AlDia --> Entrenando : 300 lecturas nuevas
+    Pendiente --> Entrenando : 300 lecturas nuevas
+    AlDia --> Reentrenar : cambia la versión de scikit-learn
+    Reentrenar --> Entrenando
+  }
+
+  state "Vínculo de Telegram" as telegram {
+    direction LR
+    [*] --> CodigoEmitido : pedir código (10 min)
+    CodigoEmitido --> [*] : vence sin usarse
+    CodigoEmitido --> Activo : /start código en un chat privado
+    Activo --> Desactivado : la persona lo apaga
+    Desactivado --> Activo : la persona lo enciende
+    Activo --> Pausado : chat bloqueado o 5 fallos seguidos
+    Pausado --> Activo : la persona lo reactiva
+    Activo --> [*] : /desvincular o desde la PWA
+  }
+
+  state "Maceta virtual" as virtual {
+    direction LR
+    [*] --> Apagada
+    Apagada --> Encendida : PUT virtual-device (la API la recrea si falta y le da la clave vigente)
+    state Encendida {
+      direction LR
+      AUTO --> MANUAL : la persona cambia el modo
+      MANUAL --> WEATHER
+      WEATHER --> AUTO
+    }
+    Encendida --> Apagada : DELETE virtual-device
+    Encendida --> [*] : borrar el cultivo
+  }
