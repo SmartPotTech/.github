@@ -35,8 +35,13 @@ flowchart LR
   A -->|red interna| D[(db-smartpot)]
   A -->|red interna| C[(cache-smartpot)]
   A -->|red interna| I[ai-smartpot]
+  A -->|red interna| V[simulator-smartpot]
+  V -->|MQTT 1883 interno| K
+  V -.->|clima| O[Open-Meteo]
   A -->|MQTT 1883 interno| K
   A -->|SMTP 1025 interno| E
+  A -.->|alertas| T[Telegram Bot API]
+  T -.->|webhook firmado| N
 ```
 
 | Servicio | Red | Puerto en el host | Variables que recibe |
@@ -45,12 +50,12 @@ flowchart LR
 | `cache-smartpot` | `internal` | Ninguno | `REDIS_PASSWORD` |
 | `mail-smartpot` (perfil `mail`) | `internal` + `public` | `127.0.0.1:8025` | `MAIL_*`, `MAILPIT_UI_*` |
 | `broker-smartpot` | `internal` + `public` | `0.0.0.0:8883`, `127.0.0.1:9001` | `MQTT_ADMIN_*`, certificados en `SMARTPOT_CERTS_DIR` |
-| `ai-smartpot` | `internal` | Ninguno | `SMARTPOT_AI_TOKEN` |
-| `api-smartpot` | `internal` + `public` | `127.0.0.1:8091` | JWT, AES, conexiones internas, URLs públicas |
+| `ai-smartpot` | `internal` | Ninguno | `SMARTPOT_AI_TOKEN`, `LEARNING_*`; volumen `ai_data` con lo aprendido |
+| `api-smartpot` | `internal` + `public` | `127.0.0.1:8091` | JWT, AES, conexiones internas, URLs públicas, `SIMULATOR_TOKEN`, `TELEGRAM_*` |
 | `web-smartpot` | `public` | `127.0.0.1:5173` | `PUBLIC_API_URL` |
-| `simulator-smartpot` (perfil `simulator`) | `internal` | Ninguno | `SIMULATOR_*` |
+| `simulator-smartpot` | `internal` + `public` (solo salida, para el clima) | Ninguno | `SIMULATOR_*` |
 
-Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a cada contenedor solo sus variables: la PWA no ve el secreto JWT y el servicio de IA solo conoce su token. La red `internal` no tiene salida a internet: MongoDB, Redis y la IA no son alcanzables desde fuera.
+Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a cada contenedor solo sus variables: la PWA no ve el secreto JWT y el servicio de IA solo conoce su token. La red `internal` no tiene salida a internet: MongoDB, Redis y la IA no son alcanzables desde fuera. El simulador de macetas virtuales solo usa `public` para consultar el clima y no publica puertos; su API de control la usa únicamente la API de SmartPot, con token.
 
 ### Endurecimiento aplicado
 
@@ -98,7 +103,7 @@ Solo este repositorio despliega. El workflow [`deploy.yml`](../../.github/workfl
 
 **Cola sin duplicados.** `deploy.yml` usa `concurrency: smartpot-production` sin cancelar el que está en curso: mientras un despliegue corre, el siguiente espera, y si llegan varios pedidos a la vez (por ejemplo, push simultáneos en tres servicios) solo queda en espera el más reciente; los intermedios se cancelan porque cada despliegue descarga todas las imágenes y ya incluye sus cambios. El servicio cuya solicitud fue reemplazada lo informa como aviso, no como error. En el servidor, `flock` es una segunda barrera por si algo corre por fuera de GitHub.
 
-Cada ejecución despliega la plataforma completa: descarga las imágenes y recrea solo los contenedores cuya imagen o configuración cambió. Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
+Cada ejecución despliega la plataforma completa: descarga las imágenes **desde GHCR** (`ghcr.io/smartpottech/smartpot-*`, públicas) y recrea solo los contenedores cuya imagen o configuración cambió. Docker Hub (`sebastian190030/<componente>-smartpot`) queda como réplica de distribución para quien prefiera ese registro, por ejemplo en la [demo](../demo/README.md). Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
 
 ### Secrets
 
@@ -153,6 +158,10 @@ CLIENT_NAME=smartpot-device sh scripts/generate-certs.sh certs mqtt.smartpot.app
 | `WEB_BASE_URL` / `PUBLIC_API_URL` / `CORS_ALLOWED_ORIGINS` | Dominios públicos de la PWA y la API |
 | `MQTT_PUBLIC_*` / `MQTT_WEBSOCKET_URL` | Lo que la PWA muestra a la maceta para conectarse |
 | `AI_TIMEZONE` | Zona horaria del descanso nocturno del asistente, `America/Bogota` |
+| `LEARNING_MIN_SAMPLES` / `LEARNING_RETRAIN_EVERY` / `LEARNING_RETENTION_DAYS` | Aprendizaje continuo: lecturas para el primer entrenamiento (200), lecturas nuevas para reentrenar (300) y días que se guardan (60) |
+| `SIMULATOR_TOKEN` | Token entre la API y el simulador, al menos 24 caracteres; sin él las macetas virtuales quedan deshabilitadas |
+| `TELEGRAM_BOT_TOKEN` / `TELEGRAM_BOT_USERNAME` | Bot creado con [@BotFather](https://t.me/BotFather); vacíos, el canal no se ofrece |
+| `TELEGRAM_MODE` / `TELEGRAM_WEBHOOK_SECRET` | `webhook` en producción: la API registra `PUBLIC_API_URL/api/v1/channels/telegram/webhook` y exige el secreto en cada llamada |
 
 ### Operación
 
@@ -167,7 +176,7 @@ docker logs -f smartpot-broker
 Los despliegues simultáneos no se pisan: cada uno sube su configuración a una carpeta temporal propia (`.deploy-<id>`, permisos `700`) y espera su turno con `flock`.
 
 > [!CAUTION]
-> `docker compose down -v` borra los volúmenes `db_data` y `broker_data`: usuarios, cultivos, lecturas y cuentas MQTT.
+> `docker compose down -v` borra los volúmenes `db_data`, `broker_data` y `ai_data`: usuarios, cultivos, lecturas, cuentas MQTT y lo aprendido por la IA.
 
 ---
 
