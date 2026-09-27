@@ -49,6 +49,23 @@ Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos sale
 | 35 Ciclos de mejora | Flujo | Ciclo de vida |
 | 36 Fases de la investigación | Flujo | Ciclo de vida |
 
+## Superdiagramas
+
+Diagramas independientes, sin límite de tamaño, que muestran la plataforma completa en una sola imagen. No van en ningún documento: el SVG se abre en el navegador y se amplía tanto como haga falta.
+
+| Superdiagrama | Qué muestra | Archivos |
+| --- | --- | --- |
+| 01 Arquitectura completa | Personas y macetas, borde (UFW y Nginx), los ocho contenedores con sus módulos internos, puertos, redes, volúmenes y servicios externos | [MMD](superdiagrams/SmartPot_Super_01_Architecture.mmd) · [SVG](images/superdiagrams/SmartPot_Super_01_Architecture.svg) |
+| 02 Operación completa | Secuencia de 16 escenas y más de 150 mensajes numerados: arranque, registro, cultivo, conexión, maceta virtual, lectura con automatización, aprendizaje, Telegram, PWA, órdenes, vinculación, desconexión, rotación de la clave, recuperación de la contraseña, borrado y salud | [MMD](superdiagrams/SmartPot_Super_02_Operation_Sequence.mmd) · [SVG](images/superdiagrams/SmartPot_Super_02_Operation_Sequence.svg) |
+| 03 Entrega continua | Del commit al servidor: CI, QA con E2E, imágenes en GHCR y Docker Hub, despliegue central, secretos y entornos (demo, desarrollo, producción y Kubernetes) | [MMD](superdiagrams/SmartPot_Super_03_Delivery.mmd) · [SVG](images/superdiagrams/SmartPot_Super_03_Delivery.svg) |
+| 04 Linaje de los datos | De dónde sale cada dato, por dónde viaja, dónde se guarda (MongoDB, Redis, SQLite, modelos y navegador) y quién lo usa | [MMD](superdiagrams/SmartPot_Super_04_Data_Lineage.mmd) · [SVG](images/superdiagrams/SmartPot_Super_04_Data_Lineage.svg) |
+| 05 Máquinas de estado | Sesión, maceta y su cuenta MQTT, comando, evaluación del cultivo, modo automático, aprendizaje por especie, vínculo de Telegram y maceta virtual | [MMD](superdiagrams/SmartPot_Super_05_State_Machines.mmd) · [SVG](images/superdiagrams/SmartPot_Super_05_State_Machines.svg) |
+| 06 Modelo de dominio | Entidades, enumeraciones e interfaces de la API y el contrato de la IA, con relaciones y cardinalidades | [MMD](superdiagrams/SmartPot_Super_06_Domain_Model.mmd) · [SVG](images/superdiagrams/SmartPot_Super_06_Domain_Model.svg) |
+| 07 Recorrido de la PWA | Cada pantalla, las rutas de la API que llama y el servicio que responde | [MMD](superdiagrams/SmartPot_Super_07_User_Journey.mmd) · [SVG](images/superdiagrams/SmartPot_Super_07_User_Journey.svg) |
+| 08 Decisión de la IA | De la lectura a la orden: diagnóstico, pronóstico, modelos base y aprendidos, las 19 reglas, índice difuso, agente y lo que hace la API | [MMD](superdiagrams/SmartPot_Super_08_AI_Decision.mmd) · [SVG](images/superdiagrams/SmartPot_Super_08_AI_Decision.svg) |
+
+Los diagramas de flujo usan el motor de diseño ELK, que ordena mejor los grafos grandes; como superan los límites por defecto de Mermaid (50 000 caracteres y 500 aristas), se renderizan con `render_diagrams.py --super`, que los amplía.
+
 ## Estructura
 
 ```text
@@ -59,9 +76,11 @@ docs/
 ├── *.docx, *.pdf                         # Generados
 ├── diagrams/                             # Fuentes Mermaid (.mmd) con la paleta en %%{init}%%
 ├── images/diagrams/                      # PNG para el DOCX y SVG para ampliar
+├── superdiagrams/                        # Superdiagramas (.mmd) independientes
+├── images/superdiagrams/                 # Sus SVG
 ├── assets/                               # Logo, ícono y marca de agua de la portada
 └── tools/
-    ├── render_diagrams.py                # .mmd → PNG y SVG, y sincronización con el Markdown
+    ├── render_diagrams.py                # .mmd → PNG y SVG, sincronización con el Markdown y superdiagramas
     └── md_to_docx.py                     # Markdown → DOCX (y PDF con LibreOffice)
 ```
 
@@ -74,6 +93,7 @@ python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Technical_Documenta
 python docs/tools/md_to_docx.py docs/SmartPot_Technical_Documentation.md --pdf
 python docs/tools/md_to_docx.py docs/SmartPot_Project_Journey.md --pdf
 python docs/tools/md_to_docx.py docs/SmartPot_Software_Lifecycle.md --pdf
+python docs/tools/render_diagrams.py --super
 ```
 
 Para cambiar un diagrama se edita su `.mmd` y se vuelve a ejecutar el primer comando: renderiza las imágenes y copia el diagrama al bloque ```` ```mermaid ```` que sigue a su marcador `<!-- diagrama: NOMBRE | titulo=... -->` en cada Markdown. Un diagrama nuevo se agrega con su marcador seguido de un bloque ```` ```mermaid ```` vacío.
