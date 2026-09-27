@@ -1,0 +1,32 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+flowchart TB
+  subgraph web["SmartPot-Web · PWA"]
+    w1["Panel general · Cultivos<br/>Control · Acciones"]
+    w2["Asistente · Aprendizaje"]
+    w3["Maceta virtual · Perfil y canales"]
+  end
+  subgraph api["SmartPot-API · Spring Boot"]
+    a1["security · users"]
+    a2["crops · readings · actuators · commands"]
+    a3["mqtt · aprovisionamiento"]
+    a4["ai · agente · LearningFeed"]
+    a5["notifications · channels · telegram"]
+    a6["virtualdevices · overview"]
+  end
+  subgraph ai["SmartPot-AI · FastAPI"]
+    i1["engine: diagnóstico, reglas,<br/>difusa, agente, pronóstico, flota"]
+    i2["learning: almacén, calidad,<br/>variables, entrenador, servicio"]
+  end
+  subgraph sim["SmartPot-DataGenerator"]
+    s1["pots · environment · weather · api"]
+  end
+  web -->|"REST + JWT"| api
+  a3 <-->|"MQTT"| broker["SmartPot-Broker"]
+  s1 <-->|"MQTT"| broker
+  a4 -->|"HTTP + token"| ai
+  a6 -->|"HTTP + token"| sim
+  a5 -->|"Bot API"| tg["Telegram"]
+  classDef box fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef ext fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  class w1,w2,w3,a1,a2,a3,a4,a5,a6,i1,i2,s1 box
+  class broker,tg ext
