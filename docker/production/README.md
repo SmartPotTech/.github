@@ -73,30 +73,36 @@ Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a c
 ```mermaid
 sequenceDiagram
   participant R as Repo de un servicio
-  participant G as GHCR
-  participant D as deploy.yml
+  participant G as GHCR y Docker Hub
+  participant Q as request-deploy.yml
+  participant D as deploy.yml (.github)
   participant S as Servidor
   R->>G: packaging.yml publica la imagen
-  R->>D: deploy.yml del repo llama al workflow reutilizable
+  R->>Q: deploy.yml del repo pide el despliegue
+  Q->>D: workflow_dispatch (origen, commit, id de solicitud)
+  Note over D: concurrency smartpot-production: uno en curso y uno en espera
   D->>D: genera .env desde ENV_FILE, valida secretos y certificados
   D->>S: SSH: compose.yaml, .env (600) y certificados
   S->>S: instala certificados en SMARTPOT_CERTS_DIR (usuario 1883)
   S->>G: docker compose pull
   S->>S: up -d --wait y borra .env
   D->>S: GET /health público
+  Q-->>R: resultado del despliegue central
 ```
 
-El workflow [`deploy.yml`](../../.github/workflows/deploy.yml) se ejecuta:
+Solo este repositorio despliega. El workflow [`deploy.yml`](../../.github/workflows/deploy.yml) se ejecuta:
 
-* Desde el `deploy.yml` de SmartPot-API, -Web, -AI, -Broker, -DB, -Cache, -Mail y -DataGenerator, cuando su `packaging.yml` publica la imagen desde `main`.
+* Cuando un servicio (SmartPot-API, -Web, -AI, -Broker, -DB, -Cache, -Mail o -DataGenerator) publica su imagen desde `main`: su `deploy.yml` llama a [`request-deploy.yml`](../../.github/workflows/request-deploy.yml), que dispara el despliegue central, muestra el enlace y espera el resultado.
 * Con cualquier cambio en `docker/production` de este repositorio.
 * A mano, desde **Actions → Deploy to Production → Run workflow**.
+
+**Cola sin duplicados.** `deploy.yml` usa `concurrency: smartpot-production` sin cancelar el que está en curso: mientras un despliegue corre, el siguiente espera, y si llegan varios pedidos a la vez (por ejemplo, push simultáneos en tres servicios) solo queda en espera el más reciente; los intermedios se cancelan porque cada despliegue descarga todas las imágenes y ya incluye sus cambios. El servicio cuya solicitud fue reemplazada lo informa como aviso, no como error. En el servidor, `flock` es una segunda barrera por si algo corre por fuera de GitHub.
 
 Cada ejecución despliega la plataforma completa: descarga las imágenes y recrea solo los contenedores cuya imagen o configuración cambió. Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
 
 ### Secrets
 
-Se crean en cada repositorio que despliega (o una sola vez como secrets de la organización con acceso a esos repositorios):
+**En `SmartPotTech/.github`** (el único que se conecta al servidor):
 
 | Secret | Ejemplo | Descripción |
 | --- | --- | --- |
@@ -110,6 +116,13 @@ Se crean en cada repositorio que despliega (o una sola vez como secrets de la or
 | `MQTT_CA_CERT` | `-----BEGIN CERTIFICATE-----` | `ca.crt` de la CA de SmartPot (público) |
 | `MQTT_SERVER_CERT` | `-----BEGIN CERTIFICATE-----` | `server.crt` para `mqtt.smartpot.app` |
 | `MQTT_SERVER_KEY` | `-----BEGIN PRIVATE KEY-----` | `server.key` del broker |
+
+**En cada servicio** (los ocho repositorios con imagen):
+
+| Secret | Descripción |
+| --- | --- |
+| `DEPLOY_DISPATCH_TOKEN` | Token *fine-grained* con acceso solo a `SmartPotTech/.github` y permiso **Actions: Read and write**. Sin él, el servicio publica la imagen pero no pide el despliegue |
+| `DOCKER_USERNAME` / `DOCKER_PASSWORD` | Opcionales: usuario y token de acceso de Docker Hub para publicar también ahí (`<usuario>/<componente>-smartpot`) |
 
 Los tres secrets `MQTT_*` son opcionales: si no existen, el broker usa los certificados que ya estén en el servidor. Cuando existen, el workflow comprueba que el certificado esté firmado por la CA y que la llave le corresponda, y los instala en `SMARTPOT_CERTS_DIR` con dueño `1883` (el usuario del broker) y la llave en modo `600`. `ca.key` nunca se sube: con ella se firman certificados nuevos.
 
