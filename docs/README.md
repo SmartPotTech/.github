@@ -2,42 +2,63 @@
 
 | Documento | Qué cuenta | Formato |
 | --- | --- | --- |
-| Documentación técnica de la plataforma | La plataforma tal como funciona hoy: arquitectura, contratos MQTT y REST, asistente de IA y aprendizaje continuo, Telegram, macetas virtuales, datos, PWA, firmware, seguridad, despliegue, calidad y operación | [Markdown](SmartPot_Documentacion_Tecnica.md) · [DOCX](SmartPot_Documentacion_Tecnica.docx) · [PDF](SmartPot_Documentacion_Tecnica.pdf) |
-| Recorrido del proyecto | Cómo se llegó hasta aquí: inicio (problema, objetivos, mercado, interesados y acta), análisis (requisitos con su estado, casos de uso y base de conocimiento), diseño (abstracciones, diagramas y patrones actualizados), construcción (gestión, evolución de la arquitectura, IA, Telegram y simulación) y pruebas | [Markdown](SmartPot_Recorrido_del_Proyecto.md) · [DOCX](SmartPot_Recorrido_del_Proyecto.docx) · [PDF](SmartPot_Recorrido_del_Proyecto.pdf) |
+| Documentación técnica de la plataforma | La plataforma tal como funciona hoy: arquitectura, contratos MQTT y REST, asistente de IA y aprendizaje continuo, Telegram, macetas virtuales, datos, PWA, firmware, seguridad, despliegue, calidad y operación | [Markdown](SmartPot_Technical_Documentation.md) · [DOCX](SmartPot_Technical_Documentation.docx) · [PDF](SmartPot_Technical_Documentation.pdf) |
+| Recorrido del proyecto | Requisito por requisito y diagrama por diagrama: qué se planeó en la fase de diseño, qué quedó construido y cómo se comprueba | [Markdown](SmartPot_Project_Journey.md) · [DOCX](SmartPot_Project_Journey.docx) · [PDF](SmartPot_Project_Journey.pdf) |
+| Ciclo de vida del software | La lectura crítica de cada etapa: formulación y evaluación, gestión, análisis, diseño, construcción, pruebas y mejora continua, con todos los diagramas | [Markdown](SmartPot_Software_Lifecycle.md) · [DOCX](SmartPot_Software_Lifecycle.docx) · [PDF](SmartPot_Software_Lifecycle.pdf) |
 
-Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos salen los DOCX y los PDF con la identidad de SmartPot. El recorrido parte de la documentación de la fase de diseño y la contrasta, requisito por requisito y diagrama por diagrama, con lo que quedó construido.
+Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos salen los DOCX y los PDF con la identidad de SmartPot.
 
 ## Diagramas
 
-| Diagrama | Tipo | Documento |
+| Diagrama | Tipo | Documentos |
 | --- | --- | --- |
-| 01 Arquitectura | Flujo | Técnica |
-| 02 Secuencia de una lectura | Secuencia | Técnica |
-| 03 Asistente de IA | Flujo | Técnica |
-| 04 Modelo de datos | Entidad-relación | Técnica |
-| 05 Estados de un comando | Estados | Técnica |
-| 06 Despliegue | Flujo | Técnica |
-| 07 Redes | Flujo | Técnica |
-| 08 QA | Flujo | Técnica |
-| 09 Causa y efecto | Flujo | Recorrido |
-| 10 Casos de uso | Flujo con actores | Recorrido |
-| 11 Clases del dominio | Clases | Recorrido |
-| 12 Componentes | Flujo | Recorrido |
-| 13 Actividad del control automático | Actividad | Recorrido |
-| 14 Vinculación de Telegram | Secuencia | Ambos |
-| 15 Maceta virtual con clima real | Secuencia | Ambos |
-| 16 Aprendizaje continuo | Flujo | Ambos |
-| 17 Etapas del proyecto | Flujo | Recorrido |
+| 01 Arquitectura | Flujo | Técnica, ciclo de vida |
+| 02 Secuencia de una lectura | Secuencia | Técnica, ciclo de vida |
+| 03 Asistente de IA | Flujo | Técnica, ciclo de vida |
+| 04 Modelo de datos | Entidad-relación | Técnica, ciclo de vida |
+| 05 Estados de un comando | Estados | Técnica, ciclo de vida |
+| 06 Despliegue | Flujo | Técnica, ciclo de vida |
+| 07 Redes | Flujo | Técnica, ciclo de vida |
+| 08 QA | Flujo | Técnica, ciclo de vida |
+| 09 Causa y efecto | Flujo | Recorrido, ciclo de vida |
+| 10 Casos de uso | Flujo con actores | Recorrido, ciclo de vida |
+| 11 Clases del dominio | Clases | Recorrido, ciclo de vida |
+| 12 Componentes | Flujo | Recorrido, ciclo de vida |
+| 13 Actividad del control automático | Actividad | Recorrido, ciclo de vida |
+| 14 Vinculación de Telegram | Secuencia | Los tres |
+| 15 Maceta virtual con clima real | Secuencia | Los tres |
+| 16 Aprendizaje continuo | Flujo | Los tres |
+| 17 Etapas del proyecto | Flujo | Recorrido, ciclo de vida |
+| 18 Árbol de problemas | Flujo | Ciclo de vida |
+| 19 Árbol de objetivos | Flujo | Ciclo de vida |
+| 20 Poder e interés de los interesados | Cuadrantes | Ciclo de vida |
+| 21 Estructura de desglose del trabajo | Flujo | Ciclo de vida |
+| 22 Red de precedencias | Flujo | Ciclo de vida |
+| 23 Ruta crítica | Gantt | Ciclo de vida |
+| 24 Ciclo Scrum | Flujo | Ciclo de vida |
+| 25 Riesgos y su desenlace | Flujo | Ciclo de vida |
+| 26 Contexto del sistema | Flujo (C4, nivel 1) | Ciclo de vida |
+| 27 Clases del diseño original | Clases | Ciclo de vida |
+| 28 Componentes del diseño original | Flujo | Ciclo de vida |
+| 29 Actividad original: enviar un comando | Actividad | Ciclo de vida |
+| 30 Secuencia original: datos históricos | Secuencia | Ciclo de vida |
+| 31 Modelo de datos original | Entidad-relación | Ciclo de vida |
+| 32 Mapa de la PWA | Flujo | Ciclo de vida |
+| 33 Pirámide de pruebas | Flujo | Ciclo de vida |
+| 34 Ciclo PDCA | Flujo | Ciclo de vida |
+| 35 Ciclos de mejora | Flujo | Ciclo de vida |
+| 36 Fases de la investigación | Flujo | Ciclo de vida |
 
 ## Estructura
 
 ```text
 docs/
-├── SmartPot_Documentacion_Tecnica.md     # Fuente
-├── SmartPot_Recorrido_del_Proyecto.md    # Fuente
+├── SmartPot_Technical_Documentation.md   # Fuente
+├── SmartPot_Project_Journey.md           # Fuente
+├── SmartPot_Software_Lifecycle.md        # Fuente
 ├── *.docx, *.pdf                         # Generados
-├── diagramas/                            # Fuentes Mermaid (.mmd) con la paleta en %%{init}%%
-├── imagenes/diagramas/                   # PNG para el DOCX y SVG para ampliar
+├── diagrams/                             # Fuentes Mermaid (.mmd) con la paleta en %%{init}%%
+├── images/diagrams/                      # PNG para el DOCX y SVG para ampliar
 ├── assets/                               # Logo, ícono y marca de agua de la portada
 └── tools/
     ├── render_diagrams.py                # .mmd → PNG y SVG, y sincronización con el Markdown
@@ -49,12 +70,13 @@ docs/
 Requisitos: Python 3.11+, Node.js (para `npx @mermaid-js/mermaid-cli`), Google Chrome y LibreOffice.
 
 ```bash
-python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Documentacion_Tecnica.md docs/SmartPot_Recorrido_del_Proyecto.md
-python docs/tools/md_to_docx.py docs/SmartPot_Documentacion_Tecnica.md --pdf
-python docs/tools/md_to_docx.py docs/SmartPot_Recorrido_del_Proyecto.md --pdf
+python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Technical_Documentation.md docs/SmartPot_Project_Journey.md docs/SmartPot_Software_Lifecycle.md
+python docs/tools/md_to_docx.py docs/SmartPot_Technical_Documentation.md --pdf
+python docs/tools/md_to_docx.py docs/SmartPot_Project_Journey.md --pdf
+python docs/tools/md_to_docx.py docs/SmartPot_Software_Lifecycle.md --pdf
 ```
 
-Para cambiar un diagrama se edita su `.mmd` y se vuelve a ejecutar el primer comando: renderiza las imágenes y copia el diagrama al bloque ```` ```mermaid ```` que sigue a su marcador `<!-- diagrama: NOMBRE | titulo=... -->` en cada Markdown.
+Para cambiar un diagrama se edita su `.mmd` y se vuelve a ejecutar el primer comando: renderiza las imágenes y copia el diagrama al bloque ```` ```mermaid ```` que sigue a su marcador `<!-- diagrama: NOMBRE | titulo=... -->` en cada Markdown. Un diagrama nuevo se agrega con su marcador seguido de un bloque ```` ```mermaid ```` vacío.
 
 ## Convenciones del Markdown
 
