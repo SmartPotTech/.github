@@ -596,7 +596,7 @@ Convenciones: código e identificadores en inglés; interfaz, mensajes de la API
 
 ### 14.2 Integración y despliegue continuos
 
-Cada servicio publica su imagen en GHCR (y en Docker Hub como réplica) con SBOM y atestación de procedencia, y pide el despliegue al workflow central, que corre de a uno: si llegan varios pedidos a la vez, solo el más reciente espera. El servidor descarga las imágenes desde GHCR y recrea solo lo que cambió.
+Cada servicio publica su imagen en GHCR (y en Docker Hub como réplica) con SBOM y atestación de procedencia, y pide el despliegue al workflow central, que corre de a uno: si llegan varios pedidos a la vez, solo el más reciente espera. El servidor descarga las imágenes desde GHCR, recrea solo lo que cambió y aplica los esquemas de la base con la migración de SmartPot-DB.
 
 ### 14.3 Inteligencia artificial
 
