@@ -3,8 +3,8 @@ flowchart LR
   subgraph actores["Personas y dispositivos"]
     direction TB
     user(["Dueño del cultivo<br/>navegador o PWA instalada<br/>Android · iOS · escritorio"])
-    esp["Maceta física · ESP32<br/>MicroPython 1.23 · main.py<br/>SmartPotClient (MQTT con TLS)<br/>ADCSensor: luz · pH · TDS · sustrato<br/>AtmosphereSensor DHT22<br/>ActuatorBank: bomba · luz · ventilador<br/>LCDDisplay 20x4 por I2C"]
-    wokwi["Wokwi<br/>el mismo firmware en un ESP32 simulado<br/>diagram.json · se ejecuta a mano"]
+    esp["Cultivo real · ESP32 físico<br/>MicroPython 1.23 · main.py<br/>SmartPotClient (MQTT con TLS)<br/>ADCSensor: luz · pH · TDS · sustrato<br/>AtmosphereSensor DHT22<br/>ActuatorBank: bomba · luz · ventilador<br/>LCDDisplay 20x4 por I2C"]
+    wokwi["Cultivo real · Wokwi<br/>el mismo firmware en un ESP32 simulado<br/>diagram.json · se ejecuta a mano"]
     tgchat(["Chat privado de Telegram<br/>/start · /estado · /desvincular · /ayuda"])
   end
 
@@ -28,7 +28,7 @@ flowchart LR
     subgraph webc["web-smartpot · :8080 · red public · 96 MB"]
       direction TB
       pwa["PWA · React 19 · TypeScript 6 · Vite · Tailwind 4<br/>landing indexable · /app protegida<br/>manifiesto · service worker (solo app shell)<br/>CSP · X-Frame-Options · Permissions-Policy"]
-      pages["Pantallas<br/>Panel general · Mis cultivos · Control general<br/>Acciones · Aprendizaje · Alertas · Perfil<br/>Detalle: Resumen · Asistente · Control<br/>Historial · Dispositivo · Maceta virtual"]
+      pages["Pantallas<br/>Panel general · Mis cultivos · Control general<br/>Acciones · Aprendizaje · Alertas · Perfil<br/>Nuevo cultivo: real o virtual · especie · forma<br/>Detalle: Resumen · Cultivo en vivo · Asistente<br/>Control · Historial · Dispositivo (reales) · Ajustes"]
       pwa --- pages
     end
 
@@ -37,16 +37,16 @@ flowchart LR
       http["Entrada HTTP<br/>CORS · RateLimitingFilter (300/min, 10/min en auth)<br/>filtro JWT HS256 · OpenAPI en /docs"]
       security["security<br/>AuthController · AuthService<br/>JwtService · EncryptionService AES-256-GCM<br/>PasswordResetToken (hash SHA-256)"]
       users["users<br/>UserController · UserService<br/>PasswordPolicy · BCrypt 12"]
-      crops["crops<br/>CropController · CropService<br/>máx. 20 cultivos · clave del dispositivo<br/>salud y estado en línea"]
+      crops["crops<br/>CropController · CropService<br/>máx. 20 cultivos · REAL o VIRTUAL (fijo)<br/>forma POT, NFT, TOWER o RAFT<br/>clave del dispositivo · salud y estado en línea"]
       actuators["actuators<br/>ActuatorController · ActuatorService<br/>6 tipos de actuador"]
       readings["readings<br/>ReadingController · ReadingService<br/>MeasureRanges · 1 lectura cada 5 s<br/>resumen · series · CSV"]
       commands["commands<br/>CommandController · CommandCenterController<br/>CommandService · órdenes en bloque<br/>vence a los 2 min (revisión cada 30 s)"]
       mqttm["mqtt<br/>PahoMqttGateway · MqttMessageHandler<br/>TelemetryParser · MqttTopicResolver<br/>DeviceProvisioner (seguridad dinámica)"]
-      aim["ai<br/>InsightController · InsightService<br/>AutomationAgent (30 s o 5 min por cultivo)<br/>LearningFeed (lotes cada minuto)<br/>AiClient"]
+      aim["ai<br/>InsightController · InsightService<br/>AutomationAgent (30 s o 5 min por cultivo)<br/>LearningFeed (solo cultivos reales, lotes cada minuto)<br/>AiClient"]
       overview["overview<br/>OverviewController · OverviewService<br/>KPIs · series con $dateTrunc · flota"]
       notifications["notifications<br/>NotificationController<br/>NotificationService (con enfriamiento)"]
       channels["channels<br/>ChannelController · ChannelService<br/>ChannelDispatcher → NotificationChannel<br/>TelegramChannel · TelegramBot<br/>webhook o sondeo largo"]
-      virtual["virtualdevices<br/>VirtualDeviceController · VirtualDeviceService<br/>SimulatorClient · reconciliación cada 1 min<br/>máx. 5 por cuenta"]
+      virtual["virtualdevices<br/>VirtualDeviceController · VirtualDeviceService<br/>solo cultivos virtuales · pausa y reanuda<br/>SimulatorClient · reconciliación cada 1 min<br/>máx. 5 por cuenta · CropKindBackfill"]
       mailm["mail<br/>MailService · MailTemplates<br/>bienvenida y recuperación"]
       health["health<br/>/health: db · broker · cache · ai · simulator"]
       cachem["cache<br/>CacheStore · Redis con respaldo en memoria<br/>límites · enfriamientos · códigos · caché de la IA"]
@@ -63,7 +63,7 @@ flowchart LR
       commands -->|"publicar QoS 1"| mqttm
       crops -->|"aprovisionar · rotar · retirar"| mqttm
       crops -.->|"CropDeleted · DeviceKeyRotated"| events
-      events -.->|"retirar o actualizar la maceta virtual"| virtual
+      events -.->|"retirar o actualizar la simulación"| virtual
       aim & commands & crops --> notifications
       notifications -.->|"NotificationCreatedEvent"| events
       events -.->|"reenviar a los canales"| channels
@@ -93,9 +93,9 @@ flowchart LR
     subgraph simc["simulator-smartpot · FastAPI · paho-mqtt · :8081 · redes internal y public (solo salida) · 160 MB"]
       direction TB
       simapi["api.py · token<br/>GET PUT DELETE /v1/pots/{cropId}<br/>GET /v1/places · GET /v1/weather · /health"]
-      potmanager["pots.py · PotManager<br/>VirtualPot por cultivo · tick continuo<br/>macetas fijas SIMULATOR_DEVICES (demo y QA)"]
+      potmanager["pots.py · PotManager<br/>VirtualPot por cultivo · tick continuo<br/>cultivos fijos SIMULATOR_DEVICES (demo y QA)"]
       environment["environment.py · Environment<br/>AUTO: día y noche de la especie<br/>MANUAL: medidores de la persona<br/>WEATHER: clima real · paso máximo 900 s"]
-      simdevice["device.py · SimulatedDevice<br/>un cliente MQTT por maceta<br/>clave real del cultivo · obedece y confirma"]
+      simdevice["device.py · SimulatedDevice<br/>un cliente MQTT por cultivo virtual<br/>clave real del cultivo · obedece y confirma"]
       weather["weather.py · WeatherClient<br/>caché de 10 min por lugar"]
       simapi --> potmanager --> environment & simdevice
       environment --> weather
