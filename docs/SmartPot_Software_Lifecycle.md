@@ -1735,9 +1735,9 @@ flowchart TB
     secrets["Secrets solo en .github<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
   end
   subgraph servidor["Servidor"]
-    stage[".deploy-<id><br/>compose.yaml · .env · certificados"]
+    stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
     certs["/etc/mosquitto/certs<br/>usuario 1883"]
-    compose["docker compose -p smartpot<br/>pull + up --wait"]
+    compose["docker compose -p smartpot<br/>pull + up --wait<br/>migración de la base"]
     nginx["Nginx + Let's Encrypt"]
   end
   central -->|"SSH + flock"| stage
@@ -1756,7 +1756,7 @@ flowchart TB
   class stage,compose,nginx srv
 ```
 
-Cada servicio publica su imagen en GHCR (y en Docker Hub como réplica) y pide el despliegue al workflow central, que corre de a uno: si llegan varios pedidos a la vez, solo el más reciente espera. El servidor descarga las imágenes y recrea solo lo que cambió.
+Cada servicio publica su imagen en GHCR (y en Docker Hub como réplica) y pide el despliegue al workflow central, que corre de a uno: si llegan varios pedidos a la vez, solo el más reciente espera. El servidor descarga las imágenes, recrea solo lo que cambió y aplica los esquemas de la base con la migración de SmartPot-DB, idempotente, que evita depender de los scripts de inicio de MongoDB.
 
 ## 26. Asistente de IA
 
