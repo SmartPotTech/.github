@@ -12,9 +12,9 @@ flowchart TB
     secrets["Secrets solo en .github<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
   end
   subgraph servidor["Servidor"]
-    stage[".deploy-<id><br/>compose.yaml · .env · certificados"]
+    stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
     certs["/etc/mosquitto/certs<br/>usuario 1883"]
-    compose["docker compose -p smartpot<br/>pull + up --wait"]
+    compose["docker compose -p smartpot<br/>pull + up --wait<br/>migración de la base"]
     nginx["Nginx + Let's Encrypt"]
   end
   central -->|"SSH + flock"| stage
