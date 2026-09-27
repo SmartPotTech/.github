@@ -64,11 +64,11 @@ El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada cambio de es
 | Web | Lint, tipos, pruebas con Vitest y build de producción |
 | SmartPot-AI, -DataGenerator, -IoT | Ruff y pytest |
 | SmartPot-Broker, -DB, -Cache, -Mail | Imagen endurecida y pruebas de humo (autenticación, ACL por maceta, TLS, validadores de MongoDB) |
-| End-to-End | Compila las ocho imágenes, levanta la demo y recorre registro, cultivo, telemetría MQTT, comando con confirmación, asistente y borrado de la cuenta |
+| End-to-End | Compila las ocho imágenes, levanta la demo y recorre registro, cultivo, telemetría MQTT, comando con confirmación, asistente, panel general, órdenes en bloque, maceta virtual, aprendizaje continuo, canales y borrado de la cuenta |
 
 ## Despliegue
 
-Cada servicio publica su imagen en `ghcr.io/smartpottech` y llama a [`deploy.yml`](.github/workflows/deploy.yml), que actualiza el servidor por SSH con el `compose.yaml` de producción. Los detalles, los secrets necesarios y la configuración de nginx están en [`docker/production`](docker/production/README.md).
+Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub como réplica) y pide el despliegue a [`deploy.yml`](.github/workflows/deploy.yml), que actualiza el servidor por SSH con el `compose.yaml` de producción descargando las imágenes de GHCR. Los detalles, los secrets necesarios y la configuración de nginx están en [`docker/production`](docker/production/README.md).
 
 ## Licencia
 
