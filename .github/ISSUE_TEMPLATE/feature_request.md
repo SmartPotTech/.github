@@ -19,7 +19,7 @@ Qué te gustaría que hiciera SmartPot.
 - [ ] API
 - [ ] Asistente de IA
 - [ ] Broker MQTT
-- [ ] Firmware de la maceta o simulador
+- [ ] Firmware del dispositivo o simulador de cultivos virtuales
 - [ ] Infraestructura
 
 **Alternativas consideradas**

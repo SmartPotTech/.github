@@ -16,7 +16,7 @@ Una descripción clara y concisa de qué está fallando.
 - [ ] API
 - [ ] Asistente de IA
 - [ ] Broker MQTT
-- [ ] Firmware de la maceta o simulador
+- [ ] Firmware del dispositivo o simulador de cultivos virtuales
 - [ ] Base de datos, caché o correo
 - [ ] Entornos Docker / Kubernetes
 
@@ -30,14 +30,14 @@ Una descripción clara y concisa de qué está fallando.
 Qué esperabas que ocurriera.
 
 **Capturas o logs**
-Si aplica, agrega capturas de pantalla o la salida de `docker compose logs`. No incluyas tokens, claves de la maceta, contraseñas ni datos personales.
+Si aplica, agrega capturas de pantalla o la salida de `docker compose logs`. No incluyas tokens, claves del dispositivo, contraseñas ni datos personales.
 
 **Entorno**
 
 - Versión o imagen: [ej. `ghcr.io/smartpottech/smartpot-web:sha-1a2b3c4`]
 - Dispositivo y sistema operativo: [ej. Android 15]
 - Navegador: [ej. Chrome 140]
-- Maceta: [ESP32 físico / Wokwi / simulador]
+- Cultivo: [real con ESP32 físico / real con Wokwi / virtual]
 
 **Contexto adicional**
 Cualquier otro detalle útil.
