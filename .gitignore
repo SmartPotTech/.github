@@ -1,0 +1,16 @@
+docker/**/.env
+docker/**/.env.*
+!docker/**/.env.example
+docker/**/certs/
+docker/**/compose.override.yaml
+docker/**/backups/
+*.archive.gz
+*.pem
+*.key
+docs/**/.render/
+__pycache__/
+.venv/
+.idea
+.vscode
+.DS_Store
+Thumbs.db
