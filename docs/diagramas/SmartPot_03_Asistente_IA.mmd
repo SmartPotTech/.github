@@ -2,25 +2,29 @@
 flowchart TB
   req["Lectura actual<br/>+ historial (48)<br/>+ actuadores<br/>+ hora local"] --> diag["Diagnóstico por variable<br/>LOW · OPTIMAL · HIGH · REST"]
   req --> fc["Pronóstico Theil-Sen<br/>tendencia y horas al límite"]
+  req --> lr["Aprendizaje continuo<br/>modelos entrenados con lecturas reales"]
   diag --> norm["Normalización<br/>respecto al perfil"]
-  norm --> ml["Modelos de ML<br/>regresión logística · MLP · Isolation Forest"]
+  norm --> ml["Modelos base<br/>regresión logística · MLP · Isolation Forest"]
   diag --> mem["Memoria de trabajo<br/>hechos status y severity"]
   ml --> mem
   fc --> mem
+  lr --> mem
   fc --> ag
+  lr --> ag
   mem --> es["Sistema experto<br/>encadenamiento hacia adelante"]
   diag --> fz["Lógica difusa Sugeno<br/>índice de salud 0–100"]
   es --> ag["Agente reactivo<br/>acciones por actuador"]
   diag --> ag
   ml --> ag
-  fz --> out["Respuesta<br/>health · diagnosis · conclusions<br/>predictions · forecasts · actions"]
+  fz --> out["Respuesta<br/>health · diagnosis · conclusions · predictions<br/>forecasts · learning · actions"]
   es --> out
   ag --> out
+  lr --> out
   classDef input fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef step fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef brain fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef result fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class req input
   class diag,norm,mem step
-  class ml,es,fz,ag,fc brain
+  class ml,es,fz,ag,fc,lr brain
   class out result
