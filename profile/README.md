@@ -6,10 +6,11 @@
 
 ## Cómo funciona
 
-1. **La maceta** (ESP32 con MicroPython) envía sus lecturas por MQTT cifrado cada pocos segundos.
+1. **La maceta** (ESP32 con MicroPython) envía sus lecturas por MQTT cifrado cada pocos segundos. ¿No tienes hardware? Enciende una **maceta virtual**: sigue el clima real de tu ciudad, los medidores que muevas o el día y la noche de la especie, y obedece y confirma las órdenes igual que una maceta física.
 2. **La API** las guarda y las compara con el rango ideal de la especie: lechuga, tomate, fresa, albahaca, espinaca o pimentón.
 3. **El asistente de IA** combina un sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo para diagnosticar el cultivo, calcular su índice de salud y proponer acciones. De noche entiende que la planta descansa.
 4. **La app** (PWA instalable) muestra todo en tiempo real, envía alertas y permite encender la bomba, la luz o el ventilador, o dejar que el agente lo haga en modo automático.
+5. **Telegram** te avisa aunque no tengas la app abierta: vinculas tu chat desde el perfil con un código de un solo uso, eliges qué avisos recibir y consultas cómo van tus cultivos con `/estado`.
 
 ## La plataforma en diagramas
 
