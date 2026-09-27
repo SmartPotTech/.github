@@ -110,6 +110,13 @@ jobs:
             || { echo "::error::MQTT_ADMIN_PASSWORD debe tener al menos 16 caracteres."; exit 1; }
           [ "$(value SMARTPOT_AES_KEY | base64 -d 2>/dev/null | wc -c)" -eq 32 ] \
             || { echo "::error::SMARTPOT_AES_KEY debe ser Base64 de 32 bytes."; exit 1; }
+          if [ -n "$(value SIMULATOR_TOKEN)" ] && [ "$(value SIMULATOR_TOKEN | tr -d '\n' | wc -c)" -lt 24 ]; then
+            echo "::error::SIMULATOR_TOKEN debe tener al menos 24 caracteres."; exit 1
+          fi
+          if [ -n "$(value TELEGRAM_BOT_TOKEN)" ] && [ "$(value TELEGRAM_MODE)" != "polling" ] \
+            && [ -z "$(value TELEGRAM_WEBHOOK_SECRET)" ]; then
+            echo "::error::Telegram en modo webhook necesita TELEGRAM_WEBHOOK_SECRET."; exit 1
+          fi
           profiles=",$(value COMPOSE_PROFILES),"
           if [[ "$profiles" == *",db,"* ]]; then
             for key in MONGO_ROOT_PASSWORD SMARTPOT_DB_PASSWORD; do
