@@ -119,6 +119,12 @@ services:
     environment:
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LEARNING_MIN_SAMPLES: ${LEARNING_MIN_SAMPLES:-200}
+      LEARNING_RETRAIN_EVERY: ${LEARNING_RETRAIN_EVERY:-300}
+      LEARNING_RETENTION_DAYS: ${LEARNING_RETENTION_DAYS:-60}
+    # Lecturas reales (seudonimizadas) y modelos aprendidos.
+    volumes:
+      - ai_data:/data
     tmpfs:
       - /tmp
     networks:
@@ -127,7 +133,8 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          memory: 512M
+          # El reentrenamiento corre en un proceso aparte.
+          memory: 768M
         reservations:
           memory: 192M
 
@@ -167,6 +174,12 @@ services:
       AI_BASE_URL: http://ai-smartpot:8000
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN}
       AI_TIMEZONE: ${AI_TIMEZONE:-America/Bogota}
+      SIMULATOR_BASE_URL: http://simulator-smartpot:8081
+      SIMULATOR_TOKEN: ${SIMULATOR_TOKEN:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_MODE: ${TELEGRAM_MODE:-webhook}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
     tmpfs:
       - /tmp
     depends_on:
@@ -213,30 +226,33 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-datagenerator:${SMARTPOT_SIMULATOR_TAG:-latest}
     container_name: smartpot-simulator
-    profiles:
-      - simulator
     environment:
       MQTT_HOST: broker-smartpot
       MQTT_PORT: "1883"
+      # Macetas fijas opcionales; las virtuales las pide la API con el token.
       SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
       SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-60}
       SIMULATOR_UTC_OFFSET: ${SIMULATOR_UTC_OFFSET:--5}
+      SIMULATOR_TOKEN: ${SIMULATOR_TOKEN:-}
     tmpfs:
       - /tmp
     depends_on:
       api-smartpot:
         condition: service_healthy
+    # public solo da salida a internet para el clima (Open-Meteo); no publica puertos.
     networks:
       - internal
+      - public
     deploy:
       resources:
         limits:
           cpus: "0.25"
-          memory: 96M
+          memory: 160M
 
 volumes:
   db_data:
   broker_data:
+  ai_data:
 
 networks:
   internal:
