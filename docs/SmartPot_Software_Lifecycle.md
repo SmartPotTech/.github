@@ -1595,6 +1595,17 @@ erDiagram
 | `Historial` con `Measures` y referencia al cultivo | `readings` con índice por cultivo y fecha, y TTL de un año | La idea se conservó; se agregaron índices y retención |
 | Cuatro entidades | Colecciones de usuarios, cultivos, lecturas, comandos, notificaciones, vínculos de canales y más | El modelo creció con el dominio, no por anticipado |
 
+### 21.7 Objetos y artefactos
+
+El diseño incluía otros dos diagramas que no tienen un equivalente uno a uno:
+
+| Diagrama original | Qué mostraba | Hoy |
+| --- | --- | --- |
+| Objetos | Instancias de `DeviceController`, `Cultivo`, `Session`, `Notificacion` y sensores con valores de ejemplo | Las pruebas de la API y de la IA construyen esos mismos objetos con datos válidos en cada ejecución |
+| Artefactos | Navegador, servidor de aplicación, servidor de API, servidor de base de datos con MongoDB y el ESP32, unidos por HTTP | El despliegue continuo y las redes de producción (figuras de despliegue y redes) |
+
+El diagrama de objetos quedó a medio terminar: conserva los compartimentos de ejemplo de la herramienta y fechas imposibles como «34/34/2324». El de artefactos, en cambio, ya elegía MongoDB, aunque el acta posterior pedía H2 o MySQL con JPA: la decisión de datos se tomó en el diseño y el acta no la recogió.
+
 > [!TIP]
 > **Lectura crítica.** El diseño original acertó en lo que depende del problema (sensores, actuadores, cultivo, historial y un broker) y falló en lo que depende de la tecnología (dónde se decide, cómo se guarda una sesión, cómo se confirma un comando). Es la señal de un buen análisis del dominio con poca experiencia en sistemas distribuidos, y justifica haber rediseñado desde el contrato MQTT hacia afuera.
 
