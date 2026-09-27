@@ -8,11 +8,12 @@ flowchart LR
       api["api-smartpot<br/>127.0.0.1:8091"]
       broker["broker-smartpot<br/>0.0.0.0:8883 TLS · 127.0.0.1:9001 WS"]
       mail["mail-smartpot<br/>127.0.0.1:8025"]
+      sim["simulator-smartpot<br/>sin puertos · solo salida"]
     end
     subgraph internal["Red internal · sin salida a internet"]
       db[("db-smartpot :27017")]
       cache[("cache-smartpot :6379")]
-      ai["ai-smartpot :8000"]
+      ai["ai-smartpot :8000<br/>volumen ai_data"]
     end
   end
   internet -->|"HTTPS"| nginx
@@ -24,13 +25,17 @@ flowchart LR
   api --> db
   api --> cache
   api --> ai
+  api -->|"8081 con token"| sim
+  sim -->|"1883"| broker
+  sim -.->|"clima"| internet
+  api -.->|"Telegram Bot API"| internet
   api -->|"1883"| broker
   api -->|"SMTP 1025"| mail
   classDef pub fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef priv fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   classDef gate fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef world fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
-  class web,api,broker,mail pub
+  class web,api,broker,mail,sim pub
   class db,cache,ai priv
   class nginx gate
   class internet world
