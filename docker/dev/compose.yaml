@@ -99,8 +99,11 @@ services:
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
       DOCS_ENABLED: "true"
       LOG_LEVEL: DEBUG
+      LEARNING_CHECK_SECONDS: "60"
     ports:
       - "127.0.0.1:${SMARTPOT_AI_PORT:-8000}:8000"
+    volumes:
+      - ai_data:/data
     tmpfs:
       - /tmp
     networks:
@@ -134,6 +137,12 @@ services:
       AI_BASE_URL: http://ai-smartpot:8000
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN}
       AI_EVALUATION_INTERVAL: PT1M
+      AI_LEARNING_FLUSH_INTERVAL: PT15S
+      SIMULATOR_BASE_URL: http://simulator-smartpot:8081
+      SIMULATOR_TOKEN: ${SIMULATOR_TOKEN:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_MODE: polling
     ports:
       - "127.0.0.1:${SMARTPOT_API_PORT:-8091}:8091"
     tmpfs:
@@ -175,6 +184,9 @@ services:
       MQTT_PORT: "1883"
       SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
       SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-15}
+      SIMULATOR_TOKEN: ${SIMULATOR_TOKEN:-}
+    ports:
+      - "127.0.0.1:${SMARTPOT_SIMULATOR_PORT:-8081}:8081"
     tmpfs:
       - /tmp
     depends_on:
@@ -186,6 +198,7 @@ services:
 volumes:
   db_data:
   broker_data:
+  ai_data:
 
 networks:
   smartpot:
