@@ -1,7 +1,8 @@
 """Prueba de extremo a extremo sobre el entorno demo de SmartPot.
 
 Recorre el camino completo de un usuario nuevo: registro, cultivo, telemetría MQTT,
-comando con confirmación de la maceta, evaluación del asistente y borrado de la cuenta.
+comando con confirmación de la maceta, evaluación del asistente, panel general (totales,
+series comparativas y análisis de flota), órdenes en bloque y borrado de la cuenta.
 Solo usa la biblioteca estándar; publica por MQTT con mosquitto_pub dentro del broker.
 
     python3 scripts/e2e.py
@@ -130,6 +131,25 @@ def run_flow(token: str) -> None:
     status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
     expect(status == 200 and 0 <= insight["health"]["index"] <= 100, "el asistente evalúa el cultivo")
     expect(bool(insight["summary"]), "el asistente entrega un resumen en español")
+
+    status, overview = call("GET", "/api/v1/overview", token=token)
+    expect(status == 200 and overview["totals"]["crops"] == 1, "el panel general resume la cuenta")
+
+    status, series = call("GET", "/api/v1/overview/series?metric=ph&hours=1", token=token)
+    points = series["series"][0]["points"] if status == 200 and series["series"] else []
+    expect(len(points) >= 1 and points[0]["value"] == 6.0, "la serie comparativa agrega las lecturas del cultivo")
+
+    status, fleet = call("GET", "/api/v1/overview/fleet", token=token)
+    expect(status == 200 and fleet["crops"][0]["id"] == crop_id, "el asistente analiza todos los cultivos")
+
+    status, bulk = call("POST", "/api/v1/commands/bulk", {"actuatorType": "FAN", "action": "DEACTIVATE"}, token)
+    expect(status == 202 and bulk["sent"] == 1, "orden en bloque a todos los cultivos")
+
+    status, history = call("GET", "/api/v1/commands?limit=10", token=token)
+    expect(status == 200 and len(history) == 2, "el historial reúne los comandos de todos los cultivos")
+
+    status, crops = call("PUT", "/api/v1/crops/automation", {"enabled": True}, token)
+    expect(status == 200 and crops[0]["automationEnabled"], "modo automático en bloque")
 
     status, _ = call("DELETE", f"/api/v1/crops/{crop_id}", token=token)
     expect(status == 204, "borrado del cultivo")
