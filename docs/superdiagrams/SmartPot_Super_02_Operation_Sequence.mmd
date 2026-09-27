@@ -1,0 +1,275 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "sequence": {"useMaxWidth": false, "actorMargin": 70, "messageMargin": 26, "boxMargin": 10, "noteMargin": 12, "mirrorActors": true, "rightAngles": false, "wrap": true, "width": 190}}}%%
+sequenceDiagram
+  autonumber
+  box rgb(221,245,234) Personas y dispositivos
+    participant U as Dueño del cultivo
+    participant PWA as PWA
+    participant M as Maceta (ESP32, Wokwi o virtual)
+    participant TG as Chat de Telegram
+  end
+  box rgb(227,242,251) Borde
+    participant NG as Nginx (HTTPS)
+  end
+  box rgb(242,247,244) Plataforma en Docker
+    participant API as API
+    participant R as Redis
+    participant DB as MongoDB
+    participant B as Mosquitto
+    participant IA as Asistente de IA
+    participant SIM as Simulador
+    participant MAIL as Mailpit
+  end
+  box rgb(253,244,221) Servicios externos
+    participant TAPI as Telegram Bot API
+    participant OM as Open-Meteo
+  end
+
+  rect rgb(247,250,248)
+    Note over API,SIM: 1 · Arranque de la plataforma
+    IA->>IA: Entrena los modelos base con 4000 muestras sintéticas y carga los modelos aprendidos (joblib)
+    API->>B: CONNECT como admin (tcp 1883, red interna)
+    B-->>API: CONNACK
+    API->>B: SUBSCRIBE smartpot/v1/+/telemetry, commands/ack, status y la respuesta de $CONTROL
+    API->>DB: Cultivos con su clave cifrada
+    API->>API: Descifra cada clave (AES-256-GCM)
+    API->>B: $CONTROL/dynamic-security/v1 · createRole device + addRoleACL · createClient y setClientPassword por cultivo
+    B-->>API: Respuesta de la seguridad dinámica
+    API->>SIM: GET /v1/pots (reconciliación cada minuto)
+    API->>DB: virtual_devices
+    API->>SIM: PUT /v1/pots/{cropId} de las macetas virtuales que falten
+  end
+
+  rect rgb(221,245,234)
+    Note over U,MAIL: 2 · Registro e ingreso
+    U->>PWA: Crea su cuenta
+    Note over PWA,API: Toda llamada de la PWA viaja por HTTPS a api.smartpot.app, Nginx la pasa a 127.0.0.1:8091
+    PWA->>NG: POST /api/v1/auth/register
+    NG->>API: register
+    API->>R: INCR rate:auth:ip:minuto (máximo 10 por minuto)
+    API->>DB: users · correo único · hash BCrypt 12
+    API-)MAIL: Correo de bienvenida (asíncrono, SMTP 1025)
+    API-->>PWA: JWT HS256 válido 7 días
+    PWA->>PWA: Guarda la sesión en sessionStorage o, con Mantener sesión, en localStorage
+  end
+
+  rect rgb(227,242,251)
+    Note over U,B: 3 · Crear un cultivo y su maceta
+    U->>PWA: Nuevo cultivo (nombre y especie)
+    PWA->>API: POST /api/v1/crops · Bearer
+    API->>DB: Cuenta los cultivos del dueño (máximo 20)
+    API->>API: Clave de 24 bytes aleatorios · la cifra con AES-256-GCM
+    API->>DB: crops (modo automático apagado) y actuators WATER_PUMP, UV_LIGHT y FAN
+    API->>B: createClient cropId con rol device
+    API-->>PWA: Cultivo y credenciales · la clave se muestra una sola vez
+    PWA-->>U: config.py del firmware y datos de conexión
+  end
+
+  rect rgb(251,233,225)
+    Note over M,B: 4 · La maceta física o de Wokwi se conecta
+    M->>M: Hora por NTP y TLS con ca.crt
+    M->>B: CONNECT :8883 · usuario cropId · clave · última voluntad status offline
+    B-->>M: CONNACK · ACL limitada a smartpot/v1/cropId
+    M->>B: PUBLISH status online (retenido, QoS 1)
+    B->>API: status online
+    API->>DB: crops.device online y lastSeenAt
+    M->>B: SUBSCRIBE smartpot/v1/cropId/commands (QoS 1)
+  end
+
+  rect rgb(221,245,234)
+    Note over U,OM: 5 · O una maceta virtual con el clima real
+    U->>PWA: Pestaña Maceta virtual · busca su ciudad
+    PWA->>API: GET /api/v1/virtual-devices/places?q=
+    API->>SIM: GET /v1/places?q= (token)
+    SIM->>OM: Geocodificación
+    OM-->>SIM: Lugares
+    SIM-->>API: Lugares
+    API-->>PWA: Lugares
+    U->>PWA: Modo WEATHER · encender
+    PWA->>API: PUT /api/v1/crops/{id}/virtual-device
+    API->>DB: virtual_devices (modo, ubicación y medidores) · máximo 5 por cuenta
+    API->>API: Descifra la clave del cultivo
+    API->>SIM: PUT /v1/pots/{cropId} con la clave (solo red interna)
+    SIM->>B: CONNECT como el cultivo · status online retenido
+    loop Cada 10 minutos por lugar
+      SIM->>OM: Clima actual
+      OM-->>SIM: Temperatura, humedad, radiación, lluvia y presión
+    end
+  end
+
+  rect rgb(242,247,244)
+    Note over M,IA: 6 · Cada lectura: guardar, aprender, diagnosticar y actuar
+    loop Cada 30 s en el firmware · 15 a 60 s en el simulador
+      M->>B: PUBLISH telemetry (QoS 0) · temperature, humidity, brightness, ph, tds, atmosphere, soilMoisture
+      B->>API: telemetry
+      API->>DB: crops.device.lastSeenAt
+      API->>R: SET NX reading:cropId (5 s)
+      alt Llegó antes de 5 s
+        API->>API: Descarta la lectura
+      else Lectura nueva
+        API->>API: Valida los rangos físicos (MeasureRanges)
+        API->>DB: readings (TTL 365 días)
+        API-)API: ReadingRecordedEvent
+        par Aprendizaje continuo
+          API->>API: LearningFeed la encola (máximo 20 000 pendientes)
+        and Agente de automatización
+          API->>R: SET NX ai-eval:cropId (30 s con modo automático, 5 min sin él)
+          API->>DB: Ventana reciente de lecturas (muestra de 48) y actuadores
+          API->>IA: POST /v1/insights · especie, medidas, historial, actuadores y hora local
+          IA->>IA: Diagnóstico → pronóstico Theil-Sen → modelos base y aprendidos → sistema experto → lógica difusa → agente
+          IA-->>API: Salud, diagnóstico, conclusiones, predicciones, pronóstico, lo aprendido y acciones
+          API->>DB: crops.health (índice de 0 a 100 y nivel)
+          opt Hallazgo crítico
+            API->>R: SET NX notify:diagnosis:cropId:variable (1 h)
+            API->>DB: notifications ALERT
+          end
+          opt Modo automático activo
+            loop Por cada acción del agente
+              API->>R: SET NX agent:cropId:actuador:acción (10 min)
+              API->>DB: commands PENDING (origen AGENT)
+              API->>B: PUBLISH commands (QoS 1) · id, actuator, action, durationSeconds
+              alt Publicado
+                API->>DB: commands SENT
+                B->>M: commands
+                M->>M: Enciende el actuador y lo apaga al cumplir la duración
+                M->>B: PUBLISH commands/ack (QoS 1) · id, status, message
+                B->>API: ack
+                API->>DB: commands EXECUTED o FAILED y estado del actuador
+                API->>DB: notifications AI El asistente actuó (máximo una cada 30 min)
+              else El broker no acepta la publicación
+                API->>DB: commands FAILED y alerta al dueño
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  rect rgb(238,247,252)
+    Note over API,IA: 7 · Aprendizaje continuo
+    loop Cada minuto
+      API->>IA: POST /v1/learning/readings (lotes de hasta 1000)
+      IA->>IA: Seudonimiza el cultivo con SHA-256 y guarda en SQLite (volumen ai_data)
+    end
+    opt 200 lecturas etiquetadas o 300 nuevas desde el último entrenamiento
+      IA->>IA: Proceso aparte · calidad IQR → variables → etiquetas a 1 h → 7 modelos con TimeSeriesSplit → GridSearchCV → campeón y retador → K-Means e Isolation Forest
+      IA->>IA: Guarda los modelos de la especie con joblib
+    end
+  end
+
+  rect rgb(253,244,221)
+    Note over API,TG: 8 · Avisos por Telegram
+    API-)API: NotificationCreatedEvent (cada notificación)
+    API->>DB: channel_links activos del dueño que eligieron ese tipo de aviso
+    API->>TAPI: sendMessage · HTML escapado y botón al cultivo
+    TAPI->>TG: Mensaje
+    alt Chat bloqueado o 5 fallos seguidos
+      API->>DB: channel_links enabled false (vínculo pausado)
+    end
+  end
+
+  rect rgb(221,245,234)
+    Note over U,IA: 9 · La PWA se mantiene al día
+    loop Cada 10 a 30 s
+      PWA->>API: GET /overview, /crops, /crops/{id}/readings/latest, /crops/{id}/insights, /notifications/unread-count
+      API->>DB: Consultas por dueño (404 si el cultivo no es suyo)
+      API-->>PWA: JSON en español
+    end
+    PWA->>API: GET /api/v1/overview/fleet
+    API->>IA: POST /v1/fleet
+    IA-->>API: Ranking, problemas compartidos, grupos K-Means y acciones por actuador
+    API-->>PWA: Análisis de todos los cultivos
+    PWA->>API: GET /api/v1/ai/learning
+    API->>R: GET ai:learning-status (1 min)
+    API->>IA: GET /v1/learning/status si no está en caché
+    API-->>PWA: Solo datos agregados por especie
+  end
+
+  rect rgb(227,242,251)
+    Note over U,M: 10 · Órdenes de la persona
+    U->>PWA: Regar ahora en un cultivo o una orden a varios en Control general
+    PWA->>API: POST /crops/{id}/commands o POST /commands/bulk
+    API->>DB: commands PENDING (origen USER) por cada cultivo con ese actuador
+    API->>B: PUBLISH commands (QoS 1)
+    alt La maceta confirma
+      B->>M: commands
+      M->>B: commands/ack EXECUTED
+      B->>API: ack
+      API->>DB: commands EXECUTED
+    else Sin ACK en 2 minutos
+      API->>DB: Revisión cada 30 s → commands EXPIRED
+      API->>DB: notifications COMMAND La maceta no respondió
+    end
+  end
+
+  rect rgb(253,244,221)
+    Note over U,TAPI: 11 · Vincular Telegram
+    U->>PWA: Perfil · Vincular Telegram
+    PWA->>API: POST /api/v1/channels/telegram/link
+    API->>R: SET channel-link:telegram:código (144 bits, 10 min)
+    API-->>PWA: Enlace t.me/bot?start=código
+    U->>TG: Abre el enlace y envía /start código
+    TG->>TAPI: Mensaje
+    TAPI->>NG: POST /api/v1/channels/telegram/webhook con X-Telegram-Bot-Api-Secret-Token
+    NG->>API: webhook
+    API->>API: Compara el secreto en tiempo constante · solo chats privados
+    API->>R: GETDEL channel-link:telegram:código
+    API->>DB: channel_links (TELEGRAM, chat, avisos elegidos, activo)
+    API->>TAPI: sendMessage Listo, este chat quedó vinculado
+    TAPI->>TG: Confirmación
+  end
+
+  rect rgb(251,227,227)
+    Note over M,TG: 12 · La maceta se desconecta
+    M--xB: Se corta la conexión
+    B->>B: Publica la última voluntad status offline (retenida)
+    B->>API: status offline
+    API->>DB: crops.device online false
+    API->>R: SET NX notify:offline:cropId (1 h)
+    API->>DB: notifications DEVICE Maceta desconectada
+    API->>TAPI: Aviso a los chats vinculados
+  end
+
+  rect rgb(242,247,244)
+    Note over U,SIM: 13 · Rotar la clave de la maceta
+    PWA->>API: POST /api/v1/crops/{id}/device/key
+    API->>DB: Clave nueva cifrada
+    API->>B: setClientPassword · disableClient y enableClient (desconecta la sesión anterior)
+    API-)API: DeviceKeyRotatedEvent
+    API->>SIM: PUT /v1/pots/{cropId} con la clave nueva si la maceta es virtual
+  end
+
+  rect rgb(221,245,234)
+    Note over U,MAIL: 14 · Recuperar la contraseña
+    PWA->>API: POST /api/v1/auth/password/forgot
+    API->>DB: password_reset_tokens (hash SHA-256, vence en 30 min)
+    API-)MAIL: Correo con el enlace
+    API-->>PWA: 202 aunque el correo no exista
+    U->>PWA: Abre /reset-password?token=…
+    PWA->>API: POST /api/v1/auth/password/reset
+    API->>DB: users con el hash nuevo · borra el token
+  end
+
+  rect rgb(251,233,225)
+    Note over U,SIM: 15 · Borrar un cultivo o la cuenta
+    PWA->>API: DELETE /api/v1/crops/{id} (DELETE /users/me repite esto con cada cultivo y borra notificaciones, vínculos y tokens)
+    API->>DB: Borra readings, commands, actuators, notifications y el cultivo
+    API->>B: deleteClient cropId
+    API-)API: CropDeletedEvent
+    par Olvidar lo aprendido
+      API->>IA: DELETE /v1/learning/crops/{id}
+    and Retirar la maceta virtual
+      API->>SIM: DELETE /v1/pots/{id}
+      API->>DB: Borra virtual_devices
+    end
+  end
+
+  rect rgb(247,250,248)
+    Note over NG,SIM: 16 · Salud de la plataforma
+    NG->>API: GET /health (también lo consulta el despliegue)
+    API->>DB: ping
+    API->>R: ping
+    API->>IA: GET /health
+    API->>SIM: GET /health
+    API-->>NG: UP o DOWN por componente
+  end
