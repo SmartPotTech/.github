@@ -6,7 +6,7 @@ Esta guía describe el entorno **de producción** de SmartPot: un servidor propi
 | --- | --- |
 | `smartpot.app` (y `www`) | PWA |
 | `api.smartpot.app` | API REST y documentación en `/docs` |
-| `mqtt.smartpot.app:8883` | MQTT sobre TLS 1.2 para las macetas |
+| `mqtt.smartpot.app:8883` | MQTT sobre TLS (1.2 o superior) para las macetas |
 | `wss://mqtt.smartpot.app/mqtt` | MQTT sobre WebSocket seguro |
 | `mail.smartpot.app` | Bandeja de Mailpit (con usuario y contraseña) |
 
@@ -233,4 +233,4 @@ openssl s_client -connect mqtt.smartpot.app:8883 -CAfile ca.crt -brief </dev/nul
 | `/api/v1/crop-profiles` | Perfiles de las seis especies |
 | `/api/v1/crops` sin token | `401` |
 | PWA | `200` con `Content-Security-Policy`, `X-Frame-Options` y `Strict-Transport-Security` |
-| Broker | `Verification: OK` y protocolo `TLSv1.2` |
+| Broker | `Verification: OK` y protocolo `TLSv1.3` (el mínimo aceptado es 1.2) |
