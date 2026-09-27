@@ -1,0 +1,177 @@
+# Demo de SmartPot en un solo comando. Las contraseñas son públicas: solo para uso local.
+name: smartpot-demo
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pull_policy: always
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-demo-secrets:
+  mqtt-admin: &mqtt-admin demo-mqtt-admin-password
+  ai-token: &ai-token demo-ai-token-for-local-use-only
+  redis: &redis demo-redis-password-123
+  db-app: &db-app demo-app-password-123
+  mail: &mail demo-mail-password
+
+services:
+  db-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-db:latest
+    container_name: smartpot-demo-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: smartpot-root
+      MONGO_INITDB_ROOT_PASSWORD: demo-root-password-123
+      SMARTPOT_DB_PASSWORD: *db-app
+      SMARTPOT_SEED_DEMO: "true"
+    volumes:
+      - db_data:/data/db
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+
+  cache-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-cache:latest
+    container_name: smartpot-demo-cache
+    environment:
+      REDIS_PASSWORD: *redis
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+
+  mail-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-mail:latest
+    container_name: smartpot-demo-mail
+    environment:
+      MAIL_USERNAME: smartpot
+      MAIL_PASSWORD: *mail
+      MAILPIT_UI_USERNAME: admin
+      MAILPIT_UI_PASSWORD: demo-mailpit-ui
+    ports:
+      - "127.0.0.1:8025:8025"
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+      - public
+
+  broker-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-broker:latest
+    container_name: smartpot-demo-broker
+    environment:
+      MQTT_ADMIN_USERNAME: smartpot-api
+      MQTT_ADMIN_PASSWORD: *mqtt-admin
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - broker_data:/mosquitto/data
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+      - public
+
+  ai-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-ai:latest
+    container_name: smartpot-demo-ai
+    environment:
+      SMARTPOT_AI_TOKEN: *ai-token
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+
+  api-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-api:latest
+    container_name: smartpot-demo-api
+    environment:
+      WEB_BASE_URL: http://localhost:5173
+      PUBLIC_API_URL: http://localhost:8091
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      SMARTPOT_JWT_SECRET: demo-jwt-secret-for-local-use-only-0123456789
+      SMARTPOT_AES_KEY: ZGVtby1vbmx5LXNtYXJ0cG90LWFlcy1rZXktMzJieXQ=
+      MONGODB_URI: mongodb://smartpot:demo-app-password-123@db-smartpot:27017/smartpot?authSource=smartpot
+      REDIS_HOST: cache-smartpot
+      REDIS_PASSWORD: *redis
+      MAIL_HOST: mail-smartpot
+      MAIL_USERNAME: smartpot
+      MAIL_PASSWORD: *mail
+      MAIL_SMTP_AUTH: "true"
+      MQTT_BROKER_URI: tcp://broker-smartpot:1883
+      MQTT_ADMIN_PASSWORD: *mqtt-admin
+      MQTT_PUBLIC_HOST: localhost
+      MQTT_PUBLIC_PORT: "1883"
+      MQTT_WEBSOCKET_URL: ws://localhost:9001
+      AI_BASE_URL: http://ai-smartpot:8000
+      SMARTPOT_AI_TOKEN: *ai-token
+      AI_EVALUATION_INTERVAL: PT1M
+    ports:
+      - "127.0.0.1:8091:8091"
+    tmpfs:
+      - /tmp
+    depends_on:
+      db-smartpot:
+        condition: service_healthy
+      broker-smartpot:
+        condition: service_healthy
+      cache-smartpot:
+        condition: service_healthy
+    networks:
+      - internal
+      - public
+
+  web-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-web:latest
+    container_name: smartpot-demo-web
+    environment:
+      API_URL: http://localhost:8091
+    ports:
+      - "127.0.0.1:5173:8080"
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    networks:
+      - public
+
+  simulator-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-datagenerator:latest
+    container_name: smartpot-demo-simulator
+    environment:
+      MQTT_HOST: broker-smartpot
+      MQTT_PORT: "1883"
+      SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
+      SIMULATOR_INTERVAL_SECONDS: "15"
+    tmpfs:
+      - /tmp
+    depends_on:
+      api-smartpot:
+        condition: service_healthy
+    networks:
+      - internal
+
+volumes:
+  db_data:
+  broker_data:
+
+networks:
+  internal:
+    internal: true
+  public:
