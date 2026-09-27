@@ -1,0 +1,64 @@
+name: Request Deployment
+
+# Lo llaman los servicios cuando publican una imagen: dispara deploy.yml en este repositorio
+# y espera su resultado. deploy.yml corre de a uno (concurrency), así que varios pedidos
+# simultáneos se encolan y los intermedios se reemplazan por el más reciente.
+
+on:
+  workflow_call:
+    secrets:
+      DEPLOY_DISPATCH_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  request:
+    name: Request Central Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Dispatch deploy.yml and wait
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_DISPATCH_TOKEN }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::Despliegue omitido: falta el secret DEPLOY_DISPATCH_TOKEN."
+            exit 0
+          fi
+          central=SmartPotTech/.github
+          source="${GITHUB_REPOSITORY#*/}"
+          request="$source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+
+          gh workflow run deploy.yml --repo "$central" --ref main \
+            -f source="$source" -f sha="${SHA::7}" -f request="$request"
+
+          run_id=""
+          for _ in $(seq 1 30); do
+            run_id=$(gh run list --repo "$central" --workflow deploy.yml --event workflow_dispatch --limit 30 \
+              --json databaseId,displayTitle \
+              --jq ".[] | select(.displayTitle | contains(\"$request\")) | .databaseId" | head -n 1)
+            [ -n "$run_id" ] && break
+            sleep 5
+          done
+          [ -n "$run_id" ] || { echo "::error::No se encontró la ejecución solicitada en $central."; exit 1; }
+          echo "Despliegue central: https://github.com/$central/actions/runs/$run_id"
+
+          while true; do
+            state=$(gh run view "$run_id" --repo "$central" --json status,conclusion --jq '"\(.status) \(.conclusion)"')
+            [ "${state%% *}" = "completed" ] && break
+            echo "Estado: ${state%% *}"
+            sleep 20
+          done
+
+          case "${state#* }" in
+            success) echo "Despliegue completado." ;;
+            cancelled)
+              echo "::notice::La solicitud fue reemplazada por un despliegue más reciente, que también publica esta imagen." ;;
+            *)
+              echo "::error::El despliegue central terminó con estado ${state#* }."
+              exit 1 ;;
+          esac
