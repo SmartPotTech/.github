@@ -1,24 +1,30 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 sequenceDiagram
   autonumber
-  actor P as Persona
+  participant P as Persona
   participant W as PWA
   participant A as API
   participant S as Simulador
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Maceta virtual › Clima real › Medellín
-  W->>A: PUT /crops/{id}/virtual-device
-  A->>A: dueño del cultivo · descifra la clave
+  P->>W: Nuevo cultivo › Virtual › Balsa flotante › Clima real › Medellín
+  W->>A: POST /crops {kind: VIRTUAL, form, virtual}
+  A->>A: hasta 5 virtuales · el modo clima exige lugar
+  A->>A: cultivo, seis actuadores y cuenta MQTT
   A->>S: PUT /v1/pots/{id} (clave, modo, lugar)
+  A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: clima actual (caché 10 min)
-  S->>B: conecta como la maceta (usuario = cultivo)
+  S->>B: conecta con la cuenta del cultivo
   loop cada intervalo
     S->>B: telemetría según sol, nubes, lluvia y temperatura
-    B->>A: lectura → asistente → agente
+    B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  A->>B: comando (regar)
+  P->>W: Cultivo en vivo › Bomba de agua 15 s
+  W->>A: POST /crops/{id}/commands
+  A->>B: comando
   B->>S: comando
   S->>B: ACK EXECUTED y el sustrato sube
-  W->>A: GET estado (escena, lecturas, actuadores)
-  Note over A,S: Cada minuto la API recrea las macetas<br/>que falten tras un reinicio
+  W->>A: GET /crops/{id}/virtual-device
+  A-->>W: clima, lecturas y actuadores encendidos
+  W-->>P: la balsa con la bomba en marcha
+  Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
