@@ -194,8 +194,9 @@ def paragraph(content: str, *, style: str | None = None, before: int = 0, after:
     return f'<w:p><w:pPr>{"".join(props)}</w:pPr>{content}</w:p>'
 
 
-def spacer(size: int = 120) -> str:
-    return (f'<w:p><w:pPr><w:spacing w:before="{size}" w:after="0" w:line="240" w:lineRule="auto"/>'
+def spacer(size: int = 120, keep_next: bool = False) -> str:
+    keep = "<w:keepNext/>" if keep_next else ""
+    return (f'<w:p><w:pPr>{keep}<w:spacing w:before="{size}" w:after="0" w:line="240" w:lineRule="auto"/>'
             f'<w:rPr><w:sz w:val="8"/></w:rPr></w:pPr></w:p>')
 
 
@@ -432,7 +433,8 @@ def table(doc: Document, rows: list[list[str]]) -> str:
                        f'{paragraph(content, after=0, line=252)}</w:tc>')
         xml.append("</w:tr>")
     xml.append("</w:tbl>")
-    return spacer(60) + "".join(xml) + spacer(160)
+    # El espacio previo se mantiene con la tabla para que un título no quede solo al pie de la página.
+    return spacer(60, keep_next=True) + "".join(xml) + spacer(160)
 
 
 def callout(doc: Document, kind: str, lines: list[str]) -> str:
