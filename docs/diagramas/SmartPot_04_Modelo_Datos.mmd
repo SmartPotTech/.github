@@ -3,10 +3,12 @@ erDiagram
   USERS ||--o{ CROPS : "es dueño de"
   USERS ||--o{ NOTIFICATIONS : "recibe"
   USERS ||--o{ PASSWORD_RESET_TOKENS : "solicita"
+  USERS ||--o{ CHANNEL_LINKS : "vincula"
   CROPS ||--o{ READINGS : "registra"
   CROPS ||--o{ ACTUATORS : "tiene"
   CROPS ||--o{ COMMANDS : "recibe"
   CROPS ||--o{ NOTIFICATIONS : "genera"
+  CROPS ||--o| VIRTUAL_DEVICES : "simula"
   ACTUATORS ||--o{ COMMANDS : "ejecuta"
   USERS {
     ObjectId _id
@@ -15,7 +17,6 @@ erDiagram
     string email "único"
     string passwordHash "BCrypt 12"
     string role "USER o ADMIN"
-    date createdAt
   }
   CROPS {
     ObjectId _id
@@ -44,7 +45,6 @@ erDiagram
     ObjectId cropId
     ObjectId actuatorId
     string action "ACTIVATE o DEACTIVATE"
-    int durationSeconds
     string status "PENDING … EXPIRED"
     string source "USER o AGENT"
   }
@@ -53,8 +53,23 @@ erDiagram
     ObjectId userId
     ObjectId cropId
     string type "INFO, ALERT, COMMAND, DEVICE, AI"
-    string title
     bool read
+  }
+  CHANNEL_LINKS {
+    ObjectId _id
+    ObjectId userId
+    string type "TELEGRAM"
+    string address "id del chat"
+    bool enabled
+    array events "tipos elegidos"
+  }
+  VIRTUAL_DEVICES {
+    ObjectId _id
+    ObjectId cropId "único"
+    ObjectId ownerId
+    string mode "AUTO, MANUAL, WEATHER"
+    object manual "medidores"
+    object location "nombre, latitud, longitud"
   }
   PASSWORD_RESET_TOKENS {
     ObjectId _id
