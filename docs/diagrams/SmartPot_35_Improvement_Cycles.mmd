@@ -3,9 +3,10 @@ flowchart TB
   c0["<b>Ciclo 0 · Primera plataforma</b><br/>API y portal web, base en la nube, ESP32 por HTTP"]
   c1["<b>Ciclo 1 · Reestructuración</b><br/>producción caída → MQTT v1, seguridad, servidor propio, IA inicial y QA"]
   c2["<b>Ciclo 2 · Mirada de conjunto</b><br/>panel general, control y acciones en bloque, pronóstico y cola de despliegues"]
-  c3["<b>Ciclo 3 · Aprender y conectar</b><br/>aprendizaje continuo, Telegram, macetas virtuales y despliegue desde GHCR"]
-  c4["<b>Próximo ciclo</b><br/>2FA, temas, reportes programados, más canales y prototipo físico"]
-  c0 --> c1 --> c2 --> c3 -.-> c4
+  c3["<b>Ciclo 3 · Aprender y conectar</b><br/>aprendizaje continuo, Telegram, cultivos virtuales y despliegue desde GHCR"]
+  c4["<b>Ciclo 4 · Cultivos a la medida</b><br/>real o virtual fijo, cuatro formas, cultivo en vivo y guía ESP32 o Wokwi"]
+  c5["<b>Próximo ciclo</b><br/>2FA, temas, reportes programados, más canales y prototipo físico"]
+  c0 --> c1 --> c2 --> c3 --> c4 -.-> c5
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
@@ -16,5 +17,6 @@ flowchart TB
   class c0 muted
   class c1 water
   class c2 leaf
-  class c3 core
-  class c4 sun
+  class c3 leaf
+  class c4 core
+  class c5 sun
