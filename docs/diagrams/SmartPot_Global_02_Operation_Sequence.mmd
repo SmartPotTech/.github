@@ -4,7 +4,7 @@ sequenceDiagram
   box rgb(221,245,234) Personas y dispositivos
     participant U as Dueño del cultivo
     participant PWA as PWA
-    participant M as Maceta (ESP32, Wokwi o virtual)
+    participant M as Dispositivo (ESP32 o Wokwi) o simulación
     participant TG as Chat de Telegram
   end
   box rgb(227,242,251) Borde
@@ -36,7 +36,7 @@ sequenceDiagram
     B-->>API: Respuesta de la seguridad dinámica
     API->>SIM: GET /v1/pots (reconciliación cada minuto)
     API->>DB: virtual_devices
-    API->>SIM: PUT /v1/pots/{cropId} de las macetas virtuales que falten
+    API->>SIM: PUT /v1/pots/{cropId} de las simulaciones activas que falten
   end
 
   rect rgb(221,245,234)
@@ -53,19 +53,24 @@ sequenceDiagram
   end
 
   rect rgb(227,242,251)
-    Note over U,B: 3 · Crear un cultivo y su maceta
-    U->>PWA: Nuevo cultivo (nombre y especie)
-    PWA->>API: POST /api/v1/crops · Bearer
-    API->>DB: Cuenta los cultivos del dueño (máximo 20)
+    Note over U,B: 3 · Crear un cultivo real o virtual (el tipo no cambia después)
+    U->>PWA: Nuevo cultivo · real o virtual · nombre, especie y forma (maceta, NFT, torre o balsa)
+    PWA->>API: POST /api/v1/crops · Bearer · kind, form y, si es virtual, cómo arranca la simulación
+    API->>DB: Cuenta los cultivos del dueño (máximo 20 · 5 virtuales)
     API->>API: Clave de 24 bytes aleatorios · la cifra con AES-256-GCM
-    API->>DB: crops (modo automático apagado) y actuators WATER_PUMP, UV_LIGHT y FAN
     API->>B: createClient cropId con rol device
-    API-->>PWA: Cultivo y credenciales · la clave se muestra una sola vez
-    PWA-->>U: config.py del firmware y datos de conexión
+    alt Real
+      API->>DB: crops REAL y actuators WATER_PUMP, UV_LIGHT y FAN
+      API-->>PWA: Cultivo y credenciales · la clave se muestra una sola vez
+      PWA-->>U: Guía para el ESP32 físico o Wokwi con su config.py
+    else Virtual
+      API->>DB: crops VIRTUAL con los seis actuadores y virtual_devices activo
+      API-->>PWA: Cultivo sin credenciales · la simulación arranca sola (escena 5)
+    end
   end
 
   rect rgb(251,233,225)
-    Note over M,B: 4 · La maceta física o de Wokwi se conecta
+    Note over M,B: 4 · El dispositivo de un cultivo real se conecta (ESP32 físico o Wokwi)
     M->>M: Hora por NTP y TLS con ca.crt
     M->>B: CONNECT :8883 · usuario cropId · clave · última voluntad status offline
     B-->>M: CONNACK · ACL limitada a smartpot/v1/cropId
@@ -76,23 +81,29 @@ sequenceDiagram
   end
 
   rect rgb(221,245,234)
-    Note over U,OM: 5 · O una maceta virtual con el clima real
-    U->>PWA: Pestaña Maceta virtual · busca su ciudad
+    Note over U,OM: 5 · O la simulación de un cultivo virtual con el clima real
+    U->>PWA: Nuevo cultivo virtual · Clima real · busca su ciudad
     PWA->>API: GET /api/v1/virtual-devices/places?q=
     API->>SIM: GET /v1/places?q= (token)
     SIM->>OM: Geocodificación
     OM-->>SIM: Lugares
     SIM-->>API: Lugares
     API-->>PWA: Lugares
-    U->>PWA: Modo WEATHER · encender
-    PWA->>API: PUT /api/v1/crops/{id}/virtual-device
-    API->>DB: virtual_devices (modo, ubicación y medidores) · máximo 5 por cuenta
+    U->>PWA: Elige el lugar y crea el cultivo
+    PWA->>API: POST /api/v1/crops · kind VIRTUAL · virtual WEATHER con el lugar
+    API->>DB: virtual_devices (modo, ubicación, medidores, activo)
     API->>API: Descifra la clave del cultivo
     API->>SIM: PUT /v1/pots/{cropId} con la clave (solo red interna)
     SIM->>B: CONNECT como el cultivo · status online retenido
     loop Cada 10 minutos por lugar
       SIM->>OM: Clima actual
       OM-->>SIM: Temperatura, humedad, radiación, lluvia y presión
+    end
+    opt Pausar y reanudar desde Cultivo en vivo
+      PWA->>API: DELETE /api/v1/crops/{id}/virtual-device
+      API->>DB: virtual_devices active false (conserva la configuración)
+      API->>SIM: DELETE /v1/pots/{cropId}
+      PWA->>API: PUT /api/v1/crops/{id}/virtual-device (reanuda)
     end
   end
 
@@ -110,7 +121,7 @@ sequenceDiagram
         API->>DB: readings (TTL 365 días)
         API-)API: ReadingRecordedEvent
         par Aprendizaje continuo
-          API->>API: LearningFeed la encola (máximo 20 000 pendientes)
+          API->>API: LearningFeed la encola solo si el cultivo es real (máximo 20 000 pendientes)
         and Agente de automatización
           API->>R: SET NX ai-eval:cropId (30 s con modo automático, 5 min sin él)
           API->>DB: Ventana reciente de lecturas (muestra de 48) y actuadores
@@ -175,6 +186,10 @@ sequenceDiagram
       API->>DB: Consultas por dueño (404 si el cultivo no es suyo)
       API-->>PWA: JSON en español
     end
+    opt Cultivo en vivo
+      PWA->>API: GET /crops/{id}/actuators y /commands cada 5 a 10 s · /virtual-device si es virtual
+      PWA-->>U: La forma del cultivo con cada actuador encendido o apagado · sin conexión no se ilustra
+    end
     PWA->>API: GET /api/v1/overview/fleet
     API->>IA: POST /v1/fleet
     IA-->>API: Ranking, problemas compartidos, grupos K-Means y acciones por actuador
@@ -191,14 +206,14 @@ sequenceDiagram
     PWA->>API: POST /crops/{id}/commands o POST /commands/bulk
     API->>DB: commands PENDING (origen USER) por cada cultivo con ese actuador
     API->>B: PUBLISH commands (QoS 1)
-    alt La maceta confirma
+    alt El dispositivo o la simulación confirma
       B->>M: commands
       M->>B: commands/ack EXECUTED
       B->>API: ack
       API->>DB: commands EXECUTED
     else Sin ACK en 2 minutos
       API->>DB: Revisión cada 30 s → commands EXPIRED
-      API->>DB: notifications COMMAND La maceta no respondió
+      API->>DB: notifications COMMAND El dispositivo no respondió
     end
   end
 
@@ -220,23 +235,22 @@ sequenceDiagram
   end
 
   rect rgb(251,227,227)
-    Note over M,TG: 12 · La maceta se desconecta
+    Note over M,TG: 12 · El dispositivo se desconecta
     M--xB: Se corta la conexión
     B->>B: Publica la última voluntad status offline (retenida)
     B->>API: status offline
     API->>DB: crops.device online false
     API->>R: SET NX notify:offline:cropId (1 h)
-    API->>DB: notifications DEVICE Maceta desconectada
+    API->>DB: notifications DEVICE Cultivo desconectado
     API->>TAPI: Aviso a los chats vinculados
   end
 
   rect rgb(242,247,244)
-    Note over U,SIM: 13 · Rotar la clave de la maceta
+    Note over U,B: 13 · Rotar la clave de un cultivo real (los virtuales no tienen clave que configurar)
     PWA->>API: POST /api/v1/crops/{id}/device/key
     API->>DB: Clave nueva cifrada
     API->>B: setClientPassword · disableClient y enableClient (desconecta la sesión anterior)
     API-)API: DeviceKeyRotatedEvent
-    API->>SIM: PUT /v1/pots/{cropId} con la clave nueva si la maceta es virtual
   end
 
   rect rgb(221,245,234)
@@ -258,7 +272,7 @@ sequenceDiagram
     API-)API: CropDeletedEvent
     par Olvidar lo aprendido
       API->>IA: DELETE /v1/learning/crops/{id}
-    and Retirar la maceta virtual
+    and Retirar la simulación si es virtual
       API->>SIM: DELETE /v1/pots/{id}
       API->>DB: Borra virtual_devices
     end
