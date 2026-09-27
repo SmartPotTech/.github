@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Renderiza los diagramas Mermaid de `docs/diagramas/` a PNG y SVG y los sincroniza con el Markdown.
+"""Renderiza los diagramas Mermaid de `docs/diagrams/` a PNG y SVG y los sincroniza con el Markdown.
 
 Cada `.mmd` trae la paleta de SmartPot en su directiva `%%{init}%%`: el render no decide
 colores, solo mide el ancho natural del diagrama y elige la escala del PNG.
 
     python docs/tools/render_diagrams.py                              # todos
-    python docs/tools/render_diagrams.py SmartPot_02_Secuencia_Lectura
-    python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Documentacion_Tecnica.md
+    python docs/tools/render_diagrams.py SmartPot_02_Reading_Sequence
+    python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Technical_Documentation.md
 
 `--sync-md` reemplaza, en el Markdown, el bloque ```mermaid que sigue a cada
-`<!-- diagrama: NOMBRE | titulo=... -->` por el contenido de `diagramas/NOMBRE.mmd`, así el
+`<!-- diagrama: NOMBRE | titulo=... -->` por el contenido de `diagrams/NOMBRE.mmd`, así el
 Markdown (que GitHub dibuja) y las imágenes del DOCX salen de la misma fuente.
 
 Requiere Node.js (usa `npx @mermaid-js/mermaid-cli`) y Google Chrome.
@@ -27,8 +27,8 @@ import sys
 import tempfile
 
 DOCS = pathlib.Path(__file__).resolve().parent.parent
-DIAGRAMS = DOCS / "diagramas"
-IMAGES = DOCS / "imagenes" / "diagramas"
+DIAGRAMS = DOCS / "diagrams"
+IMAGES = DOCS / "images" / "diagrams"
 
 # Versión fija: mermaid cambia el motor de diseño entre versiones mayores.
 MERMAID_CLI = "@mermaid-js/mermaid-cli@11"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Convierte un Markdown de `docs/` en un DOCX con la identidad de SmartPot y, opcionalmente, en PDF.
 
-    python docs/tools/md_to_docx.py docs/SmartPot_Documentacion_Tecnica.md --pdf
+    python docs/tools/md_to_docx.py docs/SmartPot_Technical_Documentation.md --pdf
 
 El DOCX se arma desde cero (estilos, portada, encabezado, pie y piezas de marca de
 `docs/assets`), sin plantillas externas. Del Markdown entiende el subconjunto que usa la
@@ -13,7 +13,7 @@ documentación de SmartPot:
 * Párrafos con **negrita**, *itálica*, `código` y [enlaces](url); listas con `-` o `1.`.
 * Tablas, bloques de código y recuadros `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]`.
 * `<!-- diagrama: NOMBRE | titulo=... -->` seguido del bloque mermaid: se inserta
-  `imagenes/diagramas/NOMBRE.png` (ver `render_diagrams.py`).
+  `images/diagrams/NOMBRE.png` (ver `render_diagrams.py`).
 
 El PDF se genera con LibreOffice.
 """
@@ -33,7 +33,7 @@ import zipfile
 
 DOCS = pathlib.Path(__file__).resolve().parent.parent
 ASSETS = DOCS / "assets"
-DIAGRAMS = DOCS / "imagenes" / "diagramas"
+DIAGRAMS = DOCS / "images" / "diagrams"
 SOFFICE_CANDIDATES = (
     "C:/Program Files/LibreOffice/program/soffice.exe",
     "/Applications/LibreOffice.app/Contents/MacOS/soffice",
