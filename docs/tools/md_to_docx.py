@@ -13,7 +13,7 @@ documentación de SmartPot:
 * Párrafos con **negrita**, *itálica*, `código` y [enlaces](url); listas con `-` o `1.`.
 * Tablas, bloques de código y recuadros `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]`.
 * `<!-- diagrama: NOMBRE | titulo=... -->` seguido del bloque mermaid: se inserta
-  `images/diagrams/NOMBRE.png` (ver `render_diagrams.py`).
+  `diagrams/NOMBRE.png` (ver `render_diagrams.py`).
 
 El PDF se genera con LibreOffice.
 """
@@ -33,7 +33,7 @@ import zipfile
 
 DOCS = pathlib.Path(__file__).resolve().parent.parent
 ASSETS = DOCS / "assets"
-DIAGRAMS = DOCS / "images" / "diagrams"
+DIAGRAMS = DOCS / "diagrams"
 SOFFICE_CANDIDATES = (
     "C:/Program Files/LibreOffice/program/soffice.exe",
     "/Applications/LibreOffice.app/Contents/MacOS/soffice",
