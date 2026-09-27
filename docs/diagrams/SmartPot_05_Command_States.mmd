@@ -3,8 +3,8 @@ stateDiagram-v2
   [*] --> PENDING: el usuario o el agente lo solicita
   PENDING --> SENT: publicado en commands (QoS 1)
   PENDING --> FAILED: el broker no está disponible
-  SENT --> EXECUTED: ACK EXECUTED de la maceta
-  SENT --> FAILED: ACK FAILED de la maceta
+  SENT --> EXECUTED: ACK EXECUTED del dispositivo
+  SENT --> FAILED: ACK FAILED del dispositivo
   SENT --> EXPIRED: sin ACK en 2 minutos
   EXECUTED --> [*]
   FAILED --> [*]
