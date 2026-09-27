@@ -90,7 +90,9 @@ sequenceDiagram
   D->>S: SSH: compose.yaml, .env (600) y certificados
   S->>S: instala certificados en SMARTPOT_CERTS_DIR (usuario 1883)
   S->>G: docker compose pull
-  S->>S: up -d --wait y borra .env
+  S->>S: up -d --wait
+  S->>S: migración de los esquemas de la base (idempotente)
+  S->>S: borra .env
   D->>S: GET /health público
   Q-->>R: resultado del despliegue central
 ```
@@ -104,6 +106,8 @@ Solo este repositorio despliega. El workflow [`deploy.yml`](../../.github/workfl
 **Cola sin duplicados.** `deploy.yml` usa `concurrency: smartpot-production` sin cancelar el que está en curso: mientras un despliegue corre, el siguiente espera, y si llegan varios pedidos a la vez (por ejemplo, push simultáneos en tres servicios) solo queda en espera el más reciente; los intermedios se cancelan porque cada despliegue descarga todas las imágenes y ya incluye sus cambios. El servicio cuya solicitud fue reemplazada lo informa como aviso, no como error. En el servidor, `flock` es una segunda barrera por si algo corre por fuera de GitHub.
 
 Cada ejecución despliega la plataforma completa: descarga las imágenes **desde GHCR** (`ghcr.io/smartpottech/smartpot-*`, públicas) y recrea solo los contenedores cuya imagen o configuración cambió. Docker Hub (`sebastian190030/<componente>-smartpot`) queda como réplica de distribución para quien prefiera ese registro, por ejemplo en la [demo](../demo/README.md). Si falta algún secret, el despliegue se omite con un aviso en lugar de fallar.
+
+**Migración de la base.** Los scripts de inicio de MongoDB solo corren con el volumen vacío, así que después de levantar los contenedores el despliegue aplica los esquemas de [SmartPot-DB](https://github.com/SmartPotTech/SmartPot-DB) a la base existente con su migración (`/opt/smartpot/migrate.js`). Es idempotente: crea las colecciones que falten, pone o actualiza cada validador y no toca los documentos. Si falla, el despliegue falla; si la imagen de la base es anterior y no la trae, se omite con un aviso.
 
 ### Secrets
 
@@ -171,6 +175,7 @@ Los contenedores conservan su configuración aunque el `.env` se borre. Los secr
 docker ps --filter name=smartpot
 docker logs -f smartpot-api
 docker logs -f smartpot-broker
+docker exec smartpot-db mongosh --quiet /opt/smartpot/migrate.js   # migración a mano
 ```
 
 Los despliegues simultáneos no se pisan: cada uno sube su configuración a una carpeta temporal propia (`.deploy-<id>`, permisos `700`) y espera su turno con `flock`.
@@ -189,6 +194,7 @@ curl -fsSL $base/compose.yaml -o compose.yaml
 curl -fsSL $base/.env.example -o .env
 chmod 600 .env
 docker compose -p smartpot up -d --wait
+docker exec smartpot-db mongosh --quiet /opt/smartpot/migrate.js
 ```
 
 ---
@@ -251,7 +257,7 @@ openssl s_client -connect mqtt.smartpot.app:8883 -CAfile ca.crt -brief </dev/nul
 
 | Comprobación | Resultado esperado |
 | --- | --- |
-| `/health` | `{"status":"UP","database":"UP","broker":"UP","cache":"UP","ai":"UP"}` |
+| `/health` | `{"status":"UP","database":"UP","broker":"UP","cache":"UP","ai":"UP","simulator":"UP"}` |
 | `/api/v1/crop-profiles` | Perfiles de las seis especies |
 | `/api/v1/crops` sin token | `401` |
 | PWA | `200` con `Content-Security-Policy`, `X-Frame-Options` y `Strict-Transport-Security` |
