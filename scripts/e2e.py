@@ -2,7 +2,8 @@
 
 Recorre el camino completo de un usuario nuevo: registro, cultivo, telemetría MQTT,
 comando con confirmación de la maceta, evaluación del asistente, panel general (totales,
-series comparativas y análisis de flota), órdenes en bloque y borrado de la cuenta.
+series comparativas y análisis de flota), órdenes en bloque, maceta virtual, aprendizaje
+continuo, canales de notificación y borrado de la cuenta.
 Solo usa la biblioteca estándar; publica por MQTT con mosquitto_pub dentro del broker.
 
     python3 scripts/e2e.py
@@ -69,8 +70,8 @@ def main() -> None:
 
     status, health = call("GET", "/health")
     expect(status == 200 and health["status"] == "UP", "la API y sus dependencias están arriba")
-    expect(all(health[key] == "UP" for key in ("database", "broker", "cache", "ai")),
-           "base de datos, broker, caché e IA responden")
+    expect(all(health[key] == "UP" for key in ("database", "broker", "cache", "ai", "simulator")),
+           "base de datos, broker, caché, IA y simulador responden")
 
     status, body = call("GET", "/api/v1/crops")
     expect(status == 401 and "message" in body, "las rutas privadas exigen sesión")
@@ -131,6 +132,7 @@ def run_flow(token: str) -> None:
     status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
     expect(status == 200 and 0 <= insight["health"]["index"] <= 100, "el asistente evalúa el cultivo")
     expect(bool(insight["summary"]), "el asistente entrega un resumen en español")
+    expect(insight.get("learning", {}).get("source") in ("BASE", "LEARNED"), "la evaluación informa lo aprendido")
 
     status, overview = call("GET", "/api/v1/overview", token=token)
     expect(status == 200 and overview["totals"]["crops"] == 1, "el panel general resume la cuenta")
@@ -151,8 +153,48 @@ def run_flow(token: str) -> None:
     status, crops = call("PUT", "/api/v1/crops/automation", {"enabled": True}, token)
     expect(status == 200 and crops[0]["automationEnabled"], "modo automático en bloque")
 
+    check_virtual_pot(token, crop_id)
+    check_learning(token)
+
+    status, channels = call("GET", "/api/v1/channels", token=token)
+    expect(status == 200 and channels[0]["type"] == "TELEGRAM", "los canales de notificación se listan")
+
     status, _ = call("DELETE", f"/api/v1/crops/{crop_id}", token=token)
     expect(status == 204, "borrado del cultivo")
+
+
+def check_virtual_pot(token: str, crop_id: str) -> None:
+    path = f"/api/v1/crops/{crop_id}/virtual-device"
+    status, body = call("PUT", path, {"mode": "WEATHER"}, token)
+    expect(status == 400, "el modo clima exige una ubicación")
+
+    status, body = call("PUT", path, {"mode": "MANUAL", "intervalSeconds": 10,
+                                      "manual": {"soilMoisture": 42, "ph": 6.8, "temperature": 21}}, token)
+    expect(status == 200 and body["active"] and body["mode"] == "MANUAL", "encendido de la maceta virtual")
+
+    def virtual_reading():
+        _, latest = call("GET", f"/api/v1/crops/{crop_id}/readings/latest", token=token)
+        soil = (latest or {}).get("measures", {}).get("soilMoisture")
+        return soil is not None and abs(soil - 42) <= 4
+
+    wait_for("la lectura de la maceta virtual", virtual_reading, timeout=60)
+    expect(True, "la maceta virtual publica por MQTT con la clave del cultivo")
+
+    status, body = call("GET", path, token=token)
+    expect(status == 200 and body["running"] and body["connected"], "la maceta virtual informa su estado en vivo")
+
+    status, _ = call("DELETE", path, token=token)
+    expect(status == 204, "apagado de la maceta virtual")
+
+
+def check_learning(token: str) -> None:
+    def learned():
+        status, body = call("GET", "/api/v1/ai/learning", token=token)
+        return body if status == 200 and body["storedReadings"] > 0 else None
+
+    body = wait_for("que la IA reciba lecturas para aprender", learned, timeout=90)
+    expect(any(item["cropType"] == "LETTUCE" for item in body["cropTypes"]),
+           "la IA guarda las lecturas reales para el aprendizaje continuo")
 
 
 if __name__ == "__main__":
