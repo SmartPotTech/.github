@@ -1,9 +1,9 @@
 """Prueba de extremo a extremo sobre el entorno demo de SmartPot.
 
-Recorre el camino completo de un usuario nuevo: registro, cultivo, telemetría MQTT,
-comando con confirmación de la maceta, evaluación del asistente, panel general (totales,
-series comparativas y análisis de flota), órdenes en bloque, maceta virtual, aprendizaje
-continuo, canales de notificación y borrado de la cuenta.
+Recorre el camino completo de un usuario nuevo: registro, cultivo real, telemetría MQTT,
+comando con confirmación del dispositivo, evaluación del asistente, panel general (totales,
+series comparativas y análisis de flota), órdenes en bloque, cultivo virtual con su simulación,
+aprendizaje continuo, canales de notificación y borrado de la cuenta.
 Solo usa la biblioteca estándar; publica por MQTT con mosquitto_pub dentro del broker.
 
     python3 scripts/e2e.py
@@ -96,16 +96,18 @@ def main() -> None:
 
 
 def run_flow(token: str) -> None:
-    status, body = call("POST", "/api/v1/crops", {"name": "Lechuga de prueba", "type": "LETTUCE"}, token)
-    expect(status == 201 and body["device"]["key"], "creación del cultivo con credenciales de la maceta")
+    status, body = call("POST", "/api/v1/crops",
+                        {"name": "Lechuga de prueba", "type": "LETTUCE", "kind": "REAL", "form": "NFT"}, token)
+    expect(status == 201 and body["device"]["key"], "creación del cultivo real con las credenciales del dispositivo")
+    expect(body["crop"]["kind"] == "REAL" and body["crop"]["form"] == "NFT", "el cultivo guarda su tipo y su forma")
     crop, device = body["crop"], body["device"]
     crop_id, username, key, topics = crop["id"], device["username"], device["key"], device["topics"]
 
     reading = {"temperature": 19.5, "humidity": 62, "brightness": 850, "ph": 6.0, "tds": 700,
                "atmosphere": 1012, "soilMoisture": 71}
-    wait_for("que el broker acepte la clave de la maceta",
+    wait_for("que el broker acepte la clave del dispositivo",
              lambda: publish(username, key, topics["telemetry"], reading))
-    expect(True, "la maceta publica telemetría con su clave")
+    expect(True, "el dispositivo publica telemetría con su clave")
     expect(not publish(username, "clave-incorrecta", topics["telemetry"], reading),
            "el broker rechaza una clave incorrecta")
 
@@ -127,7 +129,7 @@ def run_flow(token: str) -> None:
         return any(c["id"] == command["id"] and c["status"] == "EXECUTED" for c in commands or [])
 
     wait_for("la confirmación del comando", executed)
-    expect(True, "la confirmación de la maceta marca el comando como ejecutado")
+    expect(True, "la confirmación del dispositivo marca el comando como ejecutado")
 
     status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
     expect(status == 200 and 0 <= insight["health"]["index"] <= 100, "el asistente evalúa el cultivo")
@@ -153,7 +155,8 @@ def run_flow(token: str) -> None:
     status, crops = call("PUT", "/api/v1/crops/automation", {"enabled": True}, token)
     expect(status == 200 and crops[0]["automationEnabled"], "modo automático en bloque")
 
-    check_virtual_pot(token, crop_id)
+    check_kinds(token, crop_id)
+    check_virtual_crop(token)
     check_learning(token)
 
     status, channels = call("GET", "/api/v1/channels", token=token)
@@ -163,28 +166,51 @@ def run_flow(token: str) -> None:
     expect(status == 204, "borrado del cultivo")
 
 
-def check_virtual_pot(token: str, crop_id: str) -> None:
-    path = f"/api/v1/crops/{crop_id}/virtual-device"
-    status, body = call("PUT", path, {"mode": "WEATHER"}, token)
+def check_kinds(token: str, crop_id: str) -> None:
+    status, _ = call("PUT", f"/api/v1/crops/{crop_id}/virtual-device", {"mode": "AUTO"}, token)
+    expect(status == 400, "un cultivo real no se simula")
+    status, _ = call("PUT", f"/api/v1/crops/{crop_id}",
+                     {"name": "Lechuga de prueba", "type": "LETTUCE", "kind": "VIRTUAL"}, token)
+    expect(status == 400, "un cultivo real no pasa a virtual")
+
+
+def check_virtual_crop(token: str) -> None:
+    status, _ = call("POST", "/api/v1/crops", {"name": "Clima sin lugar", "type": "BASIL", "kind": "VIRTUAL",
+                                               "virtual": {"mode": "WEATHER"}}, token)
     expect(status == 400, "el modo clima exige una ubicación")
 
-    status, body = call("PUT", path, {"mode": "MANUAL", "intervalSeconds": 10,
-                                      "manual": {"soilMoisture": 42, "ph": 6.8, "temperature": 21}}, token)
-    expect(status == 200 and body["active"] and body["mode"] == "MANUAL", "encendido de la maceta virtual")
+    status, body = call("POST", "/api/v1/crops", {
+        "name": "Lechuga virtual", "type": "LETTUCE", "kind": "VIRTUAL", "form": "TOWER",
+        "virtual": {"mode": "MANUAL", "intervalSeconds": 10,
+                    "manual": {"soilMoisture": 42, "ph": 6.8, "temperature": 21}}}, token)
+    expect(status == 201 and body["crop"]["kind"] == "VIRTUAL" and not body.get("device"),
+           "creación de un cultivo virtual sin credenciales que configurar")
+    crop_id = body["crop"]["id"]
+    path = f"/api/v1/crops/{crop_id}/virtual-device"
+
+    status, actuators = call("GET", f"/api/v1/crops/{crop_id}/actuators", token=token)
+    expect(status == 200 and len(actuators) == 6, "el cultivo virtual nace con los seis actuadores")
+    status, _ = call("GET", f"/api/v1/crops/{crop_id}/device", token=token)
+    expect(status == 400, "un cultivo virtual no entrega clave de dispositivo")
 
     def virtual_reading():
         _, latest = call("GET", f"/api/v1/crops/{crop_id}/readings/latest", token=token)
         soil = (latest or {}).get("measures", {}).get("soilMoisture")
         return soil is not None and abs(soil - 42) <= 4
 
-    wait_for("la lectura de la maceta virtual", virtual_reading, timeout=60)
-    expect(True, "la maceta virtual publica por MQTT con la clave del cultivo")
+    wait_for("la lectura del cultivo virtual", virtual_reading, timeout=60)
+    expect(True, "la simulación publica por MQTT con la cuenta del cultivo virtual")
 
     status, body = call("GET", path, token=token)
-    expect(status == 200 and body["running"] and body["connected"], "la maceta virtual informa su estado en vivo")
+    expect(status == 200 and body["active"] and body["connected"] and body["mode"] == "MANUAL",
+           "la simulación informa su estado en vivo")
 
     status, _ = call("DELETE", path, token=token)
-    expect(status == 204, "apagado de la maceta virtual")
+    status_after, body = call("GET", path, token=token)
+    expect(status == 204 and status_after == 200 and not body["active"], "pausa de la simulación")
+
+    status, _ = call("DELETE", f"/api/v1/crops/{crop_id}", token=token)
+    expect(status == 204, "borrado del cultivo virtual")
 
 
 def check_learning(token: str) -> None:
