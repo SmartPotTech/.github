@@ -1,8 +1,25 @@
 name: Deploy to Production
+run-name: "Despliegue · ${{ inputs.source || 'configuración' }} ${{ inputs.sha || github.sha }} · ${{ inputs.request || github.run_id }}"
+
+# Único punto de despliegue. Los servicios lo solicitan con request-deploy.yml; la concurrencia
+# deja uno en curso y uno en espera: si llegan varios pedidos, el último reemplaza a los intermedios
+# (cada despliegue descarga todas las imágenes, así que ninguno se pierde).
 
 on:
-  workflow_call:
   workflow_dispatch:
+    inputs:
+      source:
+        description: Repositorio que solicita el despliegue
+        required: false
+        default: manual
+      sha:
+        description: Commit que publicó la imagen
+        required: false
+        default: ""
+      request:
+        description: Identificador de la solicitud
+        required: false
+        default: ""
   push:
     branches: [ "main" ]
     paths:
@@ -11,6 +28,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: smartpot-production
+  cancel-in-progress: false
 
 jobs:
   check:
@@ -48,9 +69,6 @@ jobs:
     if: needs.check.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    concurrency:
-      group: smartpot-production
-      cancel-in-progress: false
 
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
