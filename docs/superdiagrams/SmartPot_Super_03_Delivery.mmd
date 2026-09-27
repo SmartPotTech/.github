@@ -1,0 +1,106 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}, "flowchart": {"useMaxWidth": false, "htmlLabels": true, "curve": "basis", "padding": 14, "nodeSpacing": 45, "rankSpacing": 80, "wrappingWidth": 360}}}%%
+flowchart TB
+  subgraph local["Trabajo local"]
+    direction TB
+    dev(["Desarrollador"])
+    tooling["Herramientas por lenguaje<br/>Java: Maven Wrapper · Python: uv · Web: pnpm"]
+    devenv["docker/dev<br/>toda la plataforma compilada<br/>desde los repositorios locales"]
+    commitrule["Commits en inglés, en imperativo<br/>un propósito · uno o dos archivos"]
+    inject["secrets/inject_secrets.py (no versionado)<br/>gh secret set por la entrada estándar"]
+    dev --> tooling --> devenv
+    dev --> commitrule
+  end
+
+  subgraph org["GitHub · SmartPotTech"]
+    direction TB
+    subgraph services["Repositorios de servicio"]
+      direction TB
+      repos["SmartPot-API · SmartPot-Web · SmartPot-AI<br/>SmartPot-DataGenerator · SmartPot-Broker<br/>SmartPot-DB · SmartPot-Cache · SmartPot-Mail"]
+      iot["SmartPot-IoT<br/>firmware · pruebas con MicroPython simulado"]
+      proxy["SmartPot-Proxy<br/>archivado"]
+      ci["CI por repositorio<br/>maven.yml · node.js.yml · ci.yml"]
+      codeql["codeql.yml · dependency-review.yml<br/>stale.yml · Dependabot semanal"]
+      packaging["packaging.yml<br/>imagen endurecida · SBOM · atestación<br/>push a GHCR y réplica en Docker Hub"]
+      request["deploy.yml del servicio<br/>request-deploy.yml · workflow_dispatch<br/>espera el resultado del despliegue central"]
+      svcsecrets["Secrets del servicio<br/>DEPLOY_DISPATCH_TOKEN (Actions: read y write en .github)<br/>DOCKER_USERNAME · DOCKER_PASSWORD (opcionales)"]
+      repos --> ci
+      repos --> codeql
+      repos --> packaging --> request
+      svcsecrets -.-> packaging & request
+      iot --> ci
+    end
+
+    subgraph central[".github · plataforma"]
+      direction TB
+      qa["qa.yml · en cada cambio a main, cada lunes 11:00 UTC y a mano<br/>API: mvn verify · Web: lint, tipos, pruebas y build<br/>Python: AI, DataGenerator e IoT (ruff y pytest)<br/>Contenedores: Broker, DB, Cache y Mail (build y humo)"]
+      e2e["End-to-End<br/>construye las 8 imágenes · levanta la demo con --wait<br/>scripts/e2e.py: 30 comprobaciones<br/>registro · cultivo · MQTT · ACK · IA · flota · bloque<br/>maceta virtual · aprendizaje · canales · borrado"]
+      deploy["deploy.yml central<br/>concurrency smartpot-production<br/>uno en curso · solo el último en espera"]
+      validate["Validaciones previas<br/>ENV_FILE: longitudes, llave AES de 32 bytes, perfiles<br/>certificado del broker firmado por la CA y llave que corresponde<br/>SIMULATOR_TOKEN · secreto del webhook"]
+      censecrets["Secrets centrales<br/>SERVER_HOST · SERVER_PORT · SERVER_USER · SERVER_KNOWN_HOSTS<br/>SERVER_KEY · DEPLOY_PATH · ENV_FILE<br/>MQTT_CA_CERT · MQTT_SERVER_CERT · MQTT_SERVER_KEY"]
+      docs["docs · Markdown, Mermaid, DOCX y PDF<br/>render_diagrams.py · md_to_docx.py"]
+      qa --> e2e
+      censecrets -.-> deploy
+      deploy --> validate
+    end
+  end
+
+  subgraph registries["Registros de imágenes"]
+    direction TB
+    ghcr[("GHCR · ghcr.io/smartpottech<br/>smartpot-api · -web · -ai · -datagenerator<br/>-broker · -db · -cache · -mail")]
+    hub[("Docker Hub · réplica<br/>usuario/componente-smartpot")]
+  end
+
+  subgraph environments["Entornos"]
+    direction TB
+    demo["docker/demo<br/>compose.yaml (GHCR) · compose.dockerhub.yaml<br/>datos de ejemplo · 2 macetas fijas · macetas virtuales<br/>Telegram opcional por sondeo largo"]
+    k8s["kubernetes/k8s-deployment.yml<br/>namespace smartpot · Secret · ConfigMap<br/>PVC db-data, broker-data y ai-data<br/>8 Deployments y 8 Services · Pod Security restricted"]
+    subgraph server["Servidor de producción"]
+      direction TB
+      ssh["SSH :2222 con known_hosts<br/>carpeta .deploy-id temporal"]
+      lock["flock /var/lock/smartpot-deploy.lock"]
+      certs["/etc/mosquitto/certs · dueño 1883"]
+      compose["docker compose -p smartpot<br/>pull desde GHCR · up -d --wait<br/>borra el .env al terminar"]
+      runtime["8 contenedores de solo lectura<br/>sin capacidades · no-new-privileges<br/>redes internal y public · volúmenes db_data, broker_data y ai_data"]
+      nginx["Nginx + Let's Encrypt · UFW"]
+      backup["backup_smartpot.sh<br/>mongodump comprimido · 14 días"]
+      ssh --> lock --> certs --> compose --> runtime
+      nginx --> runtime
+      runtime --> backup
+    end
+  end
+
+  users(["Personas en smartpot.app"])
+
+  commitrule -->|"git push"| repos
+  inject -->|"secrets"| svcsecrets & censecrets
+  repos -->|"cada push a main"| qa
+  packaging -->|"docker push"| ghcr & hub
+  request -->|"workflow_dispatch"| deploy
+  deploy -.->|"resultado"| request
+  validate -->|"SSH"| ssh
+  ghcr -->|"pull"| compose
+  ghcr -->|"imágenes"| demo & k8s
+  hub -.->|"demo a elección"| demo
+  e2e -->|"levanta"| demo
+  deploy -->|"GET /health desde internet"| nginx
+  users -->|"HTTPS · MQTT TLS"| nginx
+
+  classDef person fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef edge fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef web fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef core fill:#0B3D2B,stroke:#06281C,color:#FFFFFF
+  classDef module fill:#FFFFFF,stroke:#067A52,color:#17261F
+  classDef ai fill:#EEF7FC,stroke:#1F6FA0,color:#17261F
+  classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  classDef ext fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef warn fill:#FBE3E3,stroke:#D64545,color:#17261F
+  classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
+  class dev,users person
+  class tooling,devenv,commitrule,repos,iot,ci,codeql,packaging,request,docs module
+  class proxy note
+  class inject,svcsecrets,censecrets,validate ext
+  class qa,e2e web
+  class deploy core
+  class ghcr,hub store
+  class demo,k8s,ssh,lock,certs,compose,runtime,nginx,backup edge
