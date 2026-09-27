@@ -1,207 +1,80 @@
 # **Demostración de SmartPot con Docker**
 
-Esta documentación describe cómo levantar y ejecutar el proyecto SmartPot en tu entorno local utilizando Docker Compose. Se describen los servicios involucrados, sus configuraciones y cómo ejecutar los contenedores.
+La demo levanta SmartPot completo en tu computador con un solo comando, usando las imágenes publicadas en GHCR: base de datos con datos de ejemplo, caché, correo, broker MQTT, asistente de IA, API, PWA y dos macetas simuladas que envían lecturas cada 15 segundos.
+
+> [!WARNING]
+> Las contraseñas de [`compose.yaml`](compose.yaml) son públicas. Úsala solo en tu equipo: todos los puertos escuchan únicamente en `127.0.0.1`.
+
+---
 
 ## **Requisitos Previos**
-Asegúrate de tener instalados los siguientes programas:
-- **Docker**: [Instrucciones de instalación](https://docs.docker.com/get-docker/)
-- **Docker Compose**: Viene integrado con Docker Desktop, pero si usas Linux o configuraciones personalizadas, asegúrate de tener Docker Compose instalado. [Instrucciones de instalación](https://docs.docker.com/compose/install/)
 
-## **Cómo Ejecutar el Proyecto**
+* **Docker** con **Docker Compose v2.20 o superior**: [Instrucciones de instalación](https://docs.docker.com/get-docker/)
+* Unos 2 GB de memoria libre.
 
-> [!NOTE]\
->  Antes de realizar cualquier paso, asegúrate de tener Docker en ejecución en tu máquina. Si estás utilizando Docker Desktop, abre la aplicación y espera a que esté completamente iniciado antes de continuar con los siguientes pasos.
+---
 
-### **Opción 1: Ejecución Rápida con un Solo Comando**
-
-Si prefieres una forma más rápida de poner en marcha el proyecto, puedes utilizar el siguiente comando en la terminal. Este comando descargará automáticamente el archivo `docker-compose.yml` y levantará los contenedores en un solo paso:
+## **Ejecución Rápida**
 
 ```bash
-curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/docker-compose.yml -o docker-compose.yml && docker-compose -p smartpot up -d
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml -o compose.yaml
+docker compose up -d --wait
 ```
 
-Este comando realiza las siguientes acciones:
-1. **Descarga el archivo `docker-compose.yml`** desde el repositorio de GitHub.
-2. **Levanta los contenedores** en modo "detached" usando Docker Compose.
+Abre http://localhost:5173 e ingresa con:
 
-Una vez que los contenedores estén en funcionamiento, puedes acceder a los siguientes servicios:
+| Correo | Contraseña |
+| --- | --- |
+| `demo@smartpot.app` | `SmartPot2026` |
 
-- **Base de Datos (MongoDB)**: `mongodb://admin:admin@localhost:27018/smartpot/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongo`
-- **API SmartPot**: `http://localhost:8091`
-- **Aplicación Web**: `http://localhost:5173`
+Verás dos cultivos en línea: **Lechugas del balcón**, con el modo automático activo (el agente de IA riega, enciende la luz o ventila por su cuenta), y **Tomates cherry**, donde el asistente solo recomienda.
 
-Para detener todos los servicios, ejecuta el siguiente comando:
+| Servicio | URL |
+| --- | --- |
+| PWA | http://localhost:5173 |
+| API | http://localhost:8091 · documentación en http://localhost:8091/docs |
+| Estado de los servicios | http://localhost:8091/health |
+| Bandeja de correo | http://localhost:8025 (`admin` / `demo-mailpit-ui`) |
+| MQTT | `localhost:1883` · WebSocket `ws://localhost:9001` |
+
+Los correos de recuperación de contraseña llegan a la bandeja de Mailpit.
+
+---
+
+## **Conectar una Maceta Propia**
+
+1. En la PWA crea un cultivo: la API genera la clave de la maceta y la muestra **una sola vez**.
+2. En la pestaña **Dispositivo** copia la configuración para el firmware (`config.py`) o conecta el simulador:
 
 ```bash
-docker-compose -p smartpot down
+docker run --rm --network smartpot-demo_internal \
+  -e MQTT_HOST=broker-smartpot \
+  -e SIMULATOR_DEVICES=<cropId>:<clave>:LETTUCE \
+  ghcr.io/smartpottech/smartpot-datagenerator:latest
 ```
 
 ---
 
-### **Opción 2: Ejecución Paso a Paso (Versión Extensa)**
-
-Si prefieres realizar los pasos de manera más detallada, sigue estas instrucciones:
-
-#### **Paso 1: Clonar o Descargar el Proyecto**
-Asegúrate de tener todos los archivos necesarios en tu máquina local, incluyendo el archivo `docker-compose.yml`. Si no lo tienes, puedes descargarlo directamente desde el repositorio ejecutando el siguiente comando:
+## **Detener**
 
 ```bash
-curl -L https://raw.githubusercontent.com/SmartPotTech/.github/main/docker-compose.yml -o docker-compose.yml
+docker compose down        # conserva los datos
+docker compose down -v     # borra también la base de datos y el broker
 ```
-
-Este comando descargará el archivo `docker-compose.yml` necesario para continuar con la configuración del proyecto.
-
-#### **Paso 2: Realizar el Pull de las Imágenes Docker**
-Descarga las imágenes de los contenedores necesarios para el proyecto. Ejecuta los siguientes comandos en la terminal para obtener las imágenes más recientes:
-
-```bash
-docker pull sebastian190030/db-smartpot:latest
-docker pull sebastian190030/api-smartpot:latest
-docker pull sebastian190030/web-smartpot:latest
-```
-
-#### **Paso 3: Iniciar los Servicios con Docker Compose**
-
-Desde el directorio donde se encuentra tu archivo `docker-compose.yml`, ejecuta el siguiente comando para iniciar los contenedores:
-
-```bash
-docker-compose -p smartpot up -d
-```
-
-Este comando:
-- **`-p smartpot`**: Le da el nombre `smartpot` al proyecto, lo que afecta los nombres de los contenedores, redes y volúmenes.
-- **`up -d`**: Levanta los contenedores en segundo plano (modo "detached").
-
-#### **Paso 4: Acceder a los Servicios**
-
-Una vez que los contenedores estén en funcionamiento, puedes acceder a los siguientes servicios:
-
-- **Base de Datos (MongoDB)**: Accede a la base de datos usando la URI de conexión `mongodb://admin:admin@localhost:27018/smartpot/?directConnection=true&serverSelectionTimeoutMS=2000&appName=mongo`.
-- **API SmartPot**: Accede a la API en `http://localhost:8091`.
-- **Aplicación Web**: Accede a la aplicación frontend en `http://localhost:5173`.
-
-#### **Paso 5: Detener los Servicios**
-
-Para detener todos los servicios y eliminar los contenedores, ejecuta el siguiente comando:
-
-```bash
-docker-compose -p smartpot down
-```
-
-Este comando:
-- Detiene y elimina todos los contenedores, redes y volúmenes definidos en el archivo `docker-compose.yml`.
 
 ---
 
-Con esta organización, la documentación ahora tiene:
+## **Servicios**
 
-1. **Opción Rápida** primero, para quienes desean una puesta en marcha más veloz.
-2. **Opción Extensa** después, para quienes prefieren un enfoque más detallado.
-3. **Comando común** para detener los servicios al final.
+| Contenedor | Imagen | Función |
+| --- | --- | --- |
+| `smartpot-demo-db` | `smartpot-db` | MongoDB 8 con validadores y datos demo |
+| `smartpot-demo-cache` | `smartpot-cache` | Redis 8 para el límite de peticiones y la caché de la IA |
+| `smartpot-demo-mail` | `smartpot-mail` | Mailpit con SMTP autenticado |
+| `smartpot-demo-broker` | `smartpot-broker` | Mosquitto 2.1 con una cuenta MQTT por maceta |
+| `smartpot-demo-ai` | `smartpot-ai` | Sistema experto, lógica difusa, modelos de ML y agente |
+| `smartpot-demo-api` | `smartpot-api` | API REST en Spring Boot 4 |
+| `smartpot-demo-web` | `smartpot-web` | PWA en React servida por nginx |
+| `smartpot-demo-simulator` | `smartpot-datagenerator` | Dos macetas simuladas |
 
-¡Espero que ahora esté todo en el orden que necesitabas!
-
-
-
-## **Estructura del Proyecto**
-El archivo `docker-compose.yml` define los servicios que componen la infraestructura del proyecto:
-- **MongoDB**: La base de datos que maneja toda la información relacionada con los cultivos y sensores.
-- **API SmartPot**: El backend de la aplicación que interactúa con la base de datos y expone los endpoints REST.
-- **Web SmartPot**: La aplicación frontend que se comunica con la API para mostrar información de los cultivos y permitir la interacción con el sistema.
-
-## **Descripción de Servicios en `docker-compose.yml`**
-
-### 1. **Servicio para la Base de Datos (MongoDB)**
-Este servicio ejecuta un contenedor MongoDB, con la configuración necesaria para iniciar la base de datos `smartpot`.
-
-```yaml
-  db-smartpot:
-    image: sebastian190030/db-smartpot:latest
-    container_name: smartpot-db
-    ports:
-      - "27018:27017"
-    volumes:
-      - mongo_data:/data/db
-    networks:
-      - smartpot-network
-```
-**Configuración clave:**
-- **Imagen**: Usa la imagen de Docker `sebastian190030/db-smartpot:latest`.
-- **Puertos**: Expone el puerto 27017 del contenedor a 27018 en el host para acceder a la base de datos localmente.
-- **Volúmenes**: Se utiliza un volumen (`mongo_data`) para persistir los datos de la base de datos.
-- **Redes**: El contenedor se conecta a la red `smartpot-network` para comunicarse con otros servicios.
-
-### 2. **Servicio para la API (Backend)**
-Este servicio ejecuta el contenedor de la API de SmartPot, configurando las variables de entorno necesarias para conectarse a la base de datos MongoDB y manejar la lógica de autenticación y operaciones de la API.
-
-```yaml
-api-smartpot:
-  image: sebastian190030/api-smartpot:latest
-  container_name: smartpot-api
-  environment:
-      - APP_NAME=SmartPot-API
-      - PORT=8091
-      - TITLE=SmartPot API
-      - DESCRIPTION=Documentación de la API REST de SmartPot
-      - VERSION=1.0.0
-      - AUTHOR=SmartPot Developers
-      - DATA_CONNECTION_METHOD=mongodb
-      - DATA_SOURCE_USERNAME=admin
-      - DATA_SOURCE_PASSWORD=admin
-      - DATA_SOURCE_DOMAIN=db-smartpot:27017
-      - DATA_SOURCE_DB=smartpot
-      - DATA_PARAMS=directConnection=true&serverSelectionTimeoutMS=100000&socketTimeoutMS=10000&appName=mongo
-      - SECURITY_JWT_SECRET_KEY=c8e9b6803afbcfa6edd9569c94c75ff4b144622b0a0570a636dffd62c24a3476
-      - SECURITY_JWT_EXPIRATION=86400000
-      - SECURITY_PUBLIC_ROUTES=/auth/login,/auth/verify
-      - HEADER_CORS_ALLOWED_ORIGINS=http://localhost:5173
-      - SERVER_TOMCAT_TIMEOUT=600000
-      - DEBUGGER_MODE=INFO
-  ports:
-    - "8091:8091"
-  depends_on:
-    - db-smartpot
-  networks:
-    - smartpot-network
-```
-**Configuración clave:**
-- **Imagen**: Usa la imagen de Docker `sebastian190030/api-smartpot:latest`.
-- **Variables de entorno**: Incluye detalles sobre el nombre de la API, configuración JWT, detalles de conexión a la base de datos MongoDB (`localhost:27018`), y CORS para la aplicación frontend.
-- **Dependencias**: El servicio depende de `db-smartpot` para asegurar que la base de datos esté lista antes de iniciar la API.
-- **Puertos**: Expone el puerto 8091 para que la API sea accesible desde el navegador.
-
-### 3. **Servicio para la Aplicación Web (Frontend)**
-Este servicio ejecuta el contenedor de la aplicación web, configurando la URL base de la API para que el frontend se comunique con el backend.
-
-```yaml
-web-smartpot:
-  image: sebastian190030/web-smartpot:latest
-  container_name: smartpot-web
-  environment:
-    - VITE_API_BASE_URL=http://localhost:8091
-  ports:
-    - "5173:5173"
-  networks:
-    - smartpot-network
-```
-**Configuración clave:**
-- **Imagen**: Usa la imagen de Docker `sebastian190030/web-smartpot:latest`.
-- **Variables de entorno**: Configura la variable `VITE_API_BASE_URL` para que el frontend se comunique con la API de SmartPot a través de `http://localhost:8091`.
-- **Puertos**: Expone el puerto 5173 para acceder a la aplicación web.
-
-### 4. **Volúmenes**
-Para garantizar la persistencia de los datos de la base de datos MongoDB, se define un volumen:
-```yaml
-volumes:
-  mongo_data:
-```
-El volumen `mongo_data` se utiliza para almacenar los datos de MongoDB en el sistema local.
-
-### 5. **Redes**
-Se define una red llamada `smartpot-network` para que los contenedores puedan comunicarse entre sí.
-
-```yaml
-networks:
-  smartpot-network:
-    driver: bridge
-```
+MongoDB, Redis y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de correo publican puertos, y únicamente en `127.0.0.1`.
