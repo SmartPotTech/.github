@@ -23,6 +23,8 @@ erDiagram
     ObjectId ownerId
     string name
     string type "LETTUCE, TOMATO, …"
+    string kind "REAL o VIRTUAL, fijo"
+    string form "POT, NFT, TOWER, RAFT"
     bool automationEnabled
     object device "keyCiphertext AES-GCM, online, lastSeenAt"
     object health "index, level, label, evaluatedAt"
@@ -70,6 +72,7 @@ erDiagram
     string mode "AUTO, MANUAL, WEATHER"
     object manual "medidores"
     object location "nombre, latitud, longitud"
+    bool active "false en pausa"
   }
   PASSWORD_RESET_TOKENS {
     ObjectId _id
