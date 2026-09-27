@@ -1,0 +1,227 @@
+name: Deploy to Production
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "docker/production/**"
+      - ".github/workflows/deploy.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check Deployment Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      configured: ${{ steps.secrets.outputs.configured }}
+
+    steps:
+      - name: Verify required secrets
+        id: secrets
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_KEY: ${{ secrets.SERVER_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          missing=""
+          for name in SERVER_HOST SERVER_PORT SERVER_USER SERVER_KEY DEPLOY_PATH ENV_FILE; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::notice::Despliegue omitido: faltan los secrets$missing."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy to Server
+    needs: check
+    if: needs.check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: smartpot-production
+      cancel-in-progress: false
+
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      SERVER_PORT: ${{ secrets.SERVER_PORT }}
+      SERVER_USER: ${{ secrets.SERVER_USER }}
+      SERVER_KEY: ${{ secrets.SERVER_KEY }}
+      SERVER_KNOWN_HOSTS: ${{ secrets.SERVER_KNOWN_HOSTS }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      ENV_FILE: ${{ secrets.ENV_FILE }}
+      MQTT_CA_CERT: ${{ secrets.MQTT_CA_CERT }}
+      MQTT_SERVER_CERT: ${{ secrets.MQTT_SERVER_CERT }}
+      MQTT_SERVER_KEY: ${{ secrets.MQTT_SERVER_KEY }}
+      RUN_TAG: ${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout deployment configuration
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/.github
+          ref: main
+          sparse-checkout: docker/production
+          persist-credentials: false
+
+      - name: Generate temporary .env file
+        working-directory: docker/production
+        run: |
+          umask 077
+          printf '%s\n' "$ENV_FILE" | tr -d '\r' > .env
+          value() { sed -n "s/^$1=//p" .env | tail -n 1; }
+          for key in SMARTPOT_JWT_SECRET SMARTPOT_AES_KEY SMARTPOT_AI_TOKEN MQTT_ADMIN_PASSWORD REDIS_PASSWORD \
+                     WEB_BASE_URL PUBLIC_API_URL CORS_ALLOWED_ORIGINS MQTT_PUBLIC_HOST; do
+            [ -n "$(value "$key")" ] || { echo "::error::ENV_FILE no define $key."; exit 1; }
+          done
+          [ "$(value SMARTPOT_JWT_SECRET | tr -d '\n' | wc -c)" -ge 32 ] \
+            || { echo "::error::SMARTPOT_JWT_SECRET debe tener al menos 32 caracteres."; exit 1; }
+          [ "$(value SMARTPOT_AI_TOKEN | tr -d '\n' | wc -c)" -ge 24 ] \
+            || { echo "::error::SMARTPOT_AI_TOKEN debe tener al menos 24 caracteres."; exit 1; }
+          [ "$(value MQTT_ADMIN_PASSWORD | tr -d '\n' | wc -c)" -ge 16 ] \
+            || { echo "::error::MQTT_ADMIN_PASSWORD debe tener al menos 16 caracteres."; exit 1; }
+          [ "$(value SMARTPOT_AES_KEY | base64 -d 2>/dev/null | wc -c)" -eq 32 ] \
+            || { echo "::error::SMARTPOT_AES_KEY debe ser Base64 de 32 bytes."; exit 1; }
+          profiles=",$(value COMPOSE_PROFILES),"
+          if [[ "$profiles" == *",db,"* ]]; then
+            for key in MONGO_ROOT_PASSWORD SMARTPOT_DB_PASSWORD; do
+              [ -n "$(value "$key")" ] || { echo "::error::El perfil db necesita $key."; exit 1; }
+            done
+          fi
+          if [[ "$profiles" == *",mail,"* ]]; then
+            for key in MAIL_PASSWORD MAILPIT_UI_PASSWORD; do
+              [ -n "$(value "$key")" ] || { echo "::error::El perfil mail necesita $key."; exit 1; }
+            done
+          fi
+          docker compose --env-file .env -f compose.yaml config --quiet
+          echo "API_URL=$(value PUBLIC_API_URL)" >> "$GITHUB_ENV"
+          echo "WEB_URL=$(value WEB_BASE_URL)" >> "$GITHUB_ENV"
+          echo "CERTS_DIR=$(value SMARTPOT_CERTS_DIR)" >> "$GITHUB_ENV"
+
+      - name: Prepare MQTT certificates
+        working-directory: docker/production
+        run: |
+          umask 077
+          if [ -z "$MQTT_CA_CERT" ] || [ -z "$MQTT_SERVER_CERT" ] || [ -z "$MQTT_SERVER_KEY" ]; then
+            echo "::notice::Sin los secrets MQTT_CA_CERT, MQTT_SERVER_CERT y MQTT_SERVER_KEY se conservan los certificados del servidor."
+            exit 0
+          fi
+          mkdir certs
+          printf '%s\n' "$MQTT_CA_CERT" | tr -d '\r' > certs/ca.crt
+          printf '%s\n' "$MQTT_SERVER_CERT" | tr -d '\r' > certs/server.crt
+          printf '%s\n' "$MQTT_SERVER_KEY" | tr -d '\r' > certs/server.key
+          openssl verify -CAfile certs/ca.crt certs/server.crt
+          [ "$(openssl x509 -in certs/server.crt -noout -pubkey | openssl sha256)" = \
+            "$(openssl pkey -in certs/server.key -pubout | openssl sha256)" ] \
+            || { echo "::error::MQTT_SERVER_KEY no corresponde a MQTT_SERVER_CERT."; exit 1; }
+
+      - name: Configure SSH access
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SERVER_KEY" | tr -d '\r' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          if [ -n "$SERVER_KNOWN_HOSTS" ]; then
+            printf '%s\n' "$SERVER_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          else
+            echo "::warning::SERVER_KNOWN_HOSTS no está definido; se confía en la llave que publique el servidor."
+            ssh-keyscan -p "$SERVER_PORT" -H "$SERVER_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          fi
+          chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host smartpot-server
+            HostName $SERVER_HOST
+            Port $SERVER_PORT
+            User $SERVER_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            BatchMode yes
+            ServerAliveInterval 30
+          EOF
+
+      - name: Stage configuration on the server
+        working-directory: docker/production
+        run: |
+          files="compose.yaml .env"
+          [ -d certs ] && files="$files certs"
+          tar -czf - $files | ssh smartpot-server \
+            "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \
+             \$S install -d -m 750 '$DEPLOY_PATH' && \
+             \$S install -d -m 700 '$DEPLOY_PATH/.deploy-$RUN_TAG' && \
+             \$S tar -xzf - --no-same-owner -C '$DEPLOY_PATH/.deploy-$RUN_TAG' && \
+             \$S chmod 600 '$DEPLOY_PATH/.deploy-$RUN_TAG/.env'"
+
+      - name: Deploy to server
+        run: |
+          ssh smartpot-server \
+            "S=''; [ \"\$(id -u)\" -eq 0 ] || S='sudo -n'; \
+             \$S env DEPLOY_PATH='$DEPLOY_PATH' RUN_TAG='$RUN_TAG' CERTS_DIR='${CERTS_DIR:-/etc/mosquitto/certs}' bash -s" <<'EOF'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          stage=".deploy-$RUN_TAG"
+
+          cleanup() {
+            rm -rf "$stage"
+            rm -f .env
+            echo "Archivo .env y certificados temporales eliminados del servidor."
+          }
+          trap cleanup EXIT
+
+          exec 9>/var/lock/smartpot-deploy.lock
+          echo "Esperando turno de despliegue..."
+          flock -w 900 9
+
+          find . -maxdepth 1 -name '.deploy-*' -mmin +60 -exec rm -rf {} +
+          [ -f "$stage/.env" ] || { echo "No se encontró la configuración de este despliegue."; exit 1; }
+          install -m 644 "$stage/compose.yaml" compose.yaml
+          install -m 600 "$stage/.env" .env
+
+          # El broker corre como el usuario 1883: la llave privada solo la lee él.
+          if [ -d "$stage/certs" ]; then
+            install -d -m 750 -o 1883 -g 1883 "$CERTS_DIR"
+            install -m 644 -o 1883 -g 1883 "$stage/certs/ca.crt" "$CERTS_DIR/ca.crt"
+            install -m 644 -o 1883 -g 1883 "$stage/certs/server.crt" "$CERTS_DIR/server.crt"
+            install -m 600 -o 1883 -g 1883 "$stage/certs/server.key" "$CERTS_DIR/server.key"
+            echo "Certificados MQTT actualizados en $CERTS_DIR."
+          fi
+
+          echo "Descargando imágenes publicadas..."
+          docker compose -p smartpot pull --quiet
+
+          echo "Aplicando cambios..."
+          docker compose -p smartpot up -d --remove-orphans --wait --wait-timeout 300
+          if [ -d "$stage/certs" ]; then
+            docker compose -p smartpot restart broker-smartpot >/dev/null
+          fi
+
+          docker compose -p smartpot ps --format '{{.Name}}: {{.Status}}'
+          docker image prune -f >/dev/null
+          echo "Despliegue completado."
+          EOF
+
+      - name: Verify public health
+        run: |
+          for _ in $(seq 1 12); do
+            if curl -fsS --max-time 10 "$API_URL/health"; then
+              echo
+              curl -fsS --max-time 10 -o /dev/null -w "Web: %{http_code}\n" "$WEB_URL/"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::La API no respondió en $API_URL/health."
+          exit 1
+
+      - name: Remove local credentials
+        if: always()
+        run: rm -rf ~/.ssh/deploy_key docker/production/.env docker/production/certs
