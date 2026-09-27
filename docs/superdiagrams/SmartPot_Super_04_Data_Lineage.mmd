@@ -1,0 +1,128 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}, "flowchart": {"useMaxWidth": false, "htmlLabels": true, "curve": "basis", "padding": 14, "nodeSpacing": 45, "rankSpacing": 80, "wrappingWidth": 360}}}%%
+flowchart LR
+  subgraph origen["Origen del dato"]
+    direction TB
+    sensors["Sensores del ESP32<br/>DHT22: temperatura y humedad<br/>ADC: luz 0–2000 · pH 0–14<br/>TDS 0–3000 ppm · sustrato 0–100 %"]
+    physics["Física del simulador<br/>AUTO · MANUAL · WEATHER<br/>los actuadores cambian el entorno"]
+    climate["Clima de Open-Meteo<br/>temperatura · humedad · radiación<br/>lluvia · presión"]
+    manual["Lectura manual<br/>POST /crops/{id}/readings<br/>origen HTTP"]
+    person(["Persona<br/>órdenes · modo automático<br/>medidores · avisos elegidos"])
+    climate --> physics
+  end
+
+  subgraph transporte["Transporte"]
+    direction TB
+    telemetry["MQTT smartpot/v1/{cropId}/telemetry · QoS 0<br/>temperature · humidity · brightness · ph<br/>tds · atmosphere · soilMoisture"]
+    status["MQTT …/status · retenido<br/>online · offline (última voluntad)"]
+    ack["MQTT …/commands/ack · QoS 1<br/>id · status EXECUTED o FAILED · message"]
+    cmdtopic["MQTT …/commands · QoS 1<br/>id · actuator · action · durationSeconds"]
+    rest["REST /api/v1 · JSON en español<br/>Bearer JWT · control de dueño"]
+  end
+
+  subgraph ingesta["Ingesta en la API"]
+    direction TB
+    parser["TelemetryParser<br/>JSON → Measures"]
+    throttle{"reading:{cropId}<br/>¿pasaron 5 s?"}
+    ranges{"MeasureRanges<br/>¿todas las variables<br/>dentro del rango físico?"}
+    discard["Lectura descartada"]
+    parser --> throttle
+    throttle -->|"sí"| ranges
+    throttle -->|"no"| discard
+    ranges -->|"no"| discard
+  end
+
+  subgraph mongo["MongoDB · base smartpot"]
+    direction TB
+    readings[("readings<br/>cropId · measuredAt · measures · source<br/>índice cropId + measuredAt · TTL 365 d")]
+    crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type")]
+    commands[("commands<br/>actuatorType · action · durationSeconds<br/>status · source USER o AGENT · reason<br/>createdAt · sentAt · completedAt · TTL 180 d")]
+    actuators[("actuators<br/>type · active · lastChangedAt")]
+    notifications[("notifications<br/>type INFO, ALERT, COMMAND, DEVICE o AI<br/>title · message · read · TTL 90 d")]
+    links[("channel_links<br/>TELEGRAM · address (chat) · events<br/>enabled · failures · lastDeliveredAt")]
+    vdevices[("virtual_devices<br/>mode · manual · location · intervalSeconds")]
+    users[("users · password_reset_tokens<br/>hash BCrypt · hash SHA-256 del token")]
+  end
+
+  subgraph redis["Redis · datos efímeros"]
+    direction TB
+    rkeys[("reading · ai-eval · agent · notify<br/>rate · channel-link<br/>ai:learning-status · ai:crop-profiles")]
+  end
+
+  subgraph ia["Asistente de IA"]
+    direction TB
+    request["InsightRequest<br/>cropType · measures · history (48)<br/>actuators · localHour"]
+    analysis["analyze()<br/>diagnóstico · pronóstico · modelos<br/>sistema experto · lógica difusa · agente"]
+    response["InsightResponse<br/>health (índice, nivel, byParameter)<br/>diagnosis · conclusions · predictions<br/>forecasts · learning · actions · summary"]
+    feed["LearningFeed → POST /v1/learning/readings<br/>lotes de hasta 1000 cada minuto"]
+    sqlite[("SQLite · readings<br/>crop_key SHA-256 · crop_type · measured_at<br/>local_hour · 7 variables · received_at<br/>60 días · 200 000 filas")]
+    trainer["Entrenamiento por especie<br/>calidad · variables · etiquetas a 1 h<br/>7 modelos frente a la línea base"]
+    joblib[("models/{especie}.joblib<br/>campeón · estados K-Means<br/>Isolation Forest")]
+    status_out["LearningStatus<br/>solo agregados por especie"]
+    request --> analysis --> response
+    feed --> sqlite --> trainer --> joblib
+    joblib -->|"sección learning"| analysis
+    joblib --> status_out
+  end
+
+  subgraph salidas["Uso del dato"]
+    direction TB
+    pwa["PWA<br/>lecturas frente al rango ideal · gráficos con banda<br/>historial 6 h, 24 h y 7 días · CSV<br/>panel general y comparador · asistente<br/>página Aprendizaje"]
+    overview["Panel general<br/>KPIs · series $dateTrunc · flota K-Means"]
+    telegram["Telegram<br/>avisos elegidos y /estado"]
+    device(["Maceta<br/>ejecuta la orden y confirma"])
+    browser[("Navegador<br/>JWT en sessionStorage o localStorage<br/>caché del app shell")]
+  end
+
+  sensors --> telemetry
+  physics --> telemetry
+  sensors -.-> status
+  telemetry --> parser
+  manual --> rest --> ranges
+  ranges -->|"sí"| readings
+  status --> crops
+  readings -->|"ReadingRecordedEvent"| feed
+  readings -->|"ventana reciente"| request
+  crops --> request
+  actuators --> request
+  response -->|"salud"| crops
+  response -->|"hallazgos críticos"| notifications
+  response -->|"acciones con modo automático"| commands
+  person -->|"órdenes"| rest
+  rest --> commands
+  rest --> vdevices
+  rest --> links
+  vdevices --> physics
+  commands --> cmdtopic --> device
+  device --> ack --> commands
+  ack --> actuators
+  commands -->|"FAILED o EXPIRED"| notifications
+  crops -->|"offline"| notifications
+  notifications --> links --> telegram
+  readings --> overview
+  response --> overview
+  readings & crops & commands & notifications --> pwa
+  overview --> pwa
+  status_out --> pwa
+  throttle -.- rkeys
+  users --> browser
+
+  classDef person fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef edge fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef web fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef core fill:#0B3D2B,stroke:#06281C,color:#FFFFFF
+  classDef module fill:#FFFFFF,stroke:#067A52,color:#17261F
+  classDef ai fill:#EEF7FC,stroke:#1F6FA0,color:#17261F
+  classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  classDef ext fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef warn fill:#FBE3E3,stroke:#D64545,color:#17261F
+  classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
+  class person person
+  class sensors,physics,device device
+  class climate ext
+  class telemetry,status,ack,cmdtopic,rest edge
+  class parser,throttle,ranges module
+  class discard warn
+  class readings,crops,commands,actuators,notifications,links,vdevices,users,rkeys,sqlite,joblib,browser store
+  class request,analysis,response,feed,trainer,status_out ai
+  class manual,pwa,overview,telegram web
