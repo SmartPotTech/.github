@@ -1,0 +1,145 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}, "flowchart": {"useMaxWidth": false, "htmlLabels": true, "curve": "basis", "padding": 14, "nodeSpacing": 45, "rankSpacing": 80, "wrappingWidth": 360}}}%%
+flowchart LR
+  subgraph entrada["Entrada · POST /v1/insights"]
+    direction TB
+    req["InsightRequest<br/>especie · medidas actuales<br/>historial de 48 lecturas con hora<br/>actuadores del cultivo · hora local"]
+    profile["Perfil de la especie<br/>rango ideal por variable<br/>tolerancias: 5 °C · 15 % · 300 lux<br/>0.8 de pH · 400 ppm · 15 % de sustrato"]
+    rest{"¿22:00 a 6:00?<br/>descanso nocturno"}
+  end
+
+  subgraph diagnostico["1 · Diagnóstico por variable"]
+    direction TB
+    status["LOW · OPTIMAL · HIGH · REST<br/>distancia al rango en tolerancias"]
+    severity["Severidad<br/>crítica desde una tolerancia completa"]
+    status --> severity
+  end
+
+  subgraph pronostico["2 · Pronóstico Theil-Sen"]
+    direction TB
+    theil["Mediana de pendientes entre pares<br/>6 lecturas en 20 min como mínimo<br/>la luz no se pronostica"]
+    fout["trend RISING · FALLING · STABLE<br/>expectedIn3h · hoursToLimit (menos de 24 h)<br/>limit MIN o MAX · confidence"]
+    theil --> fout
+  end
+
+  subgraph modelos["3 · Modelos"]
+    direction TB
+    norm["Normalización al perfil<br/>0 = mínimo ideal · 1 = máximo ideal"]
+    vent["Ventilación · regresión logística · 89.5 %"]
+    ph["Corrección de pH · MLP · 94.3 %"]
+    anom["Lectura atípica · Isolation Forest<br/>y detección de saltos"]
+    ldry["Aprendido: ¿el sustrato bajará del mínimo en 1 h?"]
+    lheat["Aprendido: ¿la temperatura pasará el máximo en 1 h?"]
+    lmoist["Aprendido: humedad del sustrato en 1 h"]
+    lstate["Aprendido: estado de operación (K-Means)"]
+    lunusual["Aprendido: ¿lectura poco habitual? (Isolation Forest)"]
+    norm --> vent & ph & anom
+  end
+
+  subgraph experto["4 · Sistema experto · encadenamiento hacia adelante por prioridad"]
+    direction TB
+    subgraph primer["Hechos de primer nivel"]
+      direction TB
+      r1["heat_stress · calor y aire seco"]
+      r2["fungal_risk · humedad alta y calor templado"]
+      r3["nutrient_lockout · pH fuera con nutrientes"]
+      r4["root_rot_risk · sustrato encharcado y caliente"]
+      r5["drought · sustrato críticamente seco"]
+      r6["etiolation · poca luz de día y calor"]
+      r7["cold_stress · temperatura críticamente baja"]
+      r8["salt_stress · nutrientes críticamente altos"]
+      r9["ventilation_model · 70 % o más"]
+      r10["drying_trend · mínimo de sustrato en 3 h o menos"]
+      r11["heat_building · máximo de temperatura en 3 h o menos"]
+      r12["learned_drying · 70 % o más"]
+      r13["learned_heat · 70 % o más"]
+      r14["unusual_pattern · poco habitual para la especie"]
+      r15["night_rest · luz baja de noche"]
+    end
+    subgraph segundo["Hechos de segundo nivel"]
+      direction TB
+      r16["sensor_fault · atípica y 2 o más críticas<br/>bloquea todas las acciones"]
+      r17["critical_state · 2 o más críticas sin falla de sensor"]
+      r18["compound_stress · estrés con riesgo o bloqueo"]
+      r19["ideal_conditions · todo en rango o en descanso"]
+    end
+    primer --> segundo
+  end
+
+  subgraph difusa["5 · Índice de salud · lógica difusa Sugeno"]
+    direction TB
+    sets["Conjuntos trapezoidales por variable<br/>ideal 100 · aceptable 75 · desviada 45 · crítica 10"]
+    weights["Pesos agronómicos<br/>pH 1.3 · temperatura 1.2 · sustrato 1.2<br/>nutrientes 1.1 · humedad 0.9 · luz 0.8"]
+    worst["Regla de peor caso<br/>limita el índice si hay una variable crítica"]
+    levels["EXCELLENT 85–100 · GOOD 70–84 · FAIR 50–69<br/>POOR 30–49 · CRITICAL 0–29"]
+    sets --> weights --> worst --> levels
+  end
+
+  subgraph agente["6 · Agente reactivo · solo actuadores que el cultivo tiene"]
+    direction TB
+    a1["Sustrato seco → WATER_PUMP 15 s (30 s si es crítico)"]
+    a2["Llegará al mínimo en menos de 1 h → WATER_PUMP 10 s"]
+    a3["Poca luz de día → UV_LIGHT 15 min"]
+    a4["Exceso de luz o luz de noche → apagar UV_LIGHT"]
+    a5["Calor, humedad alta o ventilación → FAN 10 min"]
+    a6["Pasará el máximo en menos de 1 h → FAN 10 min"]
+    a7["Aprendido 85 % o más → WATER_PUMP 10 s (no de noche) o FAN 10 min"]
+    a8["Temperatura baja → apagar FAN"]
+    a9["Aire seco → HUMIDIFIER 5 min"]
+    a10["pH alto → PH_DOSER 3 s"]
+    a11["Nutrientes bajos sin bloqueo → NUTRIENT_DOSER 3 s"]
+    a0["Falla de sensor → ninguna acción"]
+  end
+
+  subgraph api["En la API"]
+    direction TB
+    health_save["crops.health"]
+    alert["Hallazgo crítico → alerta (1 por hora y variable)"]
+    auto{"¿Modo automático?"}
+    cool{"¿agent:cultivo:actuador:acción<br/>libre? (10 min)"}
+    cmd["Comando PENDING → MQTT QoS 1"]
+    suggest["Sugerencias en la PWA<br/>y en Acciones (aplicables en bloque)"]
+    auto -->|"sí"| cool -->|"sí"| cmd
+    auto -->|"no"| suggest
+  end
+
+  req --> rest --> status
+  profile --> status & norm & sets
+  req --> theil & norm
+  req --> ldry & lheat & lmoist & lstate & lunusual
+  severity --> primer
+  fout --> r10 & r11
+  vent --> r9
+  anom --> r16
+  ldry --> r12
+  lheat --> r13
+  lunusual --> r14
+  severity --> sets
+  segundo --> agente
+  primer --> agente
+  fout --> a2 & a6
+  ldry & lheat --> a7
+  levels --> health_save
+  severity --> alert
+  agente --> auto
+
+  classDef person fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef edge fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef web fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef core fill:#0B3D2B,stroke:#06281C,color:#FFFFFF
+  classDef module fill:#FFFFFF,stroke:#067A52,color:#17261F
+  classDef ai fill:#EEF7FC,stroke:#1F6FA0,color:#17261F
+  classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  classDef ext fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef warn fill:#FBE3E3,stroke:#D64545,color:#17261F
+  classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
+  class req,profile ai
+  class rest,auto,cool module
+  class status,severity,theil,fout,norm,vent,ph,anom,ldry,lheat,lmoist,lstate,lunusual ai
+  class r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15 module
+  class r16 warn
+  class r17,r18,r19 module
+  class sets,weights,worst,levels web
+  class a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11 web
+  class a0 warn
+  class health_save,alert,cmd,suggest edge
