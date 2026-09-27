@@ -236,12 +236,15 @@ Base: `https://api.smartpot.app`. Las rutas de negocio viven bajo `/api/v1` y us
 | GET | `/api/v1/crop-profiles` | Público |
 | GET, PUT, DELETE | `/api/v1/users/me` y PUT `/users/me/password` | Sesión |
 | GET, POST | `/api/v1/crops` | Sesión |
+| PUT | `/api/v1/crops/automation` (modo automático en varios cultivos) | Sesión, solo cultivos propios |
 | GET, PUT, DELETE | `/api/v1/crops/{id}` y PUT `/crops/{id}/automation` | Dueño |
 | GET, POST | `/api/v1/crops/{id}/device` y `/device/key` | Dueño |
 | GET, POST | `/api/v1/crops/{id}/readings`, `/latest`, `/summary`, `/export` | Dueño |
 | GET, POST, DELETE | `/api/v1/crops/{id}/actuators` | Dueño |
 | GET, POST | `/api/v1/crops/{id}/commands` | Dueño |
 | GET | `/api/v1/crops/{id}/insights` | Dueño |
+| GET | `/api/v1/overview`, `/overview/series`, `/overview/fleet` (panel general) | Sesión |
+| GET, POST | `/api/v1/commands` y `/commands/bulk` (historial de todos los cultivos y órdenes en bloque) | Sesión, solo cultivos propios |
 | GET, PUT, DELETE | `/api/v1/notifications`, `/unread-count`, `/{id}/read`, `/read-all` | Sesión |
 
 ### 5.2 Reglas de la API
@@ -284,16 +287,19 @@ El asistente se comporta como un agrónomo que mira la última lectura y el hist
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
   req["Lectura actual<br/>+ historial (48)<br/>+ actuadores<br/>+ hora local"] --> diag["Diagnóstico por variable<br/>LOW · OPTIMAL · HIGH · REST"]
+  req --> fc["Pronóstico Theil-Sen<br/>tendencia y horas al límite"]
   diag --> norm["Normalización<br/>respecto al perfil"]
   norm --> ml["Modelos de ML<br/>regresión logística · MLP · Isolation Forest"]
   diag --> mem["Memoria de trabajo<br/>hechos status y severity"]
   ml --> mem
+  fc --> mem
+  fc --> ag
   mem --> es["Sistema experto<br/>encadenamiento hacia adelante"]
   diag --> fz["Lógica difusa Sugeno<br/>índice de salud 0–100"]
   es --> ag["Agente reactivo<br/>acciones por actuador"]
   diag --> ag
   ml --> ag
-  fz --> out["Respuesta<br/>health · diagnosis · conclusions<br/>predictions · actions · summary"]
+  fz --> out["Respuesta<br/>health · diagnosis · conclusions<br/>predictions · forecasts · actions"]
   es --> out
   ag --> out
   classDef input fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
@@ -302,7 +308,7 @@ flowchart TB
   classDef result fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class req input
   class diag,norm,mem step
-  class ml,es,fz,ag brain
+  class ml,es,fz,ag,fc brain
   class out result
 ```
 
@@ -341,6 +347,8 @@ Un motor de encadenamiento hacia adelante dispara las reglas por prioridad, cada
 | `sensor_fault` | Lectura atípica y dos o más variables críticas | Posible falla de sensor: bloquea las acciones |
 | `critical_state` | Dos o más variables críticas sin falla de sensor | Estado crítico |
 | `compound_stress` | Estrés junto con riesgo o bloqueo | Estrés combinado |
+| `drying_trend` | El pronóstico lleva el sustrato al mínimo en 3 h o menos | Secado acelerado: regar pronto |
+| `heat_building` | El pronóstico lleva la temperatura al máximo en 3 h o menos | Calor en aumento |
 | `night_rest` | Luz baja durante el descanso nocturno | Descanso nocturno |
 | `ideal_conditions` | Todas las variables en rango o en descanso | Condiciones ideales |
 
@@ -363,14 +371,40 @@ El agente no guarda estado: convierte el diagnóstico en acciones solo para los 
 | Situación | Acción |
 | --- | --- |
 | Sustrato seco | `WATER_PUMP` 15 s (30 s si es crítico) |
+| Sustrato en rango, pero llegará al mínimo en menos de 1 h | `WATER_PUMP` 10 s (riego preventivo) |
 | Poca luz de día | `UV_LIGHT` 15 minutos |
 | Exceso de luz, o luz encendida de noche | Apagar `UV_LIGHT` |
 | Calor, humedad alta o predicción de ventilación | `FAN` 10 minutos |
+| Temperatura en rango, pero pasará el máximo en menos de 1 h | `FAN` 10 minutos (ventilación preventiva) |
 | Temperatura baja | Apagar `FAN` |
 | Aire seco | `HUMIDIFIER` 5 minutos |
 | pH alto | `PH_DOSER` 3 s |
 | Nutrientes bajos sin bloqueo de pH | `NUTRIENT_DOSER` 3 s |
 | Posible falla de sensor | Ninguna acción |
+
+### 6.6 Pronóstico de tendencias
+
+La API envía el historial con la hora de cada lectura. Con al menos 6 lecturas que abarquen 20 minutos, el asistente ajusta una recta por variable con el estimador de **Theil-Sen** (la mediana de las pendientes entre todos los pares de lecturas), que tolera lecturas atípicas mejor que los mínimos cuadrados. Con la pendiente por hora calcula el valor esperado en 3 horas y, si la tendencia empuja la variable fuera de su rango ideal, en cuántas horas cruzará el límite. La luz no se pronostica porque sigue el ciclo del día.
+
+| Salida | Uso |
+| --- | --- |
+| `trend` | `RISING`, `FALLING` o `STABLE` (se mueve menos del 10 % del rango en 3 h) |
+| `expectedIn3h` | Valor esperado dentro de 3 horas |
+| `hoursToLimit` · `limit` | Horas hasta salir del rango y por qué lado (`MIN` o `MAX`), si ocurre en menos de 24 h |
+| `confidence` | Fracción de pendientes que coinciden en el signo |
+
+Los pronósticos alimentan las reglas `drying_trend` y `heat_building` y las acciones preventivas del agente. En la PWA aparecen en «Pronóstico de las próximas horas», junto con «De qué depende el índice», la salud de cada variable que explica el índice difuso.
+
+### 6.7 Análisis de todos los cultivos
+
+El panel general pide al asistente una mirada de conjunto (`POST /v1/fleet`):
+
+| Técnica | Resultado |
+| --- | --- |
+| Índice difuso por cultivo | Ranking del que más atención necesita al que menos y salud promedio |
+| Problemas compartidos | La misma variable fuera de rango en la mitad o más de los cultivos: probablemente es el entorno (la habitación, el agua, la solución) y no una maceta |
+| K-Means sobre variables normalizadas | Grupos de cultivos con condiciones parecidas; la cantidad de grupos se elige por el coeficiente de silueta y los grupos con la misma descripción se fusionan |
+| Agente reactivo por cultivo | Acciones reunidas por actuador para aplicarlas en bloque con `/api/v1/commands/bulk` |
 
 ## 7. Modelo de datos
 
@@ -458,15 +492,18 @@ La API se conecta con un usuario propio (`smartpot`) con permisos `readWrite` so
 
 ### En palabras simples
 
-La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tras ingresar, su panel de cultivos. Se instala como una app en Android, iOS y escritorio.
+La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tras ingresar, un panel general con todos sus cultivos, el detalle de cada uno, un control general y un centro de acciones. Se instala como una app en Android, iOS y escritorio.
 
 | Pantalla | Qué permite |
 | --- | --- |
 | Inicio público | Presentación, funciones, especies y preguntas frecuentes; indexable |
 | Ingreso, registro y recuperación | Validaciones en español y "Mantener sesión iniciada" |
+| Panel general | Salud promedio, macetas en línea y comandos del día; ranking de salud, análisis de la IA de todos los cultivos, comparación de una variable entre cultivos y tabla de últimas lecturas frente al rango ideal |
 | Mis cultivos | Tarjetas con estado en línea, salud y últimas lecturas |
+| Control general | Modo automático por cultivo o para todos, atajos (regar, ventilar, luz) y órdenes personalizadas a varios cultivos con el resultado de cada uno |
+| Acciones | Acciones sugeridas por la IA aplicables en bloque e historial de todas las órdenes, filtrado por estado y origen (persona o agente) |
 | Detalle · Resumen | Lecturas actuales frente al rango ideal y gráfico de 24 h con la banda ideal |
-| Detalle · Asistente IA | Índice de salud, diagnóstico, conclusiones, predicciones y acciones ejecutables |
+| Detalle · Asistente IA | Índice de salud y de qué depende, diagnóstico, conclusiones, predicciones, pronóstico de las próximas horas y acciones ejecutables |
 | Detalle · Control | Modo automático, actuadores y últimos comandos |
 | Detalle · Historial | 6 h, 24 h o 7 días por variable y exportación CSV |
 | Detalle · Dispositivo | Estado, datos de conexión MQTT, configuración para el firmware y rotación de la clave |
@@ -476,7 +513,7 @@ La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tra
 
 | Token | Color | Uso |
 | --- | --- | --- |
-| `leaf-900` | `#0B3D2B` | Fondos de marca y color de tema de la PWA |
+| `leaf-900` | `#0B3D2B` | Barra lateral, navegación, encabezados y color de tema de la PWA |
 | `leaf-700` | `#067A52` | Acciones principales y cabeceras |
 | `leaf-500` | `#00B074` | Verde de marca |
 | `water-500` | `#2D9CDB` | Agua, información y la señal del logo |
@@ -485,7 +522,7 @@ La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tra
 | `danger-500` | `#D64545` | Errores |
 | `ink` · `muted` · `line` · `surface` | `#17261F` · `#5B6B63` · `#D5E3DC` · `#F2F7F4` | Texto, bordes y superficies |
 
-Tipografías: **Outfit** en títulos e **Inter** en el cuerpo, servidas desde la propia aplicación.
+Tipografías: **Outfit** en títulos e **Inter** en el cuerpo, servidas desde la propia aplicación. Las comparativas entre cultivos usan 8 colores en orden fijo (`#009A64`, `#2D9CDB`, `#D9734E`, `#1F6FA0`, `#C98D12`, `#067A52`, `#7A5AC8`, `#B85A38`), validados para daltonismo y contraste entre vecinos; cada cultivo conserva su color mientras siga en la comparación.
 
 ### 8.2 SEO y PWA
 
@@ -560,10 +597,12 @@ flowchart TB
   subgraph github["GitHub · SmartPotTech"]
     repo["Push a main<br/>en un servicio"] --> ci["CI del repo<br/>pruebas · CodeQL"]
     repo --> pkg["packaging.yml<br/>imagen + SBOM + procedencia"]
-    pkg --> ghcr[("GHCR<br/>ghcr.io/smartpottech")]
-    pkg --> dep["deploy.yml del repo"]
-    dep --> central["deploy.yml central<br/>(.github)"]
-    secrets["Secrets<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
+    pkg --> ghcr[("GHCR y Docker Hub")]
+    pkg --> dep["deploy.yml del repo<br/>request-deploy.yml"]
+    dep -->|"workflow_dispatch<br/>DEPLOY_DISPATCH_TOKEN"| queue["Cola smartpot-production<br/>uno en curso · el último en espera"]
+    queue --> central["deploy.yml central<br/>(.github)"]
+    central -.->|"resultado"| dep
+    secrets["Secrets solo en .github<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
   end
   subgraph servidor["Servidor"]
     stage[".deploy-<id><br/>compose.yaml · .env · certificados"]
@@ -582,11 +621,11 @@ flowchart TB
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class repo,ci,pkg,dep gh
   class central core
-  class secrets,certs key
+  class secrets,certs,queue key
   class stage,compose,nginx srv
 ```
 
-Cada servicio publica su imagen en `ghcr.io/smartpottech` y llama al workflow central `deploy.yml`. El workflow valida el `ENV_FILE` (longitudes mínimas, llave AES de 32 bytes, variables por perfil), comprueba que el certificado del broker esté firmado por la CA y que la llave le corresponda, sube la configuración por SSH, instala los certificados con dueño `1883`, actualiza los contenedores y verifica `/health` desde internet. Los despliegues simultáneos esperan su turno con `flock`.
+Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub si tiene `DOCKER_USERNAME` y `DOCKER_PASSWORD`) y pide el despliegue al workflow central con `request-deploy.yml`, que espera el resultado. Solo `SmartPotTech/.github` se conecta al servidor, y su `deploy.yml` corre de a uno (`concurrency`): si llegan varios pedidos mientras despliega, queda en espera solo el más reciente, porque cada despliegue descarga todas las imágenes. El workflow valida el `ENV_FILE` (longitudes mínimas, llave AES de 32 bytes, variables por perfil), comprueba que el certificado del broker esté firmado por la CA y que la llave le corresponda, sube la configuración por SSH, instala los certificados con dueño `1883`, actualiza los contenedores y verifica `/health` desde internet. Los despliegues simultáneos esperan su turno con `flock`.
 
 | Secret | Contenido |
 | --- | --- |
@@ -595,6 +634,8 @@ Cada servicio publica su imagen en `ghcr.io/smartpottech` y llama al workflow ce
 | `DEPLOY_PATH` | Carpeta de producción en el servidor |
 | `ENV_FILE` | `.env` completo de producción |
 | `MQTT_CA_CERT`, `MQTT_SERVER_CERT`, `MQTT_SERVER_KEY` | Certificados del broker (opcionales) |
+| `DEPLOY_DISPATCH_TOKEN` (en cada servicio) | Token con permiso **Actions: Read and write** solo sobre `.github`, para pedir el despliegue |
+| `DOCKER_USERNAME`, `DOCKER_PASSWORD` (en cada servicio, opcionales) | Publicación en Docker Hub |
 
 ### 11.3 Red de producción
 
@@ -673,14 +714,14 @@ flowchart LR
 
 | Repositorio | Pruebas | Qué cubren |
 | --- | --- | --- |
-| SmartPot-API | 64 | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos, cultivos, agente, caché, hora local para la IA y seguridad de los controladores |
-| SmartPot-AI | 43 | Base de conocimiento, reglas, descanso nocturno, índice difuso, exactitud de los modelos, agente y contrato HTTP |
-| SmartPot-Web | 29 | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente y requisitos de SEO y PWA |
+| SmartPot-API | 75 | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos, cultivos, agente, caché, historial con hora para la IA, panel general, órdenes y automatización en bloque, y seguridad de los controladores |
+| SmartPot-AI | 59 | Base de conocimiento, reglas, descanso nocturno, pronóstico Theil-Sen, acciones preventivas, análisis de flota, índice difuso, exactitud de los modelos, agente y contrato HTTP |
+| SmartPot-Web | 35 | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente con pronóstico, panel general (ranking, colores estables, acciones en bloque) y requisitos de SEO y PWA |
 | SmartPot-DataGenerator | 13 | Modelo físico, zona horaria, contrato MQTT y comandos |
 | SmartPot-IoT | 13 | Cliente MQTT, telemetría, comandos, actuadores y sensores con MicroPython simulado |
 | SmartPot-Broker | 10 comprobaciones | Autenticación, ACL por maceta, client ids, anónimos y TLS |
 | SmartPot-DB, -Cache, -Mail | Pruebas de humo | Validadores, permisos, datos demo, comandos deshabilitados de Redis y autenticación SMTP |
-| End-to-End | 15 comprobaciones | Registro, cultivo, telemetría MQTT, clave incorrecta rechazada, comando con ACK, asistente y borrado |
+| End-to-End | 21 comprobaciones | Registro, cultivo, telemetría MQTT, clave incorrecta rechazada, comando con ACK, asistente, panel general, series, análisis de flota, orden y automatización en bloque, y borrado |
 
 ## 13. Operación
 
