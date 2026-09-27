@@ -1,6 +1,6 @@
 # **Desarrollo de SmartPot con Docker**
 
-El entorno de desarrollo compila cada servicio desde los repositorios clonados en tu máquina, así cualquier cambio local se prueba con la plataforma completa: base de datos, caché, correo, broker MQTT, IA, API, PWA y macetas simuladas.
+El entorno de desarrollo compila cada servicio desde los repositorios clonados en tu máquina, así cualquier cambio local se prueba con la plataforma completa: base de datos, caché, correo, broker MQTT, IA, API, PWA y cultivos simulados.
 
 ---
 
@@ -49,7 +49,7 @@ docker compose up -d --build --wait
 | MongoDB | `mongodb://smartpot:<SMARTPOT_DB_PASSWORD>@localhost:27017/smartpot?authSource=smartpot` |
 | Redis | `localhost:6379` con `REDIS_PASSWORD` |
 
-La base arranca con datos demo: `demo@smartpot.app` / `SmartPot2026`, con una lechuga y un tomate conectados a macetas simuladas (perfil `simulator`).
+La base arranca con datos demo: `demo@smartpot.app` / `SmartPot2026`, con una lechuga en tubos NFT y un tomate en maceta, cultivos reales que publica el simulador (perfil `simulator`).
 
 Para recompilar un solo servicio después de un cambio:
 
