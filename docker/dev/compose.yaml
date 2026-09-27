@@ -1,0 +1,192 @@
+# Desarrollo de SmartPot: compila cada servicio desde los repositorios clonados junto a este.
+#   SmartPot/
+#   ├── .github/docker/dev/compose.yaml   (este archivo)
+#   ├── SmartPot-API/  SmartPot-Web/  SmartPot-AI/  SmartPot-Broker/ ...
+name: smartpot-dev
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  db-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DB
+    image: smartpot-db:dev
+    container_name: smartpot-dev-db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-smartpot-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Falta MONGO_ROOT_PASSWORD en el .env}
+      SMARTPOT_DB_PASSWORD: ${SMARTPOT_DB_PASSWORD:?Falta SMARTPOT_DB_PASSWORD en el .env}
+      SMARTPOT_SEED_DEMO: ${SMARTPOT_SEED_DEMO:-true}
+    ports:
+      - "127.0.0.1:${SMARTPOT_DB_PORT:-27017}:27017"
+    volumes:
+      - db_data:/data/db
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  cache-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Cache
+    image: smartpot-cache:dev
+    container_name: smartpot-dev-cache
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en el .env}
+    ports:
+      - "127.0.0.1:${SMARTPOT_CACHE_PORT:-6379}:6379"
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  mail-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Mail
+    image: smartpot-mail:dev
+    container_name: smartpot-dev-mail
+    environment:
+      MAIL_USERNAME: ${MAIL_USERNAME:-smartpot}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?Falta MAIL_PASSWORD en el .env}
+      MAILPIT_UI_USERNAME: ${MAILPIT_UI_USERNAME:-admin}
+      MAILPIT_UI_PASSWORD: ${MAILPIT_UI_PASSWORD:?Falta MAILPIT_UI_PASSWORD en el .env}
+    ports:
+      - "127.0.0.1:${SMARTPOT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${SMARTPOT_MAIL_UI_PORT:-8025}:8025"
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  broker-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Broker
+    image: smartpot-broker:dev
+    container_name: smartpot-dev-broker
+    environment:
+      MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:-smartpot-api}
+      MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD:?Falta MQTT_ADMIN_PASSWORD en el .env}
+    ports:
+      - "127.0.0.1:${SMARTPOT_MQTT_PORT:-1883}:1883"
+      - "127.0.0.1:${SMARTPOT_MQTT_TLS_PORT:-8883}:8883"
+      - "127.0.0.1:${SMARTPOT_MQTT_WS_PORT:-9001}:9001"
+    volumes:
+      - broker_data:/mosquitto/data
+      # Opcional: certificados generados con SmartPot-Broker/scripts/generate-certs.sh
+      - ${SMARTPOT_CERTS_DIR:-./certs}:/etc/mosquitto/certs:ro
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  ai-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-AI
+    image: smartpot-ai:dev
+    container_name: smartpot-dev-ai
+    environment:
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      DOCS_ENABLED: "true"
+      LOG_LEVEL: DEBUG
+    ports:
+      - "127.0.0.1:${SMARTPOT_AI_PORT:-8000}:8000"
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  api-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-API
+    image: smartpot-api:dev
+    container_name: smartpot-dev-api
+    environment:
+      LOG_LEVEL: DEBUG
+      WEB_BASE_URL: http://localhost:${SMARTPOT_WEB_PORT:-5173}
+      PUBLIC_API_URL: http://localhost:${SMARTPOT_API_PORT:-8091}
+      CORS_ALLOWED_ORIGINS: http://localhost:${SMARTPOT_WEB_PORT:-5173}
+      SMARTPOT_JWT_SECRET: ${SMARTPOT_JWT_SECRET:?Falta SMARTPOT_JWT_SECRET en el .env}
+      SMARTPOT_AES_KEY: ${SMARTPOT_AES_KEY:?Falta SMARTPOT_AES_KEY en el .env}
+      MONGODB_URI: mongodb://smartpot:${SMARTPOT_DB_PASSWORD}@db-smartpot:27017/smartpot?authSource=smartpot
+      REDIS_HOST: cache-smartpot
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MAIL_HOST: mail-smartpot
+      MAIL_USERNAME: ${MAIL_USERNAME:-smartpot}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_SMTP_AUTH: "true"
+      MQTT_BROKER_URI: tcp://broker-smartpot:1883
+      MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:-smartpot-api}
+      MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD}
+      MQTT_PUBLIC_HOST: localhost
+      MQTT_PUBLIC_PORT: ${SMARTPOT_MQTT_PORT:-1883}
+      MQTT_WEBSOCKET_URL: ws://localhost:${SMARTPOT_MQTT_WS_PORT:-9001}
+      AI_BASE_URL: http://ai-smartpot:8000
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN}
+      AI_EVALUATION_INTERVAL: PT1M
+    ports:
+      - "127.0.0.1:${SMARTPOT_API_PORT:-8091}:8091"
+    tmpfs:
+      - /tmp
+    depends_on:
+      db-smartpot:
+        condition: service_healthy
+      cache-smartpot:
+        condition: service_healthy
+      broker-smartpot:
+        condition: service_healthy
+    networks:
+      - smartpot
+
+  web-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Web
+    image: smartpot-web:dev
+    container_name: smartpot-dev-web
+    environment:
+      API_URL: http://localhost:${SMARTPOT_API_PORT:-8091}
+    ports:
+      - "127.0.0.1:${SMARTPOT_WEB_PORT:-5173}:8080"
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    networks:
+      - smartpot
+
+  simulator-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DataGenerator
+    image: smartpot-datagenerator:dev
+    container_name: smartpot-dev-simulator
+    profiles:
+      - simulator
+    environment:
+      MQTT_HOST: broker-smartpot
+      MQTT_PORT: "1883"
+      SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
+      SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-15}
+    tmpfs:
+      - /tmp
+    depends_on:
+      api-smartpot:
+        condition: service_healthy
+    networks:
+      - smartpot
+
+volumes:
+  db_data:
+  broker_data:
+
+networks:
+  smartpot:
+    driver: bridge
