@@ -229,6 +229,15 @@ jobs:
             docker compose -p smartpot restart broker-smartpot >/dev/null
           fi
 
+          # Los scripts de inicio de MongoDB solo corren con el volumen vacío: la migración de SmartPot-DB aplica
+          # sus esquemas a la base existente. Es idempotente, así que corre en cada despliegue.
+          if docker compose -p smartpot exec -T db-smartpot test -f /opt/smartpot/migrate.js; then
+            echo "Aplicando los esquemas de la base..."
+            docker compose -p smartpot exec -T db-smartpot mongosh --quiet /opt/smartpot/migrate.js
+          else
+            echo "::warning::La imagen de la base no trae /opt/smartpot/migrate.js: se omite la migración."
+          fi
+
           docker compose -p smartpot ps --format '{{.Name}}: {{.Status}}'
           docker image prune -f >/dev/null
           echo "Despliegue completado."
