@@ -22,7 +22,7 @@ Repositorio central de **SmartPot**, la plataforma de monitoreo y automatizació
 │   ├── dev/                    # Compila cada servicio desde los repositorios locales
 │   └── production/             # Compose, variables, nginx y respaldos del servidor
 ├── kubernetes/                 # Manifiesto para clústeres locales
-├── docs/                       # Documentación técnica, recorrido y ciclo de vida; diagramas y superdiagramas
+├── docs/                       # Documentación técnica, recorrido y ciclo de vida; diagramas específicos y generales
 ├── scripts/e2e.py              # Prueba de extremo a extremo sobre la demo
 ├── profile/README.md           # Presentación pública de la organización
 ├── CONTRIBUTING.md
@@ -59,7 +59,7 @@ flowchart LR
 
 La maceta publica sus lecturas en `smartpot/v1/{cropId}/telemetry`. Quien no tiene hardware puede encender una **maceta virtual**: corre en el simulador con la clave real del cultivo y sigue el clima de su ciudad, los medidores que mueva o el día y la noche de la especie. La API guarda cada lectura, pide al asistente de IA un diagnóstico (sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo) y, si el cultivo tiene el modo automático, envía comandos a los actuadores por `smartpot/v1/{cropId}/commands`. El asistente además **aprende de forma continua** con las lecturas reales de cada especie, seudonimizadas, para anticipar el riego y el calor de la próxima hora. Los avisos llegan a la PWA, que se instala en el teléfono, y a **Telegram** para quien vincula su chat.
 
-Para ver cada pieza por dentro y toda la operación paso a paso están los [superdiagramas](docs/README.md#superdiagramas).
+Para ver cada pieza por dentro y toda la operación paso a paso están los [diagramas generales](docs/README.md#diagramas-generales).
 
 ## Empezar
 
@@ -70,7 +70,7 @@ Para ver cada pieza por dentro y toda la operación paso a paso están los [supe
 | Desplegar en un servidor | [`docker/production`](docker/production/README.md) |
 | Probar en Kubernetes | [`kubernetes`](kubernetes/README.md) |
 | Entender el sistema | [`docs`](docs/README.md) |
-| Ver toda la plataforma en un solo diagrama | [Superdiagramas](docs/README.md#superdiagramas) |
+| Ver toda la plataforma en un solo diagrama | [Diagramas generales](docs/README.md#diagramas-generales) |
 
 ## QA
 
