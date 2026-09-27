@@ -108,7 +108,7 @@ flowchart LR
 | PWA | SmartPot-Web | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 | Landing pública, panel de cultivos, asistente, control y alertas; instalable |
 | API | SmartPot-API | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de las macetas, comandos, agente de automatización |
 | Asistente de IA | SmartPot-AI | Python 3.13, FastAPI, scikit-learn, uv | Diagnóstico, índice de salud, predicciones y acciones sugeridas |
-| Broker | SmartPot-Broker | Eclipse Mosquitto 2.1 con seguridad dinámica | MQTT con TLS 1.2 y WebSocket; una cuenta por maceta |
+| Broker | SmartPot-Broker | Eclipse Mosquitto 2.1 con seguridad dinámica | MQTT con TLS 1.2+ y WebSocket; una cuenta por maceta |
 | Firmware | SmartPot-IoT | MicroPython 1.23 en ESP32, Wokwi | Sensores, pantalla, telemetría y actuadores |
 | Simulador | SmartPot-DataGenerator | Python 3.13, paho-mqtt, uv | Macetas virtuales con un modelo físico simple para demos y QA |
 | Base de datos | SmartPot-DB | MongoDB 8 | Colecciones con validadores `$jsonSchema`, índices y datos demo opcionales |
@@ -198,7 +198,7 @@ Cada maceta tiene una "dirección" propia en el broker, `smartpot/v1/{cropId}`, 
 
 | Parámetro | Valor |
 | --- | --- |
-| Servidor | `mqtt.smartpot.app:8883`, MQTT sobre TLS 1.2 |
+| Servidor | `mqtt.smartpot.app:8883`, MQTT sobre TLS 1.3 (mínimo 1.2) |
 | Certificado | Firmado por la CA propia de SmartPot; la maceta lo verifica con `ca.crt`, que se distribuye con el firmware |
 | Usuario | El id del cultivo |
 | Contraseña | La clave del dispositivo: 24 bytes aleatorios en Base64 URL, mostrada una sola vez al crear el cultivo o al rotarla |
@@ -529,7 +529,7 @@ Cada pieza tiene solo los permisos que necesita. Las contraseñas y claves nunca
 | Autenticación | JWT HS256, BCrypt 12, límite de peticiones por IP y respuestas que no revelan si un correo existe |
 | Autorización | Control de dueño en cada ruta de cultivo; 404 para recursos ajenos |
 | Macetas | Cuenta MQTT por cultivo, ACL con `%u`, clave de 192 bits cifrada con AES-256-GCM y mostrada una sola vez |
-| Transporte | HTTPS con HSTS; MQTT sobre TLS 1.2 con CA propia; WebSocket seguro |
+| Transporte | HTTPS con HSTS; MQTT sobre TLS 1.2+ con CA propia; WebSocket seguro |
 | Web | CSP estricta con `connect-src` limitado a la API, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` y `Permissions-Policy` |
 | Servicio de IA | Solo en la red interna y con token de servicio comparado en tiempo constante |
 | Contenedores | Solo lectura, sin capacidades de Linux, `no-new-privileges`, usuarios sin privilegios, límites de CPU y memoria |
