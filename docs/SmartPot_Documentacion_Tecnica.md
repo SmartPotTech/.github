@@ -3,9 +3,9 @@ eyebrow: Documentación técnica
 titulo: Plataforma SmartPot
 acento: SmartPot
 subtitulo: Monitoreo y automatización de cultivos hidropónicos
-bajada: Arquitectura, contratos, asistente de IA, seguridad, despliegue y operación de la plataforma que conecta las macetas inteligentes con la aplicación de sus dueños.
+bajada: Arquitectura, contratos, asistente de IA con aprendizaje continuo, canales de notificación, macetas virtuales, seguridad, despliegue y operación de la plataforma que conecta las macetas inteligentes con la aplicación de sus dueños.
 documento: Documentación técnica
-version: 1.0 · septiembre 2026
+version: 1.1 · septiembre 2026
 equipo: SmartPotTech
 proyecto: smartpot.app
 -->
@@ -19,10 +19,11 @@ proyecto: smartpot.app
 | Proyecto | SmartPot · [smartpot.app](https://smartpot.app) |
 | Organización | SmartPotTech |
 | Documento | Documentación técnica de la plataforma |
-| Versión | 1.0 · septiembre 2026 |
-| Alcance | PWA, API, asistente de IA, broker MQTT, firmware, simulador, datos, infraestructura y QA |
+| Versión | 1.1 · septiembre 2026 |
+| Alcance | PWA, API, asistente de IA y su aprendizaje continuo, canales de notificación, broker MQTT, firmware, macetas virtuales, datos, infraestructura y QA |
 | Fuente de verdad | Los README de cada repositorio y la documentación interactiva de la API (`/docs`) prevalecen sobre este documento si hay diferencias |
 | Mantenimiento | Este documento se genera desde `docs/SmartPot_Documentacion_Tecnica.md`; se actualiza con cada cambio de contrato o de infraestructura |
+| Documento hermano | [Recorrido del proyecto](SmartPot_Recorrido_del_Proyecto.md): inicio, análisis, diseño, construcción y pruebas |
 
 <!-- parte: PARTE I | Visión general -->
 
@@ -30,13 +31,14 @@ proyecto: smartpot.app
 
 ### En palabras simples
 
-SmartPot convierte una maceta hidropónica en un cultivo que se cuida casi solo. La maceta mide seis variables (temperatura, humedad del aire, luz, pH, nutrientes y humedad del sustrato) y las envía a internet cada pocos segundos. La plataforma las guarda, las compara con lo que necesita cada especie y le muestra al dueño, en su teléfono, cómo está su cultivo y qué hacer. Si el dueño lo permite, un **agente de IA** riega, enciende la luz o ventila por su cuenta.
+SmartPot convierte una maceta hidropónica en un cultivo que se cuida casi solo. La maceta mide seis variables (temperatura, humedad del aire, luz, pH, nutrientes y humedad del sustrato) y las envía a internet cada pocos segundos. La plataforma las guarda, las compara con lo que necesita cada especie y le muestra al dueño, en su teléfono, cómo está su cultivo y qué hacer. Si el dueño lo permite, un **agente de IA** riega, enciende la luz o ventila por su cuenta. El asistente **aprende** de las lecturas reales de todas las macetas, avisa por **Telegram** si la persona lo pide, y quien no tiene hardware puede encender una **maceta virtual** que sigue el clima real de su ciudad.
 
 ### Qué cubre este documento
 
 - La arquitectura de la plataforma y cómo viaja una lectura desde la maceta hasta la pantalla.
 - Los contratos entre componentes: MQTT para las macetas y REST para la aplicación.
-- El asistente de IA: base de conocimiento, sistema experto, lógica difusa, modelos de aprendizaje automático y agente reactivo.
+- El asistente de IA: base de conocimiento, sistema experto, lógica difusa, modelos de aprendizaje automático, agente reactivo y aprendizaje continuo con lecturas reales.
+- Los canales de notificación (Telegram) y las macetas virtuales con clima real.
 - El modelo de datos, la aplicación web progresiva y el firmware.
 - La seguridad, el despliegue, la batería de calidad y la operación diaria.
 
@@ -58,18 +60,20 @@ SmartPot convierte una maceta hidropónica en un cultivo que se cuida casi solo.
 
 ### En palabras simples
 
-SmartPot está hecho de piezas pequeñas, cada una con un solo trabajo y su propio repositorio. El **broker** es el cartero de las macetas, la **API** es el cerebro de negocio, el **asistente de IA** es el agrónomo y la **PWA** es la ventana del usuario. Las bases de datos y el asistente viven en una red interna sin salida a internet.
+SmartPot está hecho de piezas pequeñas, cada una con un solo trabajo y su propio repositorio. El **broker** es el cartero de las macetas, la **API** es el cerebro de negocio, el **asistente de IA** es el agrónomo, el **simulador** presta macetas virtuales y la **PWA** es la ventana del usuario. Las bases de datos y el asistente viven en una red interna sin salida a internet.
 
 <!-- diagrama: SmartPot_01_Arquitectura | titulo=Arquitectura general de SmartPot -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
-  subgraph campo["Cultivo"]
+  subgraph campo["Fuentes de lecturas"]
     maceta["Maceta ESP32<br/>MicroPython · sensores y actuadores"]
-    sim["Simulador<br/>SmartPot-DataGenerator"]
+    wokwi["Wokwi<br/>el mismo firmware, a mano"]
+    sim["Macetas virtuales<br/>SmartPot-DataGenerator"]
   end
   subgraph usuario["Usuario"]
     pwa["PWA<br/>SmartPot-Web"]
+    tg["Telegram"]
   end
   subgraph plataforma["Plataforma SmartPot"]
     broker["Broker MQTT<br/>SmartPot-Broker"]
@@ -79,26 +83,31 @@ flowchart LR
     cache[("Redis<br/>SmartPot-Cache")]
     mail["Correo<br/>SmartPot-Mail"]
   end
+  clima["Open-Meteo<br/>clima actual"]
   maceta <-->|"MQTT TLS 8883<br/>telemetría · comandos · ACK"| broker
-  sim -->|"MQTT"| broker
+  wokwi <-->|"MQTT TLS"| broker
+  sim <-->|"MQTT interno"| broker
+  clima -.->|"modo clima"| sim
   broker <-->|"MQTT interno"| api
   pwa -->|"HTTPS · REST + JWT"| api
-  api -->|"HTTP + token"| ai
+  api -->|"control con token"| sim
+  api -->|"evaluación · lecturas para aprender"| ai
   api -->|"lecturas, cultivos, comandos"| db
   api -->|"límites y caché"| cache
   api -->|"SMTP"| mail
+  api -->|"alertas · bot"| tg
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
   classDef edge fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef data fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   classDef brain fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef app fill:#DDF5EA,stroke:#067A52,color:#17261F
-  class maceta,sim device
-  class broker edge
+  class maceta,wokwi,sim device
+  class broker,clima edge
   class api core
   class db,cache,mail data
   class ai brain
-  class pwa app
+  class pwa,tg app
 ```
 
 ### 2.1 Componentes
@@ -106,11 +115,11 @@ flowchart LR
 | Componente | Repositorio | Tecnología | Responsabilidad |
 | --- | --- | --- | --- |
 | PWA | SmartPot-Web | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 | Landing pública, panel de cultivos, asistente, control y alertas; instalable |
-| API | SmartPot-API | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de las macetas, comandos, agente de automatización |
-| Asistente de IA | SmartPot-AI | Python 3.13, FastAPI, scikit-learn, uv | Diagnóstico, índice de salud, predicciones y acciones sugeridas |
+| API | SmartPot-API | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de las macetas, comandos, agente de automatización, canales de notificación (Telegram) y macetas virtuales |
+| Asistente de IA | SmartPot-AI | Python 3.13, FastAPI, scikit-learn, uv | Diagnóstico, índice de salud, predicciones, acciones sugeridas y aprendizaje continuo con lecturas reales |
 | Broker | SmartPot-Broker | Eclipse Mosquitto 2.1 con seguridad dinámica | MQTT con TLS 1.2+ y WebSocket; una cuenta por maceta |
 | Firmware | SmartPot-IoT | MicroPython 1.23 en ESP32, Wokwi | Sensores, pantalla, telemetría y actuadores |
-| Simulador | SmartPot-DataGenerator | Python 3.13, paho-mqtt, uv | Macetas virtuales con un modelo físico simple para demos y QA |
+| Simulador | SmartPot-DataGenerator | Python 3.13, FastAPI, paho-mqtt, uv | Macetas virtuales siempre encendidas: automáticas, manuales o con el clima real (Open-Meteo); demo y QA |
 | Base de datos | SmartPot-DB | MongoDB 8 | Colecciones con validadores `$jsonSchema`, índices y datos demo opcionales |
 | Caché | SmartPot-Cache | Redis 8 | Límite de peticiones, enfriamiento del agente y caché de perfiles |
 | Correo | SmartPot-Mail | Mailpit | SMTP autenticado y bandeja web protegida |
@@ -124,7 +133,10 @@ flowchart LR
 | Una cuenta MQTT por maceta (usuario = id del cultivo) | Una maceta comprometida no puede leer ni escribir los tópicos de otra |
 | La IA como servicio interno aparte | Python es el ecosistema natural de los modelos; la API sigue funcionando si la IA no responde |
 | MongoDB | Las lecturas son documentos con variables opcionales; el índice por cultivo y fecha resuelve las consultas del historial |
-| Imágenes endurecidas por servicio en GHCR | Cada servicio se publica y despliega por separado con SBOM y atestación de procedencia |
+| Imágenes endurecidas por servicio en GHCR | Cada servicio se publica y despliega por separado con SBOM y atestación de procedencia; Docker Hub queda como réplica de distribución |
+| Telegram en la API, no en la maceta | El bot vive en un solo lugar, con los datos y los permisos de cada cuenta; la maceta solo habla MQTT |
+| El simulador como servicio interno | Las macetas virtuales corren siempre, sin pestaña abierta, con la clave real que la API entrega por la red interna; la PWA nunca habla con el simulador |
+| Aprendizaje en la IA con datos seudonimizados | La IA aprende de la serie de cada maceta sin saber a qué cuenta pertenece |
 
 ## 3. Flujo de una lectura
 
@@ -246,6 +258,12 @@ Base: `https://api.smartpot.app`. Las rutas de negocio viven bajo `/api/v1` y us
 | GET | `/api/v1/overview`, `/overview/series`, `/overview/fleet` (panel general) | Sesión |
 | GET, POST | `/api/v1/commands` y `/commands/bulk` (historial de todos los cultivos y órdenes en bloque) | Sesión, solo cultivos propios |
 | GET, PUT, DELETE | `/api/v1/notifications`, `/unread-count`, `/{id}/read`, `/read-all` | Sesión |
+| GET, POST | `/api/v1/channels` y `/channels/telegram/link` (código de vinculación de un solo uso) | Sesión |
+| PUT, POST, DELETE | `/api/v1/channels/links/{id}`, `/links/{id}/test` | Dueño del vínculo |
+| POST | `/api/v1/channels/telegram/webhook` | Telegram, con secreto |
+| GET, PUT, DELETE | `/api/v1/crops/{id}/virtual-device` | Dueño |
+| GET | `/api/v1/virtual-devices/places?q=` | Sesión |
+| GET | `/api/v1/ai/learning` (datos agregados por especie) | Sesión |
 
 ### 5.2 Reglas de la API
 
@@ -255,7 +273,7 @@ Base: `https://api.smartpot.app`. Las rutas de negocio viven bajo `/api/v1` y us
 | Contraseñas | 8 caracteres a 72 bytes, con mayúscula, minúscula y número; BCrypt de costo 12 |
 | Dueño | Un cultivo de otra cuenta responde 404, igual que uno inexistente, para no revelar qué ids existen |
 | Límite de peticiones | 300 por minuto por IP y 10 por minuto en `/api/v1/auth/*`; responde 429 con `Retry-After` |
-| Cultivos por cuenta | Máximo 20 |
+| Cultivos por cuenta | Máximo 20, y hasta 5 macetas virtuales |
 | Errores | JSON en español: `{"status","error","message","path","timestamp","fields"}`; `fields` detalla cada campo inválido |
 | Recuperación de contraseña | Responde 202 aunque el correo no exista; el enlace vence en 30 minutos y el token se guarda como hash SHA-256 |
 
@@ -276,11 +294,47 @@ stateDiagram-v2
   EXPIRED --> [*]: alerta al dueño
 ```
 
+### 5.4 Notificaciones por Telegram
+
+Cada notificación de la PWA se reenvía, en segundo plano, a los **canales externos** que la persona vinculó y solo con los tipos que eligió (alertas del cultivo, maceta desconectada, acciones del asistente, comandos, novedades). Los canales implementan la interfaz `NotificationChannel`; sumar WhatsApp, correo o Slack es otra implementación sin tocar el resto. Hoy existe Telegram, centralizado en la API.
+
+<!-- diagrama: SmartPot_14_Secuencia_Telegram | titulo=Vinculación de Telegram -->
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+sequenceDiagram
+  autonumber
+  actor P as Persona
+  participant W as PWA
+  participant A as API
+  participant C as Redis
+  participant T as Telegram
+  P->>W: Perfil › Vincular Telegram
+  W->>A: POST /channels/telegram/link
+  A->>C: código de un solo uso (10 min) → cuenta
+  A-->>W: url t.me/bot?start=código
+  W->>T: abre el chat del bot
+  P->>T: Iniciar (/start código)
+  T->>A: novedad (webhook firmado o sondeo)
+  A->>C: toma y borra el código
+  A->>A: guarda channel_links (chat, eventos)
+  A->>T: «Listo, este chat quedó vinculado»
+  Note over A,T: Desde aquí, cada notificación elegida<br/>se reenvía con un botón al cultivo
+  A->>T: ⚠️ Atención en Lechugas del balcón
+```
+
+| Regla | Valor |
+| --- | --- |
+| Vinculación | Código aleatorio de 144 bits, de un solo uso, que vence en 10 minutos (Redis) |
+| Recepción | `webhook` en producción, validado con `X-Telegram-Bot-Api-Secret-Token`; sondeo largo en local y en la demo |
+| Comandos del bot | `/start <código>`, `/estado` (cultivos, conexión y salud), `/desvincular`, `/ayuda`; solo chats privados |
+| Mensajes | HTML escapado con el título, el detalle y un botón al cultivo cuando la PWA está en `https` |
+| Fallos | Si Telegram rechaza el chat (bloqueado o borrado) o falla 5 veces seguidas, el vínculo se pausa |
+
 ## 6. Asistente de IA
 
 ### En palabras simples
 
-El asistente se comporta como un agrónomo que mira la última lectura y el historial reciente. Primero revisa variable por variable, después razona con reglas de experto, calcula un índice de salud de 0 a 100 y propone acciones concretas que la maceta puede ejecutar.
+El asistente se comporta como un agrónomo que mira la última lectura y el historial reciente. Primero revisa variable por variable, después razona con reglas de experto, calcula un índice de salud de 0 a 100 y propone acciones concretas que la maceta puede ejecutar. Además, aprende con cada lectura real que llega de las macetas de la misma especie.
 
 <!-- diagrama: SmartPot_03_Asistente_IA | titulo=Técnicas del asistente de IA -->
 ```mermaid
@@ -288,27 +342,31 @@ El asistente se comporta como un agrónomo que mira la última lectura y el hist
 flowchart TB
   req["Lectura actual<br/>+ historial (48)<br/>+ actuadores<br/>+ hora local"] --> diag["Diagnóstico por variable<br/>LOW · OPTIMAL · HIGH · REST"]
   req --> fc["Pronóstico Theil-Sen<br/>tendencia y horas al límite"]
+  req --> lr["Aprendizaje continuo<br/>modelos entrenados con lecturas reales"]
   diag --> norm["Normalización<br/>respecto al perfil"]
-  norm --> ml["Modelos de ML<br/>regresión logística · MLP · Isolation Forest"]
+  norm --> ml["Modelos base<br/>regresión logística · MLP · Isolation Forest"]
   diag --> mem["Memoria de trabajo<br/>hechos status y severity"]
   ml --> mem
   fc --> mem
+  lr --> mem
   fc --> ag
+  lr --> ag
   mem --> es["Sistema experto<br/>encadenamiento hacia adelante"]
   diag --> fz["Lógica difusa Sugeno<br/>índice de salud 0–100"]
   es --> ag["Agente reactivo<br/>acciones por actuador"]
   diag --> ag
   ml --> ag
-  fz --> out["Respuesta<br/>health · diagnosis · conclusions<br/>predictions · forecasts · actions"]
+  fz --> out["Respuesta<br/>health · diagnosis · conclusions · predictions<br/>forecasts · learning · actions"]
   es --> out
   ag --> out
+  lr --> out
   classDef input fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef step fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef brain fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef result fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class req input
   class diag,norm,mem step
-  class ml,es,fz,ag,fc brain
+  class ml,es,fz,ag,fc,lr brain
   class out result
 ```
 
@@ -319,9 +377,9 @@ Cada variable queda `LOW`, `OPTIMAL` o `HIGH` respecto al rango de la especie. L
 > [!TIP]
 > **Descanso nocturno.** Entre las 22:00 y las 6:00 (hora de Colombia, configurable con `AI_TIMEZONE`) la luz baja no es un problema: la planta necesita su periodo de oscuridad. La variable queda como `REST`, no resta salud, la regla de crecimiento ahilado no se dispara y el agente apaga la luz de cultivo si quedó encendida.
 
-### 6.2 Modelos de aprendizaje automático
+### 6.2 Modelos base
 
-Las variables se normalizan respecto al perfil (0 = mínimo ideal, 1 = máximo ideal), así un mismo modelo sirve para las seis especies. Se entrenan al arrancar con 4000 muestras sintéticas y semilla fija.
+Las variables se normalizan respecto al perfil (0 = mínimo ideal, 1 = máximo ideal), así un mismo modelo sirve para las seis especies. Se entrenan al arrancar con 4000 muestras sintéticas y semilla fija, y responden desde el primer minuto, antes de que exista ningún dato real (sección 6.8).
 
 | Modelo | Técnica | Predice | Exactitud |
 | --- | --- | --- | --- |
@@ -349,6 +407,9 @@ Un motor de encadenamiento hacia adelante dispara las reglas por prioridad, cada
 | `compound_stress` | Estrés junto con riesgo o bloqueo | Estrés combinado |
 | `drying_trend` | El pronóstico lleva el sustrato al mínimo en 3 h o menos | Secado acelerado: regar pronto |
 | `heat_building` | El pronóstico lleva la temperatura al máximo en 3 h o menos | Calor en aumento |
+| `learned_drying` | El modelo aprendido da ≥ 70 % de que el sustrato baje del mínimo en 1 h | Riego probable en la próxima hora |
+| `learned_heat` | El modelo aprendido da ≥ 70 % de que la temperatura pase del máximo en 1 h | Calor probable en la próxima hora |
+| `unusual_pattern` | El Isolation Forest de la especie marca la lectura como poco habitual | Combinación poco habitual: revisar sensores |
 | `night_rest` | Luz baja durante el descanso nocturno | Descanso nocturno |
 | `ideal_conditions` | Todas las variables en rango o en descanso | Condiciones ideales |
 
@@ -376,6 +437,7 @@ El agente no guarda estado: convierte el diagnóstico en acciones solo para los 
 | Exceso de luz, o luz encendida de noche | Apagar `UV_LIGHT` |
 | Calor, humedad alta o predicción de ventilación | `FAN` 10 minutos |
 | Temperatura en rango, pero pasará el máximo en menos de 1 h | `FAN` 10 minutos (ventilación preventiva) |
+| El modelo aprendido da ≥ 85 % de riego o calor en la próxima hora | `WATER_PUMP` 10 s o `FAN` 10 minutos (preventivo; el riego no se hace de noche) |
 | Temperatura baja | Apagar `FAN` |
 | Aire seco | `HUMIDIFIER` 5 minutos |
 | pH alto | `PH_DOSER` 3 s |
@@ -406,19 +468,80 @@ El panel general pide al asistente una mirada de conjunto (`POST /v1/fleet`):
 | K-Means sobre variables normalizadas | Grupos de cultivos con condiciones parecidas; la cantidad de grupos se elige por el coeficiente de silueta y los grupos con la misma descripción se fusionan |
 | Agente reactivo por cultivo | Acciones reunidas por actuador para aplicarlas en bloque con `/api/v1/commands/bulk` |
 
+### 6.8 Aprendizaje continuo
+
+Los modelos base nacen de datos sintéticos; el aprendizaje continuo los complementa con lo que de verdad pasa en las macetas. Cada lectura que llega por MQTT se encola en la API y viaja a la IA en lotes cada minuto (`POST /v1/learning/readings`). La IA la guarda en SQLite, en el volumen `ai_data`, con el id del cultivo **seudonimizado** con SHA-256; al borrar un cultivo, sus lecturas se olvidan.
+
+<!-- diagrama: SmartPot_16_Aprendizaje | titulo=Aprendizaje continuo con lecturas reales -->
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+flowchart TB
+  subgraph prep["1 · Datos"]
+    direction LR
+    lect["Lecturas reales<br/>lotes cada minuto"] --> alm[("SQLite en /data<br/>cultivo seudonimizado")]
+    alm --> cal["Calidad de datos<br/>completitud · validez · IQR"]
+    cal --> var["Variables<br/>posición en el rango, hora circular,<br/>tendencia de 30 min"]
+  end
+  subgraph sup["2 · Supervisado"]
+    direction LR
+    eti["Etiquetas autosupervisadas<br/>¿qué pasó en la hora siguiente?"] --> cv["7 modelos con<br/>TimeSeriesSplit<br/>+ línea base"]
+    cv --> gs["GridSearchCV<br/>del mejor"]
+    gs --> cc{"¿Supera a la línea base<br/>y al vigente en lo<br/>más reciente?"}
+    cc -->|"Sí"| nuevo["Campeón nuevo<br/>versión + joblib"]
+    cc -->|"No"| vig["Se conserva<br/>el vigente"]
+  end
+  subgraph nosup["3 · No supervisado"]
+    direction LR
+    km["K-Means por silueta<br/>estados de operación"]
+    iso["Isolation Forest<br/>lecturas poco habituales"]
+  end
+  var --> eti
+  var --> km
+  var --> iso
+  inf["4 · Cada evaluación: riego y calor en 1 h, sustrato en 1 h, estado y atipicidad"]
+  nuevo --> inf
+  vig --> inf
+  km --> inf
+  iso --> inf
+  classDef data fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef step fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef ask fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef out fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  class lect,alm data
+  class cal,var,eti,cv,gs,km,iso,vig step
+  class cc ask
+  class nuevo,inf out
+```
+
+| Paso | Técnica |
+| --- | --- |
+| Calidad de datos | Completitud, validez física y atípicos por rango intercuartílico (k = 3), que se excluyen; puntaje DQS |
+| Variables | Posición de cada variable en su rango ideal, hora del día circular (seno y coseno) y tendencia de la última media hora del sustrato y la temperatura |
+| Etiquetas autosupervisadas | Lo que pasó en la hora siguiente a cada lectura: ¿el sustrato bajó del mínimo?, ¿la temperatura pasó del máximo?, ¿cuánto cambió la humedad del sustrato? |
+| Comparación supervisada | Línea base, regresión logística, K vecinos, árbol de decisión, bosque aleatorio, gradient boosting y red neuronal; validación cruzada temporal (`TimeSeriesSplit`, 4 cortes) con F1 macro o error medio absoluto |
+| Ajuste | `GridSearchCV` sobre el mejor candidato |
+| Campeón y retador | Se evalúa en el 20 % de lecturas más recientes: reemplaza al modelo vigente solo si lo mejora y si supera a la línea base (la clase mayoritaria o «el sustrato no cambia») |
+| No supervisado | Estados de operación con K-Means (k de 2 a 6 por silueta, con nombres legibles) e Isolation Forest entrenado con lecturas reales |
+
+Cada especie entrena por separado desde 200 lecturas etiquetadas y se reentrena cada 300 lecturas nuevas, en un proceso aparte para no frenar las evaluaciones. Una tarea queda pendiente, con su razón, mientras falten datos o casos: si una maceta nunca ha tenido calor, todavía no se puede aprender a anticiparlo. Los modelos se guardan con joblib y se cargan al arrancar; si cambia la versión de scikit-learn, se reentrenan.
+
+Cada evaluación trae la sección `learning`: estado de operación, si la lectura es habitual para la especie, probabilidad de riego o calor en la próxima hora y humedad esperada del sustrato, cada una con su modelo y su puntaje en las lecturas más recientes. La página **Aprendizaje** de la PWA muestra la calidad de los datos, la comparación de modelos, los estados y el detector de atípicos por especie (`GET /api/v1/ai/learning`, solo datos agregados).
+
 ## 7. Modelo de datos
 
-<!-- diagrama: SmartPot_04_Modelo_Datos | titulo=Colecciones de MongoDB -->
+<!-- diagrama: SmartPot_04_Modelo_Datos | titulo=Colecciones de MongoDB | lamina=H -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 erDiagram
   USERS ||--o{ CROPS : "es dueño de"
   USERS ||--o{ NOTIFICATIONS : "recibe"
   USERS ||--o{ PASSWORD_RESET_TOKENS : "solicita"
+  USERS ||--o{ CHANNEL_LINKS : "vincula"
   CROPS ||--o{ READINGS : "registra"
   CROPS ||--o{ ACTUATORS : "tiene"
   CROPS ||--o{ COMMANDS : "recibe"
   CROPS ||--o{ NOTIFICATIONS : "genera"
+  CROPS ||--o| VIRTUAL_DEVICES : "simula"
   ACTUATORS ||--o{ COMMANDS : "ejecuta"
   USERS {
     ObjectId _id
@@ -427,7 +550,6 @@ erDiagram
     string email "único"
     string passwordHash "BCrypt 12"
     string role "USER o ADMIN"
-    date createdAt
   }
   CROPS {
     ObjectId _id
@@ -456,7 +578,6 @@ erDiagram
     ObjectId cropId
     ObjectId actuatorId
     string action "ACTIVATE o DEACTIVATE"
-    int durationSeconds
     string status "PENDING … EXPIRED"
     string source "USER o AGENT"
   }
@@ -465,8 +586,23 @@ erDiagram
     ObjectId userId
     ObjectId cropId
     string type "INFO, ALERT, COMMAND, DEVICE, AI"
-    string title
     bool read
+  }
+  CHANNEL_LINKS {
+    ObjectId _id
+    ObjectId userId
+    string type "TELEGRAM"
+    string address "id del chat"
+    bool enabled
+    array events "tipos elegidos"
+  }
+  VIRTUAL_DEVICES {
+    ObjectId _id
+    ObjectId cropId "único"
+    ObjectId ownerId
+    string mode "AUTO, MANUAL, WEATHER"
+    object manual "medidores"
+    object location "nombre, latitud, longitud"
   }
   PASSWORD_RESET_TOKENS {
     ObjectId _id
@@ -484,6 +620,8 @@ erDiagram
 | `actuators` | Cultivo + tipo, único | Tipo dentro del catálogo |
 | `commands` | Cultivo + fecha; estado + envío para vencer los pendientes; TTL de 180 días | Acción, estado y origen (`USER` o `AGENT`) del catálogo |
 | `notifications` | Usuario + fecha; TTL de 90 días | Tipo `INFO`, `ALERT`, `COMMAND`, `DEVICE` o `AI` |
+| `channel_links` | Usuario + canal, único; canal + dirección, única | Canal `TELEGRAM`, chat, eventos elegidos y estado |
+| `virtual_devices` | Cultivo, único | Modo `AUTO`, `MANUAL` o `WEATHER`, medidores y ubicación |
 | `password_reset_tokens` | Hash único; TTL por `expiresAt` | Hash, usuario y vencimiento obligatorios |
 
 La API se conecta con un usuario propio (`smartpot`) con permisos `readWrite` solo sobre su base; el usuario administrador de MongoDB no se usa en la aplicación.
@@ -492,7 +630,7 @@ La API se conecta con un usuario propio (`smartpot`) con permisos `readWrite` so
 
 ### En palabras simples
 
-La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tras ingresar, un panel general con todos sus cultivos, el detalle de cada uno, un control general y un centro de acciones. Se instala como una app en Android, iOS y escritorio.
+La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tras ingresar, un panel general con todos sus cultivos, el detalle de cada uno, un control general, un centro de acciones y lo que ha aprendido el asistente. Se instala como una app en Android, iOS y escritorio.
 
 | Pantalla | Qué permite |
 | --- | --- |
@@ -503,11 +641,13 @@ La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tra
 | Control general | Modo automático por cultivo o para todos, atajos (regar, ventilar, luz) y órdenes personalizadas a varios cultivos con el resultado de cada uno |
 | Acciones | Acciones sugeridas por la IA aplicables en bloque e historial de todas las órdenes, filtrado por estado y origen (persona o agente) |
 | Detalle · Resumen | Lecturas actuales frente al rango ideal y gráfico de 24 h con la banda ideal |
-| Detalle · Asistente IA | Índice de salud y de qué depende, diagnóstico, conclusiones, predicciones, pronóstico de las próximas horas y acciones ejecutables |
+| Aprendizaje | Lecturas reales por especie, calidad de los datos, comparación de modelos con su puntaje frente a la línea base, estados de operación y detector de atípicos |
+| Detalle · Asistente IA | Índice de salud y de qué depende, diagnóstico, conclusiones, predicciones, pronóstico de las próximas horas, lo aprendido de macetas reales y acciones ejecutables |
 | Detalle · Control | Modo automático, actuadores y últimos comandos |
 | Detalle · Historial | 6 h, 24 h o 7 días por variable y exportación CSV |
 | Detalle · Dispositivo | Estado, datos de conexión MQTT, configuración para el firmware y rotación de la clave |
-| Alertas y perfil | Notificaciones, datos personales, contraseña y borrado de la cuenta |
+| Detalle · Maceta virtual | Encender o apagar la maceta virtual; clima real con buscador de lugares o la ubicación del dispositivo, medidores manuales o día y noche; escena ilustrada (sol, nubes, niebla, llovizna, lluvia, tormenta, nieve o noche) con los actuadores encendidos |
+| Alertas y perfil | Notificaciones, vinculación de Telegram con los avisos elegidos, datos personales, contraseña y borrado de la cuenta |
 
 ### 8.1 Identidad visual
 
@@ -531,7 +671,7 @@ Tipografías: **Outfit** en títulos e **Inter** en el cuerpo, servidas desde la
 - Manifiesto con íconos normales y adaptables, accesos directos y botón "Instalar app".
 - Service worker que guarda el app shell y los recursos con hash; la API y la configuración nunca se guardan en caché.
 
-## 9. Firmware y simulador
+## 9. Firmware y macetas virtuales
 
 ### 9.1 Maceta ESP32
 
@@ -549,9 +689,49 @@ Tipografías: **Outfit** en títulos e **Inter** en el cuerpo, servidas desde la
 
 El firmware sincroniza la hora por NTP, se conecta por TLS con `ca.crt`, publica cada 30 s y apaga cada actuador al cumplirse `durationSeconds`. La PWA genera el `config.py` de cada maceta.
 
-### 9.2 Simulador
+### 9.2 Wokwi
 
-SmartPot-DataGenerator crea macetas virtuales (`SIMULATOR_DEVICES=cropId:clave:TIPO,…`) con un modelo físico simple: la luz y la temperatura siguen el día en la hora local (`SIMULATOR_UTC_OFFSET`, −5 por defecto), la bomba sube la humedad del sustrato, el ventilador enfría y seca el aire, y los dosificadores corrigen el pH y los nutrientes. Responde los comandos con su ACK como una maceta real. Se usa en la demo, en el entorno de desarrollo y en la prueba de extremo a extremo.
+El mismo firmware corre en [Wokwi](https://wokwi.com) sobre un ESP32 simulado, con el `diagram.json` del repositorio. Es la forma de validar el firmware antes de pasar a hardware: se ejecuta **a mano**, en el navegador, mientras la pestaña está abierta.
+
+### 9.3 Macetas virtuales
+
+SmartPot-DataGenerator es el simulador que corre siempre, desplegado con la plataforma. Cada maceta virtual usa la clave real del cultivo, publica telemetría, obedece los comandos (la bomba sube la humedad del sustrato, el ventilador enfría y seca el aire, la luz de cultivo suma luz, los dosificadores corrigen el pH y los nutrientes) y responde su ACK como una maceta física.
+
+| Modo | Qué refleja |
+| --- | --- |
+| `WEATHER` | El clima actual del lugar elegido con [Open-Meteo](https://open-meteo.com), un servicio abierto y sin clave: temperatura, humedad, radiación solar convertida a la escala de luz de la maceta, lluvia que moja el sustrato y presión. El sol y el aire seco secan más rápido |
+| `MANUAL` | Los medidores que mueve la persona; los actuadores siguen actuando encima (por ejemplo, el agente riega y la humedad sube) |
+| `AUTO` | Día y noche típicos de la especie en la hora local |
+
+<!-- diagrama: SmartPot_15_Secuencia_Maceta_Virtual | titulo=Maceta virtual con clima real -->
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+sequenceDiagram
+  autonumber
+  actor P as Persona
+  participant W as PWA
+  participant A as API
+  participant S as Simulador
+  participant O as Open-Meteo
+  participant B as Broker
+  P->>W: Maceta virtual › Clima real › Medellín
+  W->>A: PUT /crops/{id}/virtual-device
+  A->>A: dueño del cultivo · descifra la clave
+  A->>S: PUT /v1/pots/{id} (clave, modo, lugar)
+  S->>O: clima actual (caché 10 min)
+  S->>B: conecta como la maceta (usuario = cultivo)
+  loop cada intervalo
+    S->>B: telemetría según sol, nubes, lluvia y temperatura
+    B->>A: lectura → asistente → agente
+  end
+  A->>B: comando (regar)
+  B->>S: comando
+  S->>B: ACK EXECUTED y el sustrato sube
+  W->>A: GET estado (escena, lecturas, actuadores)
+  Note over A,S: Cada minuto la API recrea las macetas<br/>que falten tras un reinicio
+```
+
+El simulador expone una API interna de control (`/v1/pots`, con token) que solo usa SmartPot-API. La configuración vive en `virtual_devices` y cada minuto la API recrea en el simulador las macetas que falten; rotar la clave actualiza la maceta virtual y borrar el cultivo la retira. Las macetas fijas de `SIMULATOR_DEVICES` (datos demo y QA) siguen funcionando igual.
 
 <!-- parte: PARTE III | Operación -->
 
@@ -567,15 +747,17 @@ Cada pieza tiene solo los permisos que necesita. Las contraseñas y claves nunca
 | Autorización | Control de dueño en cada ruta de cultivo; 404 para recursos ajenos |
 | Macetas | Cuenta MQTT por cultivo, ACL con `%u`, clave de 192 bits cifrada con AES-256-GCM y mostrada una sola vez |
 | Transporte | HTTPS con HSTS; MQTT sobre TLS 1.2+ con CA propia; WebSocket seguro |
-| Web | CSP estricta con `connect-src` limitado a la API, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` y `Permissions-Policy` |
-| Servicio de IA | Solo en la red interna y con token de servicio comparado en tiempo constante |
+| Web | CSP estricta con `connect-src` limitado a la API, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` y `Permissions-Policy` (geolocalización solo del propio sitio y solo cuando la persona la pide) |
+| Servicio de IA | Solo en la red interna y con token de servicio comparado en tiempo constante; aprende con ids de cultivo seudonimizados y solo expone datos agregados |
+| Simulador | API de control interna con token; recibe la clave de la maceta solo por la red interna; sale a internet únicamente para el clima |
+| Telegram | Códigos de vinculación de un solo uso y 10 minutos, webhook con secreto comparado en tiempo constante, solo chats privados y sin datos a chats no vinculados |
 | Contenedores | Solo lectura, sin capacidades de Linux, `no-new-privileges`, usuarios sin privilegios, límites de CPU y memoria |
-| Red | Solo el broker (8883) escucha fuera de `127.0.0.1`; MongoDB, Redis y la IA en una red sin salida |
+| Red | Solo el broker (8883) escucha fuera de `127.0.0.1`; MongoDB, Redis y la IA en una red sin salida; el simulador no publica puertos |
 | Cadena de suministro | Dependabot, revisión de dependencias, CodeQL, SBOM y atestación de procedencia de cada imagen |
 | Secretos | GitHub Secrets; el `.env` existe en el servidor solo durante el despliegue |
 
 > [!NOTE]
-> **Generación de secretos.** Las contraseñas, el secreto JWT, la llave AES y el token de la IA se derivan con HKDF-SHA512 a partir de ruido atmosférico de random.org mezclado con el generador criptográfico del sistema; ninguna de las dos fuentes por sí sola determina el resultado. Las llaves de los certificados usan la misma entropía.
+> **Generación de secretos.** Las contraseñas, el secreto JWT, la llave AES, los tokens de la IA y del simulador y el secreto del webhook se derivan con HKDF-SHA512 a partir de ruido atmosférico de random.org mezclado con el generador criptográfico del sistema; ninguna de las dos fuentes por sí sola determina el resultado. Las llaves de los certificados usan la misma entropía.
 
 ## 11. Despliegue
 
@@ -583,7 +765,7 @@ Cada pieza tiene solo los permisos que necesita. Las contraseñas y claves nunca
 
 | Entorno | Carpeta | Imágenes | Uso |
 | --- | --- | --- | --- |
-| Demo | `docker/demo` | GHCR | SmartPot completo con datos de ejemplo y dos macetas simuladas |
+| Demo | `docker/demo` | GHCR (principal) o Docker Hub (`compose.dockerhub.yaml`) | SmartPot completo con datos de ejemplo, dos macetas fijas y macetas virtuales |
 | Desarrollo | `docker/dev` | Compiladas desde los repositorios locales | Programar con toda la plataforma |
 | Producción | `docker/production` | GHCR con etiqueta configurable | Servidor con Nginx y HTTPS |
 | Kubernetes | `kubernetes` | GHCR | Clústeres locales con Pod Security `restricted` |
@@ -597,7 +779,8 @@ flowchart TB
   subgraph github["GitHub · SmartPotTech"]
     repo["Push a main<br/>en un servicio"] --> ci["CI del repo<br/>pruebas · CodeQL"]
     repo --> pkg["packaging.yml<br/>imagen + SBOM + procedencia"]
-    pkg --> ghcr[("GHCR y Docker Hub")]
+    pkg --> ghcr[("GHCR<br/>registro de despliegue")]
+    pkg --> hub[("Docker Hub<br/>réplica de distribución")]
     pkg --> dep["deploy.yml del repo<br/>request-deploy.yml"]
     dep -->|"workflow_dispatch<br/>DEPLOY_DISPATCH_TOKEN"| queue["Cola smartpot-production<br/>uno en curso · el último en espera"]
     queue --> central["deploy.yml central<br/>(.github)"]
@@ -614,25 +797,26 @@ flowchart TB
   stage --> certs
   stage --> compose
   ghcr -->|"pull"| compose
+  hub -.->|"demo a elección"| demo["Demo local<br/>compose.dockerhub.yaml"]
   central -->|"GET /health"| nginx
   classDef gh fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef key fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef srv fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
-  class repo,ci,pkg,dep gh
+  class repo,ci,pkg,dep,demo gh
   class central core
   class secrets,certs,queue key
   class stage,compose,nginx srv
 ```
 
-Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub si tiene `DOCKER_USERNAME` y `DOCKER_PASSWORD`) y pide el despliegue al workflow central con `request-deploy.yml`, que espera el resultado. Solo `SmartPotTech/.github` se conecta al servidor, y su `deploy.yml` corre de a uno (`concurrency`): si llegan varios pedidos mientras despliega, queda en espera solo el más reciente, porque cada despliegue descarga todas las imágenes. El workflow valida el `ENV_FILE` (longitudes mínimas, llave AES de 32 bytes, variables por perfil), comprueba que el certificado del broker esté firmado por la CA y que la llave le corresponda, sube la configuración por SSH, instala los certificados con dueño `1883`, actualiza los contenedores y verifica `/health` desde internet. Los despliegues simultáneos esperan su turno con `flock`.
+Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub, como réplica, si tiene `DOCKER_USERNAME` y `DOCKER_PASSWORD`) y pide el despliegue al workflow central con `request-deploy.yml`, que espera el resultado. Solo `SmartPotTech/.github` se conecta al servidor, y su `deploy.yml` corre de a uno (`concurrency`): si llegan varios pedidos mientras despliega, queda en espera solo el más reciente, porque cada despliegue descarga todas las imágenes. El workflow valida el `ENV_FILE` (longitudes mínimas, llave AES de 32 bytes, variables por perfil), comprueba que el certificado del broker esté firmado por la CA y que la llave le corresponda, sube la configuración por SSH, instala los certificados con dueño `1883`, descarga las imágenes desde GHCR, actualiza los contenedores y verifica `/health` desde internet. Los despliegues simultáneos esperan su turno con `flock`.
 
 | Secret | Contenido |
 | --- | --- |
 | `SERVER_HOST`, `SERVER_PORT`, `SERVER_USER`, `SERVER_KNOWN_HOSTS` | Acceso SSH al servidor |
 | `SERVER_KEY` | Llave privada SSH de despliegue |
 | `DEPLOY_PATH` | Carpeta de producción en el servidor |
-| `ENV_FILE` | `.env` completo de producción |
+| `ENV_FILE` | `.env` completo de producción, incluidos `SIMULATOR_TOKEN` y, si hay bot, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` y `TELEGRAM_WEBHOOK_SECRET` |
 | `MQTT_CA_CERT`, `MQTT_SERVER_CERT`, `MQTT_SERVER_KEY` | Certificados del broker (opcionales) |
 | `DEPLOY_DISPATCH_TOKEN` (en cada servicio) | Token con permiso **Actions: Read and write** solo sobre `.github`, para pedir el despliegue |
 | `DOCKER_USERNAME`, `DOCKER_PASSWORD` (en cada servicio, opcionales) | Publicación en Docker Hub |
@@ -659,11 +843,12 @@ flowchart LR
       api["api-smartpot<br/>127.0.0.1:8091"]
       broker["broker-smartpot<br/>0.0.0.0:8883 TLS · 127.0.0.1:9001 WS"]
       mail["mail-smartpot<br/>127.0.0.1:8025"]
+      sim["simulator-smartpot<br/>sin puertos · solo salida"]
     end
     subgraph internal["Red internal · sin salida a internet"]
       db[("db-smartpot :27017")]
       cache[("cache-smartpot :6379")]
-      ai["ai-smartpot :8000"]
+      ai["ai-smartpot :8000<br/>volumen ai_data"]
     end
   end
   internet -->|"HTTPS"| nginx
@@ -675,13 +860,17 @@ flowchart LR
   api --> db
   api --> cache
   api --> ai
+  api -->|"8081 con token"| sim
+  sim -->|"1883"| broker
+  sim -.->|"clima"| internet
+  api -.->|"Telegram Bot API"| internet
   api -->|"1883"| broker
   api -->|"SMTP 1025"| mail
   classDef pub fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef priv fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   classDef gate fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef world fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
-  class web,api,broker,mail pub
+  class web,api,broker,mail,sim pub
   class db,cache,ai priv
   class nginx gate
   class internet world
@@ -701,7 +890,7 @@ flowchart LR
   web --> e2e
   py --> e2e
   ct --> e2e
-  e2e --> flow["registro → cultivo → telemetría MQTT<br/>→ comando con ACK → asistente → borrado"]
+  e2e --> flow["registro → cultivo → telemetría MQTT → comando con ACK<br/>→ asistente → panel general → órdenes en bloque<br/>→ maceta virtual → aprendizaje → canales → borrado"]
   classDef start fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef job fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef final fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
@@ -714,26 +903,28 @@ flowchart LR
 
 | Repositorio | Pruebas | Qué cubren |
 | --- | --- | --- |
-| SmartPot-API | 75 | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos, cultivos, agente, caché, historial con hora para la IA, panel general, órdenes y automatización en bloque, y seguridad de los controladores |
-| SmartPot-AI | 59 | Base de conocimiento, reglas, descanso nocturno, pronóstico Theil-Sen, acciones preventivas, análisis de flota, índice difuso, exactitud de los modelos, agente y contrato HTTP |
-| SmartPot-Web | 35 | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente con pronóstico, panel general (ranking, colores estables, acciones en bloque) y requisitos de SEO y PWA |
-| SmartPot-DataGenerator | 13 | Modelo físico, zona horaria, contrato MQTT y comandos |
+| SmartPot-API | 106 | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos, cultivos, agente, caché, historial con hora para la IA, panel general, órdenes y automatización en bloque, envío de lecturas para el aprendizaje, canales y bot de Telegram, webhook firmado, macetas virtuales y seguridad de los controladores |
+| SmartPot-AI | 73 | Base de conocimiento, reglas, descanso nocturno, pronóstico Theil-Sen, acciones preventivas, análisis de flota, índice difuso, exactitud de los modelos, agente, contrato HTTP y aprendizaje continuo (seudonimización, calidad, etiquetas, modelos frente a la línea base, campeón y retador, persistencia) |
+| SmartPot-Web | 45 | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente con pronóstico y lo aprendido, comparación de modelos, canales de Telegram, escena de la maceta virtual, panel general y requisitos de SEO y PWA |
+| SmartPot-DataGenerator | 23 | Modelo físico, modos manual y clima, lluvia y sol, caché del clima, contrato MQTT, comandos y API de control |
 | SmartPot-IoT | 13 | Cliente MQTT, telemetría, comandos, actuadores y sensores con MicroPython simulado |
 | SmartPot-Broker | 10 comprobaciones | Autenticación, ACL por maceta, client ids, anónimos y TLS |
 | SmartPot-DB, -Cache, -Mail | Pruebas de humo | Validadores, permisos, datos demo, comandos deshabilitados de Redis y autenticación SMTP |
-| End-to-End | 21 comprobaciones | Registro, cultivo, telemetría MQTT, clave incorrecta rechazada, comando con ACK, asistente, panel general, series, análisis de flota, orden y automatización en bloque, y borrado |
+| End-to-End | 30 comprobaciones | Registro, cultivo, telemetría MQTT, clave incorrecta rechazada, comando con ACK, asistente, panel general, series, análisis de flota, orden y automatización en bloque, maceta virtual publicando por MQTT, aprendizaje continuo, canales y borrado |
 
 ## 13. Operación
 
 | Tarea | Cómo |
 | --- | --- |
-| Estado | `GET https://api.smartpot.app/health` → base de datos, broker, caché e IA |
+| Estado | `GET https://api.smartpot.app/health` → base de datos, broker, caché, IA y simulador |
 | Logs | `docker logs -f smartpot-api` (y `-broker`, `-ai`, `-web`) |
 | Respaldo | `backup_smartpot.sh`: `mongodump` comprimido con 14 días de retención |
 | Restauración | `mongorestore --drop --archive --gzip` sobre `smartpot-db` |
 | Cambiar configuración | Editar el secret `ENV_FILE` y ejecutar **Deploy to Production** |
 | Renovar el certificado del broker | Antes de 825 días: `generate-certs.sh` con la CA existente y actualizar `MQTT_SERVER_CERT` y `MQTT_SERVER_KEY` |
-| Rotar la clave de una maceta | Desde la PWA, pestaña Dispositivo |
+| Rotar la clave de una maceta | Desde la PWA, pestaña Dispositivo (la maceta virtual toma la clave nueva sola) |
+| Aprendizaje | Página Aprendizaje de la PWA; `docker logs smartpot-ai` muestra cada entrenamiento. Lo aprendido vive en el volumen `ai_data` |
+| Activar Telegram | Crear el bot con @BotFather, agregar `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` y `TELEGRAM_WEBHOOK_SECRET` a `ENV_FILE` y desplegar |
 | Actualizar dependencias | Revisar y fusionar los pull requests semanales de Dependabot |
 
 > [!WARNING]
@@ -745,17 +936,25 @@ flowchart LR
 | --- | --- |
 | ACK | Confirmación que envía la maceta al ejecutar o fallar un comando |
 | Actuador | Salida de la maceta que cambia el cultivo: bomba, luz, ventilador, humidificador o dosificadores |
+| Aprendizaje autosupervisado | Etiquetas que salen de los propios datos: lo que pasó después de cada lectura |
+| Campeón y retador | El modelo vigente solo se reemplaza si el nuevo lo supera en las lecturas más recientes |
 | Broker | Servidor MQTT que recibe y reparte los mensajes entre las macetas y la API |
 | Clave del dispositivo | Contraseña MQTT de una maceta, generada por la API |
 | Encadenamiento hacia adelante | Técnica del sistema experto que parte de los hechos y dispara reglas hasta no poder concluir más |
-| GHCR | GitHub Container Registry, donde se publican las imágenes |
+| GHCR | GitHub Container Registry, donde se publican las imágenes y desde donde se despliega |
 | Isolation Forest | Modelo que detecta datos atípicos aislándolos con árboles aleatorios |
+| Línea base | Modelo trivial (la clase mayoritaria o «no cambia») que todo modelo debe superar para usarse |
 | Lógica difusa | Razonamiento con grados de pertenencia en lugar de sí o no |
+| Maceta virtual | Maceta simulada, siempre encendida, que usa las credenciales reales de un cultivo |
 | Modo automático | Permiso del dueño para que el agente ejecute acciones sin preguntar |
 | MQTT | Protocolo de mensajería liviano para dispositivos conectados |
 | PWA | Aplicación web progresiva: se instala y funciona como una app nativa |
 | QoS 1 | Nivel de MQTT que garantiza al menos una entrega |
 | Seguridad dinámica | Plugin de Mosquitto para administrar usuarios, roles y permisos en caliente |
+| Silueta | Medida de qué tan separados están los grupos de K-Means; elige cuántos grupos usar |
+| Sondeo largo | Consulta que espera hasta que hay mensajes; alternativa al webhook sin dirección pública |
 | TDS | Sólidos disueltos totales: concentración de nutrientes en ppm |
 | Tolerancia | Unidad con la que se mide cuánto se aleja una variable de su rango ideal |
 | Última voluntad (LWT) | Mensaje que el broker publica solo si la maceta se desconecta sin avisar |
+| Validación cruzada temporal | Evaluación que siempre entrena con el pasado y prueba con el futuro |
+| Webhook | Dirección a la que Telegram envía cada mensaje del bot, firmada con un secreto |
