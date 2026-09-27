@@ -476,7 +476,8 @@ def code_block(language: str, lines: list[str]) -> str:
     return spacer(80) + bar + body + spacer(160)
 
 
-def figure(doc: Document, name: str, title: str, landscape: bool = False) -> str:
+def figure(doc: Document, name: str, title: str, landscape: bool = False, lead: str = "",
+           continued: bool = False) -> str:
     path = DIAGRAMS / f"{name}.png"
     if not path.exists():
         print(f"  Falta la imagen {path.name}: ejecuta render_diagrams.py")
@@ -484,6 +485,8 @@ def figure(doc: Document, name: str, title: str, landscape: bool = False) -> str
     doc.figures += 1
     width, height = png_size(path)
     max_w, max_h = (LANDSCAPE_BODY_W, LANDSCAPE_FIGURE_H) if landscape else (BODY_W, MAX_FIGURE_H)
+    if lead:
+        max_h -= 1400
     cx = max_w * EMU
     cy = int(cx * height / width)
     if cy > max_h * EMU:
@@ -496,8 +499,8 @@ def figure(doc: Document, name: str, title: str, landscape: bool = False) -> str
         return (paragraph(image, before=120, after=60, align="center", keep_next=True)
                 + paragraph(caption, after=240, align="center"))
     # La lámina es una sección propia en carta horizontal: se cierra la sección vertical anterior
-    # y la lámina termina con su propia definición de página.
-    return (section_break(doc, landscape=False)
+    # (salvo que la anterior también sea una lámina) y la lámina termina con su propia definición de página.
+    return (("" if continued else section_break(doc, landscape=False)) + lead
             + paragraph(image, before=0, after=60, align="center", keep_next=True)
             + paragraph(caption, after=0, align="center")
             + section_break(doc, landscape=True))
@@ -553,6 +556,8 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
     lines = text.splitlines()
     title = "SmartPot"
     toc_index = None
+    # Índices del último título y de la última lámina para encadenar láminas horizontales.
+    last_heading = last_landscape = -1
     i = 0
     while i < len(lines):
         line = lines[i]
@@ -568,8 +573,15 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
             continue
         if diagram := DIAGRAM.match(stripped):
             options = dict(part.split("=", 1) for part in (p.strip() for p in diagram.group(2).split("|")) if "=" in part)
+            landscape = options.get("lamina", "").upper() == "H"
+            # El título justo anterior viaja con la lámina y dos láminas seguidas no dejan una página vacía.
+            lead = blocks.pop() if landscape and blocks and last_heading == len(blocks) - 1 else ""
+            continued = landscape and blocks and last_landscape == len(blocks) - 1
             blocks.append(figure(doc, diagram.group(1), options.get("titulo", diagram.group(1)).strip(),
-                                 landscape=options.get("lamina", "").upper() == "H"))
+                                 landscape=landscape, lead=lead, continued=bool(continued)))
+            last_heading = -1
+            if landscape:
+                last_landscape = len(blocks) - 1
             i += 1
             if i < len(lines) and lines[i].startswith("```"):
                 i += 1
@@ -598,6 +610,7 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
             continue
         if heading_match := re.match(r"^(#{2,4})\s+(.*)$", stripped):
             blocks.append(heading(doc, len(heading_match.group(1)) - 1, heading_match.group(2).strip()))
+            last_heading = len(blocks) - 1
             i += 1
             continue
         if stripped.startswith("|") and i + 1 < len(lines) and TABLE_SEPARATOR.match(lines[i + 1].strip()):
