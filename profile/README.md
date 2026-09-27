@@ -2,7 +2,7 @@
 
 **Tu huerto hidropónico, en tu bolsillo.** SmartPot mide la temperatura, la humedad, la luz, el pH, los nutrientes y la humedad del sustrato de tus cultivos, te dice qué necesitan y, si quieres, se encarga de regarlos, iluminarlos y ventilarlos.
 
-[smartpot.app](https://smartpot.app) · [Documentación](https://github.com/SmartPotTech/.github/tree/main/docs) · [Probar la demo](https://github.com/SmartPotTech/.github/tree/main/docker/demo)
+[smartpot.app](https://smartpot.app) · [Documentación](https://github.com/SmartPotTech/.github/tree/main/docs) · [Superdiagramas](#la-plataforma-en-diagramas) · [Probar la demo](https://github.com/SmartPotTech/.github/tree/main/docker/demo)
 
 ## Cómo funciona
 
@@ -10,6 +10,21 @@
 2. **La API** las guarda y las compara con el rango ideal de la especie: lechuga, tomate, fresa, albahaca, espinaca o pimentón.
 3. **El asistente de IA** combina un sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo para diagnosticar el cultivo, calcular su índice de salud y proponer acciones. De noche entiende que la planta descansa.
 4. **La app** (PWA instalable) muestra todo en tiempo real, envía alertas y permite encender la bomba, la luz o el ventilador, o dejar que el agente lo haga en modo automático.
+
+## La plataforma en diagramas
+
+Ocho superdiagramas muestran SmartPot completo. Cada uno se abre como SVG y se puede ampliar tanto como haga falta.
+
+| Superdiagrama | Qué muestra |
+| --- | --- |
+| [Arquitectura completa](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_01_Architecture.svg) | Las macetas, el borde, los ocho contenedores con sus módulos, puertos y redes, y los servicios externos |
+| [Operación completa](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_02_Operation_Sequence.svg) | Toda la operación paso a paso: del registro a la lectura, la decisión de la IA, la orden a la maceta y el aviso por Telegram |
+| [Entrega continua](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_03_Delivery.svg) | Del commit al servidor: pruebas, QA de extremo a extremo, imágenes y despliegue |
+| [Linaje de los datos](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_04_Data_Lineage.svg) | De dónde sale cada dato, dónde se guarda y quién lo usa |
+| [Máquinas de estado](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_05_State_Machines.svg) | Sesión, maceta, comando, salud, modo automático, aprendizaje, Telegram y maceta virtual |
+| [Modelo de dominio](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_06_Domain_Model.svg) | Entidades y contratos con sus relaciones |
+| [Recorrido de la app](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_07_User_Journey.svg) | Cada pantalla, qué pide a la API y quién responde |
+| [Decisión de la IA](https://github.com/SmartPotTech/.github/blob/main/docs/images/superdiagrams/SmartPot_Super_08_AI_Decision.svg) | De la lectura a la orden: diagnóstico, pronóstico, modelos, reglas, índice difuso y agente |
 
 ## Repositorios
 
