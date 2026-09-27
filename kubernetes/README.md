@@ -60,13 +60,13 @@ En minikube, reemplaza `localhost` por la IP de `minikube ip` y ajusta `WEB_BASE
 | Recurso | Nombre | Descripción |
 | --- | --- | --- |
 | `Namespace` | `smartpot` | Aplica el perfil `restricted` de Pod Security |
-| `Secret` | `smartpot-secrets` | Contraseñas, secreto JWT, llave AES y token de la IA |
+| `Secret` | `smartpot-secrets` | Contraseñas, secreto JWT, llave AES y tokens de la IA y del simulador |
 | `ConfigMap` | `smartpot-config` | URLs, usuarios y macetas simuladas |
-| `PersistentVolumeClaim` | `db-data`, `broker-data` | MongoDB (2 Gi) y cuentas MQTT (256 Mi) |
+| `PersistentVolumeClaim` | `db-data`, `broker-data`, `ai-data` | MongoDB (2 Gi), cuentas MQTT (256 Mi) y lo aprendido por la IA (1 Gi) |
 | `Deployment` + `Service` | `db`, `cache`, `mail`, `broker`, `ai`, `api`, `web` | Un pod por servicio |
-| `Deployment` | `simulator-smartpot` | Macetas simuladas de la lechuga y el tomate demo |
+| `Deployment` + `Service` | `simulator-smartpot` | Macetas fijas de la lechuga y el tomate demo, y las macetas virtuales que pida la API (control interno en el puerto 8081) |
 
-MongoDB, Redis y la IA usan `ClusterIP`; la PWA, la API, el broker y la bandeja de correo se publican con `NodePort`.
+MongoDB, Redis, la IA y el simulador usan `ClusterIP`; la PWA, la API, el broker y la bandeja de correo se publican con `NodePort`.
 
 ---
 

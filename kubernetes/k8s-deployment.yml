@@ -23,6 +23,7 @@ stringData:
   SMARTPOT_JWT_SECRET: k8s-jwt-secret-only-for-local-clusters-0123456789
   SMARTPOT_AES_KEY: ZGVtby1vbmx5LXNtYXJ0cG90LWFlcy1rZXktMzJieXQ=
   SMARTPOT_AI_TOKEN: k8s-ai-token-only-for-local-clusters
+  SIMULATOR_TOKEN: k8s-simulator-token-only-for-local-clusters
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -52,6 +53,7 @@ data:
   MQTT_PORT: "1883"
   SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
   SIMULATOR_INTERVAL_SECONDS: "15"
+  SIMULATOR_BASE_URL: http://simulator-smartpot:8081
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -76,6 +78,19 @@ spec:
   resources:
     requests:
       storage: 256Mi
+---
+# Lecturas reales seudonimizadas y modelos aprendidos por la IA.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-data
+  namespace: smartpot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -453,6 +468,7 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         runAsGroup: 1000
+        fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -478,7 +494,7 @@ spec:
               memory: 192Mi
             limits:
               cpu: "1"
-              memory: 512Mi
+              memory: 768Mi
           startupProbe:
             httpGet:
               path: /health
@@ -491,9 +507,14 @@ spec:
               port: 8000
             periodSeconds: 10
           volumeMounts:
+            - name: data
+              mountPath: /data
             - name: tmp
               mountPath: /tmp
       volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ai-data
         - name: tmp
           emptyDir: {}
 ---
@@ -579,6 +600,11 @@ spec:
                 secretKeyRef:
                   name: smartpot-secrets
                   key: SMARTPOT_AI_TOKEN
+            - name: SIMULATOR_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SIMULATOR_TOKEN
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -741,9 +767,17 @@ spec:
         - name: simulator
           image: ghcr.io/smartpottech/smartpot-datagenerator:latest
           imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
           envFrom:
             - configMapRef:
                 name: smartpot-config
+          env:
+            - name: SIMULATOR_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: SIMULATOR_TOKEN
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -755,10 +789,28 @@ spec:
               memory: 32Mi
             limits:
               cpu: 250m
-              memory: 96Mi
+              memory: 160Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            periodSeconds: 10
           volumeMounts:
             - name: tmp
               mountPath: /tmp
       volumes:
         - name: tmp
           emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: simulator-smartpot
+  namespace: smartpot
+spec:
+  selector:
+    app: simulator-smartpot
+  ports:
+    - port: 8081
+      targetPort: 8081
+  type: ClusterIP
