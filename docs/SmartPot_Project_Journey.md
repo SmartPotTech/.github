@@ -21,7 +21,7 @@ proyecto: smartpot.app
 | Documento | Recorrido del proyecto: inicio, análisis, diseño, construcción y pruebas |
 | Versión | 1.0 · septiembre 2026 |
 | Fuentes | Documentación de diseño del proyecto (requisitos, casos de uso, diagramas UML, acta de constitución, estudio de mercado, matriz de interesados, propuesta de investigación y plan de trabajo), contrastada con el código de los diez repositorios |
-| Documento hermano | [Documentación técnica](SmartPot_Documentacion_Tecnica.md): la referencia de la plataforma tal como funciona hoy |
+| Documentos hermanos | [Documentación técnica](SmartPot_Technical_Documentation.md): la referencia de la plataforma tal como funciona hoy. [Ciclo de vida del software](SmartPot_Software_Lifecycle.md): la lectura crítica de cada etapa, de la formulación a la mejora continua |
 | Cómo leerlo | Cada parte empieza con lo que se planeó y termina con lo que quedó construido. Las tablas de estado dicen, requisito por requisito, qué se cumplió, qué cambió y qué sigue pendiente |
 
 <!-- parte: PARTE I | Inicio -->
@@ -32,7 +32,7 @@ proyecto: smartpot.app
 
 SmartPot empezó como una maceta con un ESP32 que mandaba sus lecturas a un bot de Telegram. En la materia de diseño de software el equipo decidió convertirla en un sistema completo: una aplicación propia, una API, una base de datos y automatizaciones. Con los semestres el proyecto sumó un estudio de mercado, una propuesta de investigación con inteligencia artificial y un plan formal de proyecto, y terminó como la plataforma que hoy corre en [smartpot.app](https://smartpot.app).
 
-<!-- diagrama: SmartPot_17_Evolucion | titulo=Etapas del proyecto -->
+<!-- diagrama: SmartPot_17_Evolution | titulo=Etapas del proyecto -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
@@ -57,23 +57,15 @@ flowchart TB
   class f6 latest
 ```
 
-### 1.1 Selección de la idea
+### 1.1 La idea
 
-El equipo evaluó cinco ideas de proyecto de tecnologías de la información. Cuatro dependían de grandes volúmenes de datos oficiales y de alianzas externas; la quinta, SmartPot, resolvía un problema real y permitía aplicar a la vez IoT, bases de datos, backend y frontend dentro del semestre.
-
-| Idea | Por qué no se eligió |
-| --- | --- |
-| Atlas de actividad física y sedentarismo | Análisis de datos más que integración tecnológica |
-| Perfil nutricional y hábitos saludables | Dependía de microdatos de encuestas nacionales |
-| Observatorio de movilidad urbana | Necesitaba acceso a datos de transporte y alianzas externas |
-| Educación y contexto socioeconómico | Volumen de datos oficiales difícil de conseguir en un semestre |
-| **SmartPot** | **Elegida**: problema concreto, alcance controlable y todas las capas de un sistema |
+SmartPot fue la idea elegida entre las propuestas de proyecto de un curso de tecnologías de la información: resolvía un problema real, tenía un alcance controlable en un semestre y permitía aplicar a la vez IoT, bases de datos, backend y frontend. Se planteó como un flujo de datos: capturar las lecturas de los sensores, integrarlas y estandarizarlas, automatizar el riego según lo medido y mostrar el estado del cultivo con gráficos y alertas. El [ciclo de vida del software](SmartPot_Software_Lifecycle.md) analiza esa formulación en detalle.
 
 ### 1.2 El problema
 
 La hidroponía necesita un control riguroso y constante del pH, los nutrientes, la temperatura, la luz y la humedad. Hecho a mano es ineficiente, depende de que alguien esté presente y detecta tarde los problemas; las soluciones comerciales son caras y poco flexibles. El diagrama de causa y efecto del proyecto resume el diagnóstico:
 
-<!-- diagrama: SmartPot_09_Causa_Efecto | titulo=Causa y efecto del problema -->
+<!-- diagrama: SmartPot_09_Cause_Effect | titulo=Causa y efecto del problema -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
@@ -169,12 +161,12 @@ La estrategia propuesta fue un modelo *freemium* académico en la primera fase y
 
 | Interesado | Poder | Interés | Manejo | Qué necesitaba |
 | --- | --- | --- | --- | --- |
-| Institución patrocinadora | Bajo | Alto | Mantener satisfecho | Cumplimiento académico, prototipo y documentación |
+| Institución patrocinadora | Bajo | Alto | Mantener informada | Cumplimiento académico, prototipo y documentación |
 | Docente evaluador | Alto | Alto | Administrar de cerca | Entregables del SRS, arquitectura, pruebas y demo |
 | Gerente de proyecto | Alto | Alto | Administrar de cerca | Hitos a tiempo y dentro del presupuesto |
 | Product Owner | Medio | Alto | Administrar de cerca | Backlog priorizado y requisitos claros |
-| Desarrolladores | Bajo | Alto | Mantener satisfechos | Requisitos definidos y un entorno estable |
-| Operadores del jardín | Bajo | Alto | Mantener satisfechos | Monitoreo, alertas y una interfaz intuitiva |
+| Desarrolladores | Bajo | Alto | Mantener informados | Requisitos definidos y un entorno estable |
+| Operadores del jardín | Bajo | Alto | Mantener informados | Monitoreo, alertas y una interfaz intuitiva |
 | Servicios en la nube | Bajo | Bajo | Monitorear | Consumo eficiente, sin costos extra |
 | Comunidad de código abierto | Bajo | Bajo | Monitorear | Repositorio documentado y reutilizable |
 | Feria de emprendimiento | Bajo | Medio | Monitorear | Una demo que muestre viabilidad y potencial |
@@ -269,7 +261,7 @@ Los requisitos se escribieron antes de programar, cuando SmartPot todavía era u
 
 Los ocho casos de uso del diseño se mantienen; la construcción sumó cuatro.
 
-<!-- diagrama: SmartPot_10_Casos_Uso | titulo=Casos de uso de SmartPot -->
+<!-- diagrama: SmartPot_10_Use_Cases | titulo=Casos de uso de SmartPot -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
@@ -366,11 +358,11 @@ El diseño imaginó una maceta que decidía por sí misma: leía sus sensores, e
 
 ## 10. Diagramas del diseño actualizados
 
-Los diagramas de la fase de diseño describían una aplicación distinta de la construida. Estos son sus equivalentes actuales; la [documentación técnica](SmartPot_Documentacion_Tecnica.md) trae además la arquitectura general, el flujo de una lectura, los estados de un comando, el modelo de datos, el despliegue y las redes.
+Los diagramas de la fase de diseño describían una aplicación distinta de la construida. Estos son sus equivalentes actuales; la [documentación técnica](SmartPot_Technical_Documentation.md) trae además la arquitectura general, el flujo de una lectura, los estados de un comando, el modelo de datos, el despliegue y las redes.
 
 ### 10.1 Clases del dominio
 
-<!-- diagrama: SmartPot_11_Clases_Dominio | titulo=Clases del dominio -->
+<!-- diagrama: SmartPot_11_Domain_Classes | titulo=Clases del dominio -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 classDiagram
@@ -453,7 +445,7 @@ classDiagram
 
 ### 10.2 Componentes
 
-<!-- diagrama: SmartPot_12_Componentes | titulo=Componentes y paquetes | lamina=H -->
+<!-- diagrama: SmartPot_12_Components | titulo=Componentes y paquetes | lamina=H -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
@@ -495,7 +487,7 @@ El diagrama de paquetes del diseño agrupaba `GestorUsuario`, `GestorCultivo`, `
 
 El diagrama de actividades del diseño («Control automático») planteaba leer los sensores, comparar con los límites, generar la alerta y el comando al actuador y guardar su estado. La construcción conserva ese flujo y le agrega la evaluación del asistente, el enfriamiento, la confirmación de la maceta y el aprendizaje.
 
-<!-- diagrama: SmartPot_13_Actividad_Control | titulo=Actividad del control automático -->
+<!-- diagrama: SmartPot_13_Control_Activity | titulo=Actividad del control automático -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
@@ -610,7 +602,7 @@ Cada servicio publica su imagen en GHCR (y en Docker Hub como réplica) con SBOM
 
 La propuesta de investigación planteó pasar de un control reactivo a uno predictivo con modelos entrenados con los datos del propio cultivo. La plataforma lo hace por capas: el sistema experto y la lógica difusa explican cada decisión desde la primera lectura; el pronóstico anticipa tendencias; y el aprendizaje continuo entrena, con las lecturas reales, modelos supervisados que anticipan riego y calor, estiman la humedad del sustrato y reconocen los estados típicos de cada especie.
 
-<!-- diagrama: SmartPot_16_Aprendizaje | titulo=Aprendizaje continuo -->
+<!-- diagrama: SmartPot_16_Learning | titulo=Aprendizaje continuo -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
@@ -655,7 +647,7 @@ flowchart TB
 
 La primera versión de SmartPot enviaba las lecturas a un bot de Telegram desde el ESP32. El diseño propuso reemplazarlo por software propio, y así se hizo. Telegram vuelve ahora como **canal de notificación** centralizado en la API: la maceta no conoce Telegram, cada persona vincula su chat con un código de un solo uso y elige qué avisos recibir, y la arquitectura de canales permite sumar otros servicios sin tocar el resto.
 
-<!-- diagrama: SmartPot_14_Secuencia_Telegram | titulo=Vinculación de Telegram -->
+<!-- diagrama: SmartPot_14_Telegram_Sequence | titulo=Vinculación de Telegram -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 sequenceDiagram
@@ -683,7 +675,7 @@ sequenceDiagram
 
 Wokwi fue la decisión que permitió enfocarse en el software sin hardware. Sigue siendo la forma de probar el firmware real, a mano y en el navegador. Para una demo y un QA que no dependan de una pestaña abierta, el simulador corre siempre junto a la plataforma: cada cultivo puede tener una maceta virtual con medidores manuales, con el ciclo del día o con el clima real del lugar.
 
-<!-- diagrama: SmartPot_15_Secuencia_Maceta_Virtual | titulo=Maceta virtual con clima real -->
+<!-- diagrama: SmartPot_15_Virtual_Pot_Sequence | titulo=Maceta virtual con clima real -->
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 sequenceDiagram
