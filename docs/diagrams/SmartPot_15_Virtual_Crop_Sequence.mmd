@@ -19,12 +19,12 @@ sequenceDiagram
     S->>B: telemetría según sol, nubes, lluvia y temperatura
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Cultivo en vivo › Bomba de agua 15 s
+  P->>W: Control › Bomba de agua 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
   S->>B: ACK EXECUTED y el sustrato sube
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
-  W-->>P: la balsa con la bomba en marcha
+  W-->>P: la ilustración muestra la bomba en marcha
   Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
