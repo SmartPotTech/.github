@@ -27,7 +27,8 @@ flowchart LR
       assistant["Asistente IA<br/>índice y de qué depende · diagnóstico<br/>pronóstico · lo aprendido · acciones"]
       ctrl["Control<br/>modo automático · actuadores · comandos"]
       history["Historial<br/>6 h · 24 h · 7 días · CSV"]
-      virtualtab["Cultivo en vivo<br/>forma y especie · cada actuador encendido<br/>o apagado · clima · simulación si es virtual"]
+      hero["Ilustración del cultivo · sobre todas las secciones<br/>forma y especie · cada actuador encendido<br/>o apagado · clima · sin acciones"]
+      virtualtab["Simulación · solo virtuales<br/>modo · lugar · medidores · pausa"]
       devicetab["Dispositivo · solo reales<br/>guía ESP32 o Wokwi · config.py · rotar clave"]
     end
   end
@@ -81,6 +82,7 @@ flowchart LR
   ctrl --> ecrops & eactuators & ecommands
   history --> ereadings
   devicetab --> edevice
+  hero --> eactuators & ecommands & evirtual
   virtualtab --> evirtual
   overview --> eoverview
   control --> ecrops & ecommands
@@ -115,6 +117,6 @@ flowchart LR
   classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
   class visitor,owner person
   class landing,login,register,forgot,reset web
-  class overview,crops,control,actions,learningp,alerts,profile,summary,assistant,ctrl,history,devicetab,virtualtab web
+  class overview,crops,control,actions,learningp,alerts,profile,summary,assistant,ctrl,history,devicetab,virtualtab,hero web
   class eauth,eprofiles,eusers,ecrops,edevice,ereadings,eactuators,ecommands,einsights,eoverview,enotif,echannels,evirtual,elearning edge
   class sauth,scrop,sread,scmd,sinsight,sover,snotif,schan,svirt,slearn module
