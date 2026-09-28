@@ -13,7 +13,8 @@ Cierra #
 
 ## Cambios relacionados
 
-Enlaza aquí los pull requests de otros repositorios de SmartPot que dependan de este (por ejemplo, un campo nuevo en la API y su pantalla en la PWA, o un cambio en el contrato MQTT y el firmware).
+Enlaza aquí los pull requests de otros repositorios de SmartPot que dependan de este (por ejemplo, un campo nuevo en la
+API y su pantalla en la PWA, o un cambio en el contrato MQTT y el firmware).
 
 ## Verificación
 
