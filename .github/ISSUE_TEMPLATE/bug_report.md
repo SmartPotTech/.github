@@ -30,7 +30,8 @@ Una descripción clara y concisa de qué está fallando.
 Qué esperabas que ocurriera.
 
 **Capturas o logs**
-Si aplica, agrega capturas de pantalla o la salida de `docker compose logs`. No incluyas tokens, claves del dispositivo, contraseñas ni datos personales.
+Si aplica, agrega capturas de pantalla o la salida de `docker compose logs`. No incluyas tokens, claves del dispositivo,
+contraseñas ni datos personales.
 
 **Entorno**
 
