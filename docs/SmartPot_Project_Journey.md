@@ -206,7 +206,7 @@ El acta definió un sistema de tres capas (IoT, backend y frontend) desarrollado
 | Riesgo | Valoración | Qué pasó |
 | --- | --- | --- |
 | Integración entre la simulación y el backend | Alta | Se resolvió con un contrato MQTT v1 explícito, un simulador que lo cumple y una prueba de extremo a extremo que lo recorre en cada cambio |
-| Cambios de alcance | Alta | El alcance creció (IA, panel general, cultivos virtuales, Telegram, cultivo en vivo) sin romper lo existente gracias a la separación por componentes |
+| Cambios de alcance | Alta | El alcance creció (IA, panel general, cultivos virtuales, Telegram, ilustración de cada cultivo) sin romper lo existente gracias a la separación por componentes |
 | Curva de aprendizaje | Moderada | Se documentó cada repositorio y se estandarizaron herramientas (uv, pnpm, Maven Wrapper) |
 | Deuda técnica | Moderada | Se hizo una reestructuración completa con pruebas, Dependabot y CI en todos los repositorios |
 | Cuotas de servicios gratuitos | Moderada | Se reemplazaron por un servidor propio con Docker, sin depender de capas gratuitas |
@@ -270,7 +270,7 @@ flowchart LR
     direction TB
     cu1["CU001 Ingresar a la plataforma"]
     cu2["CU002 Conectar el dispositivo<br/>ESP32 o Wokwi"]
-    cu3["CU003 Ver el cultivo en vivo"]
+    cu3["CU003 Ver el estado del cultivo<br/>con su ilustración"]
     cu4["CU004 Regar automáticamente"]
     cu5["CU005 Recibir alertas"]
     cu6["CU006 Consultar el historial"]
@@ -312,7 +312,7 @@ flowchart LR
 | --- | --- | --- |
 | CU001 Ingresar a la plataforma | Correo y contraseña; «Mantener sesión iniciada» | Credenciales inválidas; recuperación por enlace |
 | CU002 Conectar el dispositivo (ESP32 o Wokwi) | Crear un cultivo real y seguir la guía: circuito, firmware y `config.py`, o el proyecto de Wokwi | Clave mostrada una sola vez; rotación si se pierde |
-| CU003 Ver el cultivo en vivo | Panel general, resumen con el rango ideal e ilustración del cultivo con su forma y cada actuador | Sin lecturas: aviso para conectarlo; desconectado: no se ilustra y se explica cómo conectarlo |
+| CU003 Ver el estado del cultivo | Panel general, resumen con el rango ideal e ilustración del cultivo sobre todas sus secciones, con su forma, su especie y cada actuador | Sin lecturas: aviso para conectarlo; desconectado: no se ilustra y se explica cómo conectarlo |
 | CU004 Regar automáticamente | El agente riega con el modo automático y avisa | Posible falla de sensor: no actúa; enfriamiento por actuador |
 | CU005 Recibir alertas | Notificaciones en la PWA y en Telegram | Chat bloqueado: el canal se pausa |
 | CU006 Consultar el historial | Historial por variable y exportación CSV | Sin datos en el periodo |
@@ -471,7 +471,7 @@ flowchart TB
   subgraph web["SmartPot-Web · PWA"]
     w1["Panel general · Cultivos<br/>Control · Acciones"]
     w2["Asistente · Aprendizaje"]
-    w3["Nuevo cultivo · Cultivo en vivo<br/>Simulación · Perfil y canales"]
+    w3["Nuevo cultivo · Ilustración del cultivo<br/>Simulación · Perfil y canales"]
   end
   subgraph api["SmartPot-API · Spring Boot"]
     a1["security · users"]
@@ -717,14 +717,14 @@ sequenceDiagram
     S->>B: telemetría según sol, nubes, lluvia y temperatura
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Cultivo en vivo › Bomba de agua 15 s
+  P->>W: Control › Bomba de agua 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
   S->>B: ACK EXECUTED y el sustrato sube
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
-  W-->>P: la balsa con la bomba en marcha
+  W-->>P: la ilustración muestra la bomba en marcha
   Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
 ```
 
@@ -763,7 +763,7 @@ El workflow de QA corre en cada cambio de la organización, cada lunes y a mano;
 | --- | --- |
 | CU001 | E2E: registro, ingreso y rechazo sin sesión |
 | CU002 | E2E: cultivo real con credenciales, telemetría con la clave y rechazo de una clave incorrecta; pruebas de la guía de conexión |
-| CU003 | E2E: la lectura llega por MQTT y el panel general resume la cuenta; pruebas de la escena en vivo y de la conexión |
+| CU003 | E2E: la lectura llega por MQTT y el panel general resume la cuenta; pruebas de la ilustración y de la conexión |
 | CU004 | Pruebas del agente y de la API: acciones con modo automático, enfriamiento y falla de sensor |
 | CU005 | Pruebas de notificaciones y del reenvío a canales |
 | CU006 | E2E: series agregadas; pruebas del historial y la exportación |
