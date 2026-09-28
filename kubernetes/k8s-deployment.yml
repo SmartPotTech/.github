@@ -143,7 +143,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 100m
@@ -153,13 +153,13 @@ spec:
               memory: 768Mi
           readinessProbe:
             exec:
-              command: ["mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+              command: [ "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)" ]
             initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
           livenessProbe:
             exec:
-              command: ["mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+              command: [ "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)" ]
             initialDelaySeconds: 60
             periodSeconds: 30
             timeoutSeconds: 5
@@ -173,7 +173,7 @@ spec:
           persistentVolumeClaim:
             claimName: db-data
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -228,7 +228,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 50m
@@ -250,7 +250,7 @@ spec:
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -314,7 +314,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 25m
@@ -324,14 +324,14 @@ spec:
               memory: 128Mi
           readinessProbe:
             exec:
-              command: ["/mailpit", "readyz"]
+              command: [ "/mailpit", "readyz" ]
             periodSeconds: 10
           volumeMounts:
             - name: tmp
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -398,7 +398,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 25m
@@ -425,7 +425,7 @@ spec:
           persistentVolumeClaim:
             claimName: broker-data
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -487,7 +487,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 100m
@@ -516,7 +516,7 @@ spec:
           persistentVolumeClaim:
             claimName: ai-data
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -609,7 +609,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 250m
@@ -639,7 +639,7 @@ spec:
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -696,7 +696,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 25m
@@ -721,9 +721,9 @@ spec:
               mountPath: /etc/nginx/conf.d
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
         - name: nginx-conf
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service
@@ -782,7 +782,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: ["ALL"]
+              drop: [ "ALL" ]
           resources:
             requests:
               cpu: 10m
@@ -800,7 +800,7 @@ spec:
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir: { }
 ---
 apiVersion: v1
 kind: Service

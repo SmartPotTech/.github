@@ -3,7 +3,10 @@
 [![QA](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml)
 [![Deploy to Production](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml)
 
-Repositorio central de **SmartPot**, la plataforma de monitoreo y automatización de cultivos hidropónicos publicada en [smartpot.app](https://smartpot.app). Reúne lo que no pertenece a un solo servicio: los entornos de Docker y Kubernetes, el despliegue a producción, la batería de QA, la documentación técnica y los archivos de comunidad de la organización.
+Repositorio central de **SmartPot**, la plataforma de monitoreo y automatización de cultivos hidropónicos publicada
+en [smartpot.app](https://smartpot.app). Reúne lo que no pertenece a un solo servicio: los entornos de Docker y
+Kubernetes, el despliegue a producción, la batería de QA, la documentación técnica y los archivos de comunidad de la
+organización.
 
 ## Contenido
 
@@ -57,36 +60,48 @@ flowchart LR
   class O,T external
 ```
 
-Cada cultivo es **real** o **virtual**, y eso se elige al crearlo. Uno real publica sus lecturas en `smartpot/v1/{cropId}/telemetry` desde un ESP32 con el firmware, físico o simulado en Wokwi; uno virtual lo simula SmartPot, que sigue el clima de la ciudad, los medidores que mueva la persona o el día y la noche de la especie. Los dos se ven en vivo con su forma (maceta, tubos NFT, torre o balsa) y cada actuador. La API guarda cada lectura, pide al asistente de IA un diagnóstico (sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo) y, si el cultivo tiene el modo automático, envía comandos a los actuadores por `smartpot/v1/{cropId}/commands`. El asistente además **aprende de forma continua** con las lecturas de los cultivos reales de cada especie, seudonimizadas, para anticipar el riego y el calor de la próxima hora. Los avisos llegan a la PWA, que se instala en el teléfono, y a **Telegram** para quien vincula su chat.
+Cada cultivo es **real** o **virtual**, y eso se elige al crearlo. Uno real publica sus lecturas en
+`smartpot/v1/{cropId}/telemetry` desde un ESP32 con el firmware, físico o simulado en Wokwi; uno virtual lo simula
+SmartPot, que sigue el clima de la ciudad, los medidores que mueva la persona o el día y la noche de la especie. Los dos
+se ven en vivo con su forma (maceta, tubos NFT, torre o balsa) y cada actuador. La API guarda cada lectura, pide al
+asistente de IA un diagnóstico (sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo)
+y, si el cultivo tiene el modo automático, envía comandos a los actuadores por `smartpot/v1/{cropId}/commands`. El
+asistente además **aprende de forma continua** con las lecturas de los cultivos reales de cada especie, seudonimizadas,
+para anticipar el riego y el calor de la próxima hora. Los avisos llegan a la PWA, que se instala en el teléfono, y a *
+*Telegram** para quien vincula su chat.
 
-Para ver cada pieza por dentro y toda la operación paso a paso están los [diagramas generales](docs/README.md#diagramas-generales).
+Para ver cada pieza por dentro y toda la operación paso a paso están
+los [diagramas generales](docs/README.md#diagramas-generales).
 
 ## Empezar
 
-| Quiero... | Guía |
-| --- | --- |
-| Ver SmartPot funcionando en mi equipo | [`docker/demo`](docker/README.md) |
-| Programar en un servicio | [`docker/dev`](docker/dev/README.md) |
-| Desplegar en un servidor | [`docker/production`](docker/production/README.md) |
-| Probar en Kubernetes | [`kubernetes`](kubernetes/README.md) |
-| Entender el sistema | [`docs`](docs/README.md) |
+| Quiero...                                  | Guía                                                      |
+|--------------------------------------------|-----------------------------------------------------------|
+| Ver SmartPot funcionando en mi equipo      | [`docker/demo`](docker/README.md)                         |
+| Programar en un servicio                   | [`docker/dev`](docker/dev/README.md)                      |
+| Desplegar en un servidor                   | [`docker/production`](docker/production/README.md)        |
+| Probar en Kubernetes                       | [`kubernetes`](kubernetes/README.md)                      |
+| Entender el sistema                        | [`docs`](docs/README.md)                                  |
 | Ver toda la plataforma en un solo diagrama | [Diagramas generales](docs/README.md#diagramas-generales) |
 
 ## QA
 
 El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada cambio de este repositorio, cada lunes y a mano:
 
-| Trabajo | Qué valida |
-| --- | --- |
-| API | Pruebas unitarias y de controladores con Maven |
-| Web | Lint, tipos, pruebas con Vitest y build de producción |
-| SmartPot-AI, -DataGenerator, -IoT | Ruff y pytest |
-| SmartPot-Broker, -DB, -Cache, -Mail | Imagen endurecida y pruebas de humo (autenticación, ACL por cultivo, TLS, validadores de MongoDB) |
-| End-to-End | Compila las ocho imágenes, levanta la demo y recorre registro, cultivo real, telemetría MQTT, comando con confirmación, asistente, panel general, órdenes en bloque, tipo fijo, cultivo virtual con pausa, aprendizaje continuo, canales y borrado de la cuenta |
+| Trabajo                             | Qué valida                                                                                                                                                                                                                                                      |
+|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| API                                 | Pruebas unitarias y de controladores con Maven                                                                                                                                                                                                                  |
+| Web                                 | Lint, tipos, pruebas con Vitest y build de producción                                                                                                                                                                                                           |
+| SmartPot-AI, -DataGenerator, -IoT   | Ruff y pytest                                                                                                                                                                                                                                                   |
+| SmartPot-Broker, -DB, -Cache, -Mail | Imagen endurecida y pruebas de humo (autenticación, ACL por cultivo, TLS, validadores de MongoDB)                                                                                                                                                               |
+| End-to-End                          | Compila las ocho imágenes, levanta la demo y recorre registro, cultivo real, telemetría MQTT, comando con confirmación, asistente, panel general, órdenes en bloque, tipo fijo, cultivo virtual con pausa, aprendizaje continuo, canales y borrado de la cuenta |
 
 ## Despliegue
 
-Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub como réplica) y pide el despliegue a [`deploy.yml`](.github/workflows/deploy.yml), que actualiza el servidor por SSH con el `compose.yaml` de producción descargando las imágenes de GHCR. Los detalles, los secrets necesarios y la configuración de nginx están en [`docker/production`](docker/production/README.md).
+Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub como réplica) y pide el despliegue a [
+`deploy.yml`](.github/workflows/deploy.yml), que actualiza el servidor por SSH con el `compose.yaml` de producción
+descargando las imágenes de GHCR. Los detalles, los secrets necesarios y la configuración de nginx están en [
+`docker/production`](docker/production/README.md).
 
 ## Licencia
 
