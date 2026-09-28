@@ -114,7 +114,7 @@ flowchart LR
 
 | Componente | Repositorio | Tecnología | Responsabilidad |
 | --- | --- | --- | --- |
-| PWA | SmartPot-Web | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 | Landing pública, creación de cultivos reales o virtuales, cultivo en vivo ilustrado, asistente, control y alertas; instalable |
+| PWA | SmartPot-Web | React 19, TypeScript 6, Vite 8, Tailwind CSS 4 | Landing pública, creación de cultivos reales o virtuales, ilustración de cada cultivo, asistente, control y alertas; instalable |
 | API | SmartPot-API | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de los dispositivos, cultivos reales y virtuales, comandos, agente de automatización, canales de notificación (Telegram) y simulaciones |
 | Asistente de IA | SmartPot-AI | Python 3.13, FastAPI, scikit-learn, uv | Diagnóstico, índice de salud, predicciones, acciones sugeridas y aprendizaje continuo con lecturas reales |
 | Broker | SmartPot-Broker | Eclipse Mosquitto 2.1 con seguridad dinámica | MQTT con TLS 1.2+ y WebSocket; una cuenta por cultivo |
@@ -640,7 +640,7 @@ Los cultivos creados antes de existir el tipo y la forma se completan solos al a
 
 ### En palabras simples
 
-La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tras ingresar, un panel general con todos sus cultivos, el detalle de cada uno con su vista en vivo, un control general, un centro de acciones y lo que ha aprendido el asistente. Se instala como una app en Android, iOS y escritorio.
+La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tras ingresar, un panel general con todos sus cultivos, el detalle de cada uno con su ilustración, un control general, un centro de acciones y lo que ha aprendido el asistente. Se instala como una app en Android, iOS y escritorio.
 
 | Pantalla | Qué permite |
 | --- | --- |
@@ -656,7 +656,8 @@ La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tra
 | Detalle · Asistente IA | Índice de salud y de qué depende, diagnóstico, conclusiones, predicciones, pronóstico de las próximas horas, lo aprendido de cultivos reales y acciones ejecutables |
 | Detalle · Control | Modo automático, actuadores y últimos comandos |
 | Detalle · Historial | 6 h, 24 h o 7 días por variable y exportación CSV |
-| Detalle · Cultivo en vivo | Para reales y virtuales: la forma del cultivo (maceta, tubos NFT, torre o balsa) con la especie y el color de su salud, el entorno (interior de día o de noche, o el clima del lugar) y cada actuador animado mientras está encendido, con su botón. Si el cultivo no está conectado no se ilustra. En los virtuales suma los controles de la simulación: modo, lugar, medidores, frecuencia, pausa y reanudación |
+| Detalle · Ilustración | Sobre todas las secciones, para reales y virtuales: la forma del cultivo (maceta, tubos NFT, torre o balsa) con su especie y el color de su salud, el entorno (interior de día o de noche, o el clima del lugar) y el estado de cada actuador, animado mientras está encendido. No tiene botones: las órdenes se dan en Control. Si el cultivo no está conectado no se ilustra |
+| Detalle · Simulación | Solo cultivos virtuales: modo, lugar, medidores, frecuencia, pausa y reanudación |
 | Detalle · Dispositivo | Solo cultivos reales: estado, guía para el ESP32 físico (circuito, firmware y `config.py`) o para Wokwi, datos de conexión MQTT y rotación de la clave |
 | Detalle · Ajustes | Nombre, especie y forma; el tipo real o virtual se muestra y no se puede cambiar |
 | Alertas y perfil | Notificaciones, vinculación de Telegram con los avisos elegidos, datos personales, contraseña y borrado de la cuenta |
@@ -748,29 +749,29 @@ sequenceDiagram
     S->>B: telemetría según sol, nubes, lluvia y temperatura
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Cultivo en vivo › Bomba de agua 15 s
+  P->>W: Control › Bomba de agua 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
   S->>B: ACK EXECUTED y el sustrato sube
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
-  W-->>P: la balsa con la bomba en marcha
+  W-->>P: la ilustración muestra la bomba en marcha
   Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
 ```
 
 El simulador expone una API interna de control (`/v1/pots`, con token) que solo usa SmartPot-API. La configuración vive en `virtual_devices`: pausar la simulación la marca `active: false` y la retira del simulador sin perderla; reanudarla la vuelve a crear. Cada minuto la API recrea las simulaciones activas que falten y retira las pausadas o huérfanas; borrar el cultivo la elimina. Los cultivos fijos de `SIMULATOR_DEVICES` (datos demo y QA) son cultivos reales que el simulador hace publicar con su clave.
 
-### 9.4 Cultivo en vivo
+### 9.4 Ilustración del cultivo
 
-La pestaña **Cultivo en vivo** dibuja cada cultivo, real o virtual, como es:
+Encima de todas las secciones del detalle, la PWA dibuja cada cultivo, real o virtual, como es:
 
 | Pieza | Qué muestra |
 | --- | --- |
 | Forma | Maceta con depósito y riego por goteo; tubos NFT con colectores y retorno; torre con bolsillos escalonados; balsa flotante con raíces en la solución |
-| Planta | La especie (lechuga, espinaca, albahaca, tomate, fresa o pimentón) con el color de su índice de salud |
+| Planta | La especie tal como es: lechuga en roseta, espinaca de hoja ancha, albahaca de hojas pareadas, tomate con tutor, flores y frutos rojos, fresa con flor blanca y frutos, pimentón rojo y amarillo; el color de las hojas sigue su índice de salud |
 | Entorno | Interior de día o de noche según la luz medida, o el clima del lugar en los virtuales con clima real |
-| Actuadores | Solo los instalados: la bomba hace correr la solución (o burbujas en la balsa), la luz ilumina, el ventilador gira, el humidificador suelta bruma y los dosificadores gotean; cada uno con su estado y su botón |
+| Actuadores | Solo los instalados: la bomba hace correr la solución (o burbujas en la balsa), la luz ilumina, el ventilador gira, el humidificador suelta bruma y los dosificadores gotean; cada uno con su estado, sin botones |
 
 Un actuador se ve encendido si quedó encendido sin límite o si su última orden por tiempo sigue corriendo; en los virtuales también cuenta lo que informa el simulador. Si el cultivo no está conectado (dispositivo sin señal o simulación en pausa) la escena no se dibuja y la PWA explica cómo conectarlo o reanudarlo.
 
@@ -946,7 +947,7 @@ flowchart LR
 | --- | --- | --- |
 | SmartPot-API | 118 | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos, cultivos, agente, caché, historial con hora para la IA, panel general, órdenes y automatización en bloque, envío de lecturas para el aprendizaje, canales y bot de Telegram, webhook firmado, tipo fijo y forma de los cultivos, simulación solo de virtuales con pausa, aprendizaje solo con reales y seguridad de los controladores |
 | SmartPot-AI | 73 | Base de conocimiento, reglas, descanso nocturno, pronóstico Theil-Sen, acciones preventivas, análisis de flota, índice difuso, exactitud de los modelos, agente, contrato HTTP y aprendizaje continuo (seudonimización, calidad, etiquetas, modelos frente a la línea base, campeón y retador, persistencia) |
-| SmartPot-Web | 52 | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente con pronóstico y lo aprendido, comparación de modelos, canales de Telegram, cultivo en vivo (formas, actuadores, clima y conexión), creación real o virtual, guía de conexión, panel general y requisitos de SEO y PWA |
+| SmartPot-Web | 54 | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente con pronóstico y lo aprendido, comparación de modelos, canales de Telegram, ilustración del cultivo (formas, especies, actuadores, clima y conexión), creación real o virtual, guía de conexión, panel general y requisitos de SEO y PWA |
 | SmartPot-DataGenerator | 23 | Modelo físico, modos manual y clima, lluvia y sol, caché del clima, contrato MQTT, comandos y API de control |
 | SmartPot-IoT | 13 | Cliente MQTT, telemetría, comandos, actuadores y sensores con MicroPython simulado |
 | SmartPot-Broker | 10 comprobaciones | Autenticación, ACL por cultivo, client ids, anónimos y TLS |
@@ -982,7 +983,7 @@ flowchart LR
 | Campeón y retador | El modelo vigente solo se reemplaza si el nuevo lo supera en las lecturas más recientes |
 | Broker | Servidor MQTT que recibe y reparte los mensajes entre los dispositivos y la API |
 | Clave del dispositivo | Contraseña MQTT de un cultivo, generada por la API |
-| Cultivo en vivo | Ilustración del cultivo con su forma, su planta y cada actuador encendido o apagado |
+| Ilustración del cultivo | Dibujo sobre todas las secciones del detalle con su forma, su especie y cada actuador encendido o apagado |
 | Cultivo real | Cultivo cuyas lecturas envía un ESP32 con el firmware, físico o simulado en Wokwi |
 | Cultivo virtual | Cultivo que simula SmartPot, siempre encendido, con su propia cuenta en el broker |
 | Forma del cultivo | Maceta, tubos NFT, torre vertical o balsa flotante: cómo se ilustra |
