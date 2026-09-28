@@ -64,9 +64,9 @@ Los correos de recuperación de contraseña llegan a la bandeja de Mailpit.
 
 | Función | Dónde |
 | --- | --- |
-| **Cultivo en vivo**: las lechugas en tubos NFT y los tomates en maceta de la demo, con cada actuador; enciende la bomba o el ventilador y mira la escena | Detalle de un cultivo › Cultivo en vivo |
+| **Ilustración de cada cultivo**: las lechugas en tubos NFT y los tomates en maceta de la demo, con cada actuador; enciende la bomba o el ventilador desde Control y mira cómo cambia | Detalle de un cultivo |
 | **Cultivo virtual** con el clima real: crea uno virtual, elige su forma y una ciudad, y mira la escena (sol, nubes, lluvia o noche) y las lecturas | Mis cultivos › Nuevo cultivo › Virtual |
-| **Medidores manuales**: baja la humedad del sustrato y observa al asistente regar con el modo automático | Cultivo virtual › Cultivo en vivo › Simulación › Manual |
+| **Medidores manuales**: baja la humedad del sustrato y observa al asistente regar con el modo automático | Cultivo virtual › Simulación › Manual |
 | **Aprendizaje**: lecturas reales por especie, calidad de datos y comparación de modelos (el primer entrenamiento llega tras unas 200 lecturas de la especie, cerca de una hora) | Aprendizaje |
 | **Telegram** (opcional): crea un bot con [@BotFather](https://t.me/BotFather) y levanta la demo con `TELEGRAM_BOT_TOKEN=<token> TELEGRAM_BOT_USERNAME=<bot> docker compose up -d --wait`; luego vincúlalo desde Perfil › Notificaciones | Perfil |
 
@@ -76,7 +76,7 @@ Los correos de recuperación de contraseña llegan a la bandeja de Mailpit.
 
 En la PWA crea un cultivo y elige, de una vez, cómo le llegarán las lecturas:
 
-- **Virtual** (lo más simple): SmartPot lo simula con clima real, medidores manuales o día y noche, sin nada más que instalar. Sus controles están en **Cultivo en vivo**.
+- **Virtual** (lo más simple): SmartPot lo simula con clima real, medidores manuales o día y noche, sin nada más que instalar. Sus controles están en la pestaña **Simulación**.
 - **Real con Wokwi o con un ESP32**: la API genera la clave del dispositivo y la muestra **una sola vez** junto con la guía de conexión; la guía y la configuración para el firmware (`config.py`) de [SmartPot-IoT](https://github.com/SmartPotTech/SmartPot-IoT) siguen en la pestaña **Dispositivo**.
 - **Real con el simulador por línea de comandos**, que publica con la clave como lo haría un ESP32:
 
