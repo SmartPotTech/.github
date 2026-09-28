@@ -99,7 +99,7 @@ sequenceDiagram
       SIM->>OM: Clima actual
       OM-->>SIM: Temperatura, humedad, radiación, lluvia y presión
     end
-    opt Pausar y reanudar desde Cultivo en vivo
+    opt Pausar y reanudar desde la pestaña Simulación
       PWA->>API: DELETE /api/v1/crops/{id}/virtual-device
       API->>DB: virtual_devices active false (conserva la configuración)
       API->>SIM: DELETE /v1/pots/{cropId}
@@ -186,7 +186,7 @@ sequenceDiagram
       API->>DB: Consultas por dueño (404 si el cultivo no es suyo)
       API-->>PWA: JSON en español
     end
-    opt Cultivo en vivo
+    opt Ilustración del cultivo sobre todas sus secciones
       PWA->>API: GET /crops/{id}/actuators y /commands cada 5 a 10 s · /virtual-device si es virtual
       PWA-->>U: La forma del cultivo con cada actuador encendido o apagado · sin conexión no se ilustra
     end
