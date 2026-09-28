@@ -72,7 +72,7 @@ Los repositorios suman 2217 commits, de los cuales 1932 son de personas y el res
 | Gestión de proyectos TI | II | EDT, red de precedencias, ruta crítica, ciclo Scrum, riesgos |
 | Análisis | III | Casos de uso |
 | Diseño | IV | Contexto, contenedores, componentes, clases, actividad, secuencia, estados, datos, mapa de la PWA, redes |
-| Construcción | V | Despliegue, asistente de IA, aprendizaje, Telegram, cultivos reales y virtuales, cultivo en vivo |
+| Construcción | V | Despliegue, asistente de IA, aprendizaje, Telegram, cultivos reales y virtuales, ilustración de cada cultivo |
 | Pruebas | VI | Pirámide de pruebas, workflow de QA |
 | Mejora continua | VII | Ciclo PDCA, ciclos de mejora |
 
@@ -844,7 +844,7 @@ flowchart LR
     direction TB
     cu1["CU001 Ingresar a la plataforma"]
     cu2["CU002 Conectar el dispositivo<br/>ESP32 o Wokwi"]
-    cu3["CU003 Ver el cultivo en vivo"]
+    cu3["CU003 Ver el estado del cultivo<br/>con su ilustración"]
     cu4["CU004 Regar automáticamente"]
     cu5["CU005 Recibir alertas"]
     cu6["CU006 Consultar el historial"]
@@ -1298,7 +1298,7 @@ flowchart TB
   subgraph web["SmartPot-Web · PWA"]
     w1["Panel general · Cultivos<br/>Control · Acciones"]
     w2["Asistente · Aprendizaje"]
-    w3["Nuevo cultivo · Cultivo en vivo<br/>Simulación · Perfil y canales"]
+    w3["Nuevo cultivo · Ilustración del cultivo<br/>Simulación · Perfil y canales"]
   end
   subgraph api["SmartPot-API · Spring Boot"]
     a1["security · users"]
@@ -1642,7 +1642,8 @@ flowchart LR
   panel --> cultivos["/app/crops · Mis cultivos"]
   cultivos --> nuevo["Nuevo cultivo<br/>real o virtual · especie · forma"]
   cultivos --> detalle["/app/crops/:id"]
-  detalle --> t1["Resumen"] & t6["Cultivo en vivo<br/>+ simulación si es virtual"] & t2["Asistente IA"] & t3["Control"] & t4["Historial"] & t5["Dispositivo<br/>solo reales"] & t7["Ajustes"]
+  detalle --> hero["Ilustración del cultivo<br/>sobre todas las secciones"]
+  hero --> t1["Resumen"] & t2["Asistente IA"] & t3["Control"] & t4["Historial"] & t5["Dispositivo<br/>solo reales"] & t6["Simulación<br/>solo virtuales"] & t7["Ajustes"]
   panel --> control["/app/control · Control general"]
   panel --> acciones["/app/actions · Acciones"]
   panel --> aprendizaje["/app/learning · Aprendizaje"]
@@ -1659,6 +1660,7 @@ flowchart LR
   class panel core
   class cultivos,control,acciones,aprendizaje,alertas,perfil leaf
   class detalle,nuevo sun
+  class hero leaf
   class t1,t2,t3,t4,t5,t6,t7 muted
 ```
 
@@ -1849,7 +1851,7 @@ sequenceDiagram
 
 ### 27.2 Cultivos reales y virtuales
 
-La primera versión encendía una «maceta virtual» sobre cualquier cultivo, incluso uno con hardware, y dibujaba siempre una maceta. La revisión separó los dos mundos y los hizo fieles: el tipo se elige al crear el cultivo y no cambia (el API rechaza el cambio); un cultivo virtual no entrega credenciales, nace con los seis actuadores, se pausa sin perder su configuración y no alimenta el aprendizaje; Wokwi, al ejecutar el firmware real, cuenta como cultivo real. Cada cultivo tiene además su forma (maceta, tubos NFT, torre vertical o balsa flotante) y se ve en vivo con cada actuador encendido o apagado; si no está conectado, no se ilustra.
+La primera versión encendía una «maceta virtual» sobre cualquier cultivo, incluso uno con hardware, y dibujaba siempre una maceta. La revisión separó los dos mundos y los hizo fieles: el tipo se elige al crear el cultivo y no cambia (el API rechaza el cambio); un cultivo virtual no entrega credenciales, nace con los seis actuadores, se pausa sin perder su configuración y no alimenta el aprendizaje; Wokwi, al ejecutar el firmware real, cuenta como cultivo real. Cada cultivo tiene además su forma (maceta, tubos NFT, torre vertical o balsa flotante) y se dibuja sobre todas sus secciones con su especie y cada actuador encendido o apagado, sin botones; si no está conectado, no se ilustra. La simulación de los virtuales se configura en su propia pestaña.
 
 <!-- diagrama: SmartPot_15_Virtual_Crop_Sequence | titulo=Cultivo virtual con clima real -->
 ```mermaid
@@ -1874,14 +1876,14 @@ sequenceDiagram
     S->>B: telemetría según sol, nubes, lluvia y temperatura
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Cultivo en vivo › Bomba de agua 15 s
+  P->>W: Control › Bomba de agua 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
   S->>B: ACK EXECUTED y el sustrato sube
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
-  W-->>P: la balsa con la bomba en marcha
+  W-->>P: la ilustración muestra la bomba en marcha
   Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
 ```
 
@@ -2043,7 +2045,7 @@ flowchart TB
   c1["<b>Ciclo 1 · Reestructuración</b><br/>producción caída → MQTT v1, seguridad, servidor propio, IA inicial y QA"]
   c2["<b>Ciclo 2 · Mirada de conjunto</b><br/>panel general, control y acciones en bloque, pronóstico y cola de despliegues"]
   c3["<b>Ciclo 3 · Aprender y conectar</b><br/>aprendizaje continuo, Telegram, cultivos virtuales y despliegue desde GHCR"]
-  c4["<b>Ciclo 4 · Cultivos a la medida</b><br/>real o virtual fijo, cuatro formas, cultivo en vivo y guía ESP32 o Wokwi"]
+  c4["<b>Ciclo 4 · Cultivos a la medida</b><br/>real o virtual fijo, cuatro formas, cada especie ilustrada y guía ESP32 o Wokwi"]
   c5["<b>Próximo ciclo</b><br/>2FA, temas, reportes programados, más canales y prototipo físico"]
   c0 --> c1 --> c2 --> c3 --> c4 -.-> c5
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
@@ -2067,7 +2069,7 @@ flowchart TB
 | 1 · Reestructuración | Producción caída, servicios expuestos y rutas sin control de dueño | MQTT v1, servidor propio, seguridad, IA inicial, documentación y QA | Plataforma en smartpot.app; QA con E2E en verde |
 | 2 · Mirada de conjunto | Una persona con varios cultivos no tenía vista general | Panel general, control y acciones en bloque, pronóstico y cola de despliegues | Nuevos endpoints y 21 comprobaciones E2E |
 | 3 · Aprender y conectar | La IA no mejoraba con el uso y no había avisos fuera de la PWA | Aprendizaje continuo, Telegram, macetas virtuales con clima real y despliegue desde GHCR | 260 pruebas y 30 comprobaciones E2E |
-| 4 · Cultivos a la medida | La maceta virtual mezclaba simulación y hardware, y no todo cultivo es una maceta | Cultivo real o virtual fijo al crearlo, cuatro formas, cultivo en vivo con cada actuador, guía ESP32 o Wokwi y aprendizaje solo con cultivos reales | 279 pruebas y 35 comprobaciones E2E |
+| 4 · Cultivos a la medida | La maceta virtual mezclaba simulación y hardware, y no todo cultivo es una maceta | Cultivo real o virtual fijo al crearlo, cuatro formas, cada especie ilustrada con sus actuadores, guía ESP32 o Wokwi y aprendizaje solo con cultivos reales | 281 pruebas y 35 comprobaciones E2E |
 | Próximo | Pendientes de requisitos y de la investigación | Sección 36 | — |
 
 ## 34. Mejora que ocurre sola
