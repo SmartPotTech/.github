@@ -3,9 +3,9 @@ eyebrow: Documentación técnica
 titulo: Plataforma SmartPot
 acento: SmartPot
 subtitulo: Monitoreo y automatización de cultivos hidropónicos
-bajada: Arquitectura, contratos, asistente de IA con aprendizaje continuo, canales de notificación, cultivos reales y virtuales, seguridad, despliegue y operación de la plataforma que conecta los cultivos hidropónicos con la aplicación de sus dueños.
+bajada: Arquitectura, contratos, asistente de IA con aprendizaje continuo, lugar y clima de cada cultivo, canales de notificación, cultivos reales y virtuales, seguridad, despliegue y operación de la plataforma que conecta los cultivos hidropónicos con la aplicación de sus dueños.
 documento: Documentación técnica
-version: 1.2 · septiembre 2026
+version: 1.3 · octubre 2026
 equipo: SmartPotTech
 proyecto: smartpot.app
 -->
@@ -14,16 +14,16 @@ proyecto: smartpot.app
 
 ## Ficha del documento
 
-| Campo             | Valor                                                                                                                                                         |
-|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Proyecto          | SmartPot · [smartpot.app](https://smartpot.app)                                                                                                               |
-| Organización      | SmartPotTech                                                                                                                                                  |
-| Documento         | Documentación técnica de la plataforma                                                                                                                        |
-| Versión           | 1.2 · septiembre 2026                                                                                                                                         |
-| Alcance           | PWA, API, asistente de IA y su aprendizaje continuo, canales de notificación, broker MQTT, firmware, cultivos reales y virtuales, datos, infraestructura y QA |
-| Fuente de verdad  | Los README de cada repositorio y la documentación interactiva de la API (`/docs`) prevalecen sobre este documento si hay diferencias                          |
-| Mantenimiento     | Este documento se genera desde `docs/SmartPot_Technical_Documentation.md`; se actualiza con cada cambio de contrato o de infraestructura                      |
-| Documento hermano | [Recorrido del proyecto](SmartPot_Project_Journey.md): inicio, análisis, diseño, construcción y pruebas                                                       |
+| Campo             | Valor                                                                                                                                                                                        |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Proyecto          | SmartPot · [smartpot.app](https://smartpot.app)                                                                                                                                              |
+| Organización      | SmartPotTech                                                                                                                                                                                 |
+| Documento         | Documentación técnica de la plataforma                                                                                                                                                       |
+| Versión           | 1.3 · octubre 2026                                                                                                                                                                           |
+| Alcance           | PWA, API, asistente de IA y su aprendizaje continuo, lugar y clima de los cultivos, canales de notificación, broker MQTT, firmware, cultivos reales y virtuales, datos, infraestructura y QA |
+| Fuente de verdad  | Los README de cada repositorio y la documentación interactiva de la API (`/docs`) prevalecen sobre este documento si hay diferencias                                                         |
+| Mantenimiento     | Este documento se genera desde `docs/SmartPot_Technical_Documentation.md`; se actualiza con cada cambio de contrato o de infraestructura                                                     |
+| Documento hermano | [Recorrido del proyecto](SmartPot_Project_Journey.md): inicio, análisis, diseño, construcción y pruebas                                                                                      |
 
 <!-- parte: PARTE I | Visión general -->
 
@@ -35,10 +35,12 @@ SmartPot convierte un cultivo hidropónico (una maceta, unos tubos NFT, una torr
 cultivo que se cuida casi solo. Su dispositivo mide seis variables (temperatura, humedad del aire, luz, pH, nutrientes y
 humedad del sustrato) y las envía a internet cada pocos segundos. La plataforma las guarda, las compara con lo que
 necesita cada especie y le muestra al dueño, en su teléfono, cómo está su cultivo y qué hacer. Si el dueño lo permite,
-un **agente de IA** riega, enciende la luz o ventila por su cuenta. El asistente **aprende** de las lecturas de los
-cultivos reales, avisa por **Telegram** si la persona lo pide, y quien no tiene hardware puede crear un **cultivo
-virtual** que SmartPot simula con el clima real de su ciudad. Cada cultivo, real o virtual, se ve **en vivo**: su forma,
-la planta y cada actuador encendido o apagado.
+un **agente de IA** riega, enciende la luz ultravioleta o ventila por su cuenta. El asistente **aprende** de las
+lecturas de los cultivos reales, sabe **dónde está** cada cultivo (bajo techo o al aire libre, con cuánto sol y con qué
+clima afuera) y recomienda moverlo cuando el lugar le hace daño. Avisa por **Telegram** lo que cada cultivo tenga
+elegido, al instante o en resúmenes, también a los chats con los que se comparte. Quien no tiene hardware puede crear un
+**cultivo virtual** que SmartPot simula con el clima real de su ciudad. Cada cultivo, real o virtual, se ve **en vivo**:
+su forma, la planta, su lugar y cada actuador encendido o apagado.
 
 ### Qué cubre este documento
 
@@ -46,7 +48,9 @@ la planta y cada actuador encendido o apagado.
 - Los contratos entre componentes: MQTT para los dispositivos y REST para la aplicación.
 - El asistente de IA: base de conocimiento, sistema experto, lógica difusa, modelos de aprendizaje automático, agente
   reactivo y aprendizaje continuo con lecturas reales.
-- Los canales de notificación (Telegram) y los cultivos reales (ESP32 o Wokwi) y virtuales (con clima real).
+- El lugar de cada cultivo y el clima de afuera, que usan la ilustración, la simulación y el asistente.
+- Los canales de notificación (Telegram, con avisos por cultivo y chats compartidos) y los cultivos reales (ESP32 o
+  Wokwi) y virtuales (con clima real).
 - El modelo de datos, la aplicación web progresiva y el firmware.
 - La seguridad, el despliegue, la batería de calidad y la operación diaria.
 
@@ -101,15 +105,15 @@ flowchart LR
   maceta <-->|"MQTT TLS 8883<br/>telemetría · comandos · ACK"| broker
   wokwi <-->|"MQTT TLS"| broker
   sim <-->|"MQTT interno"| broker
-  clima -.->|"modo clima"| sim
+  clima -.->|"clima del lugar"| sim
   broker <-->|"MQTT interno"| api
   pwa -->|"HTTPS · REST + JWT"| api
-  api -->|"control con token"| sim
+  api -->|"simulaciones y clima<br/>con token"| sim
   api -->|"evaluación · lecturas para aprender"| ai
   api -->|"lecturas, cultivos, comandos"| db
   api -->|"límites y caché"| cache
   api -->|"SMTP"| mail
-  api -->|"alertas · bot"| tg
+  api -->|"avisos · resúmenes · bot"| tg
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
   classDef edge fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
@@ -126,33 +130,36 @@ flowchart LR
 
 ### 2.1 Componentes
 
-| Componente      | Repositorio            | Tecnología                                           | Responsabilidad                                                                                                                                                            |
-|-----------------|------------------------|------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| PWA             | SmartPot-Web           | React 19, TypeScript 6, Vite 8, Tailwind CSS 4       | Landing pública, creación de cultivos reales o virtuales, ilustración de cada cultivo, asistente, control y alertas; instalable                                            |
-| API             | SmartPot-API           | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de los dispositivos, cultivos reales y virtuales, comandos, agente de automatización, canales de notificación (Telegram) y simulaciones |
-| Asistente de IA | SmartPot-AI            | Python 3.13, FastAPI, scikit-learn, uv               | Diagnóstico, índice de salud, predicciones, acciones sugeridas y aprendizaje continuo con lecturas reales                                                                  |
-| Broker          | SmartPot-Broker        | Eclipse Mosquitto 2.1 con seguridad dinámica         | MQTT con TLS 1.2+ y WebSocket; una cuenta por cultivo                                                                                                                      |
-| Firmware        | SmartPot-IoT           | MicroPython 1.23 en ESP32, Wokwi                     | El dispositivo de un cultivo real: sensores, pantalla, telemetría y actuadores                                                                                             |
-| Simulador       | SmartPot-DataGenerator | Python 3.13, FastAPI, paho-mqtt, uv                  | Cultivos virtuales siempre encendidos: día y noche, manuales o con el clima real (Open-Meteo); demo y QA                                                                   |
-| Base de datos   | SmartPot-DB            | MongoDB 8                                            | Colecciones con validadores `$jsonSchema`, índices y datos demo opcionales                                                                                                 |
-| Caché           | SmartPot-Cache         | Redis 8                                              | Límite de peticiones, enfriamiento del agente y caché de perfiles                                                                                                          |
-| Correo          | SmartPot-Mail          | Mailpit                                              | SMTP autenticado y bandeja web protegida                                                                                                                                   |
-| Plataforma      | .github                | Docker Compose, Kubernetes, GitHub Actions           | Entornos, despliegue central, QA y documentación                                                                                                                           |
+| Componente      | Repositorio            | Tecnología                                           | Responsabilidad                                                                                                                                                                                                                      |
+|-----------------|------------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PWA             | SmartPot-Web           | React 19, TypeScript 6, Vite 8, Tailwind CSS 4       | Landing pública, creación de cultivos reales o virtuales, ilustración de cada cultivo en su lugar, asistente, control con switches y avisos; instalable                                                                              |
+| API             | SmartPot-API           | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de los dispositivos, cultivos reales y virtuales, lugar y clima de cada cultivo, comandos, agente de automatización, canales de notificación (Telegram, por cultivo y compartidos) y simulaciones |
+| Asistente de IA | SmartPot-AI            | Python 3.13, FastAPI, scikit-learn, uv               | Diagnóstico, índice de salud, predicciones, acciones sugeridas, consejo de lugar y aprendizaje continuo con lecturas reales                                                                                                          |
+| Broker          | SmartPot-Broker        | Eclipse Mosquitto 2.1 con seguridad dinámica         | MQTT con TLS 1.2+ y WebSocket; una cuenta por cultivo                                                                                                                                                                                |
+| Firmware        | SmartPot-IoT           | MicroPython 1.23 en ESP32, Wokwi                     | El dispositivo de un cultivo real: sensores, pantalla, telemetría y actuadores                                                                                                                                                       |
+| Simulador       | SmartPot-DataGenerator | Python 3.13, FastAPI, paho-mqtt, uv                  | Cultivos virtuales siempre encendidos (día y noche, manuales o con el clima real) en los que los actuadores mueven las lecturas; clima del lugar de cada cultivo (Open-Meteo); demo y QA                                             |
+| Base de datos   | SmartPot-DB            | MongoDB 8                                            | Colecciones con validadores `$jsonSchema`, índices y datos demo opcionales                                                                                                                                                           |
+| Caché           | SmartPot-Cache         | Redis 8                                              | Límite de peticiones, enfriamiento del agente, perfiles, clima por lugar y códigos de un solo uso de Telegram                                                                                                                        |
+| Correo          | SmartPot-Mail          | Mailpit                                              | SMTP autenticado y bandeja web protegida                                                                                                                                                                                             |
+| Plataforma      | .github                | Docker Compose, Kubernetes, GitHub Actions           | Entornos, despliegue central, QA y documentación                                                                                                                                                                                     |
 
 ### 2.2 Decisiones de arquitectura
 
-| Decisión                                               | Motivo                                                                                                                                                                                 |
-|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| MQTT entre el dispositivo y la plataforma              | Conexión persistente y liviana para un ESP32, con QoS 1, mensajes retenidos y última voluntad para saber si el cultivo está en línea                                                   |
-| Una cuenta MQTT por cultivo (usuario = id del cultivo) | Un dispositivo comprometido no puede leer ni escribir los tópicos de otro                                                                                                              |
-| La IA como servicio interno aparte                     | Python es el ecosistema natural de los modelos; la API sigue funcionando si la IA no responde                                                                                          |
-| MongoDB                                                | Las lecturas son documentos con variables opcionales; el índice por cultivo y fecha resuelve las consultas del historial                                                               |
-| Imágenes endurecidas por servicio en GHCR              | Cada servicio se publica y despliega por separado con SBOM y atestación de procedencia; Docker Hub queda como réplica de distribución                                                  |
-| Telegram en la API, no en el dispositivo               | El bot vive en un solo lugar, con los datos y los permisos de cada cuenta; el dispositivo solo habla MQTT                                                                              |
-| El simulador como servicio interno                     | Los cultivos virtuales corren siempre, sin pestaña abierta, con la clave que la API entrega por la red interna; la PWA nunca habla con el simulador                                    |
-| Real o virtual se elige al crear y no cambia           | Un cultivo real recibe sus lecturas de su dispositivo y uno virtual, del simulador; mezclarlos confundiría el historial, el aprendizaje y la clave. Para cambiar, se crea otro cultivo |
-| El aprendizaje solo usa cultivos reales                | Las lecturas de los virtuales son sintéticas: sirven para aprender a usar SmartPot, no para entrenar los modelos                                                                       |
-| Aprendizaje en la IA con datos seudonimizados          | La IA aprende de la serie de cada cultivo real sin saber a qué cuenta pertenece                                                                                                        |
+| Decisión                                               | Motivo                                                                                                                                                                                       |
+|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| MQTT entre el dispositivo y la plataforma              | Conexión persistente y liviana para un ESP32, con QoS 1, mensajes retenidos y última voluntad para saber si el cultivo está en línea                                                         |
+| Una cuenta MQTT por cultivo (usuario = id del cultivo) | Un dispositivo comprometido no puede leer ni escribir los tópicos de otro                                                                                                                    |
+| La IA como servicio interno aparte                     | Python es el ecosistema natural de los modelos; la API sigue funcionando si la IA no responde                                                                                                |
+| MongoDB                                                | Las lecturas son documentos con variables opcionales; el índice por cultivo y fecha resuelve las consultas del historial                                                                     |
+| Imágenes endurecidas por servicio en GHCR              | Cada servicio se publica y despliega por separado con SBOM y atestación de procedencia; Docker Hub queda como réplica de distribución                                                        |
+| Telegram en la API, no en el dispositivo               | El bot vive en un solo lugar, con los datos y los permisos de cada cuenta; el dispositivo solo habla MQTT                                                                                    |
+| El simulador como servicio interno                     | Los cultivos virtuales corren siempre, sin pestaña abierta, con la clave que la API entrega por la red interna; la PWA nunca habla con el simulador                                          |
+| Real o virtual se elige al crear y no cambia           | Un cultivo real recibe sus lecturas de su dispositivo y uno virtual, del simulador; mezclarlos confundiría el historial, el aprendizaje y la clave. Para cambiar, se crea otro cultivo       |
+| Actuadores como switches                               | Cada actuador sabe si está encendido sin límite o hasta qué hora, y admite una orden a la vez: apagar lo apagado o cruzar dos órdenes responde 409, así un doble clic nunca duplica comandos |
+| El clima, a través del simulador                       | El simulador ya sale a internet por el clima; la API le pide el del lugar de cualquier cultivo y lo guarda 10 minutos, sin abrir otra salida desde la red interna                            |
+| El lugar se recomienda, no se impone                   | Cada persona pone su cultivo donde quiere; el asistente explica qué luz pide la especie y sube el tono solo cuando el lugar ya afecta la salud                                               |
+| El aprendizaje solo usa cultivos reales                | Las lecturas de los virtuales son sintéticas: sirven para aprender a usar SmartPot, no para entrenar los modelos                                                                             |
+| Aprendizaje en la IA con datos seudonimizados          | La IA aprende de la serie de cada cultivo real sin saber a qué cuenta pertenece                                                                                                              |
 
 ## 3. Flujo de una lectura
 
@@ -164,16 +171,18 @@ confirma.
 
 ### 3.1 Reglas del flujo
 
-| Regla                          | Valor                                                                                               |
-|--------------------------------|-----------------------------------------------------------------------------------------------------|
-| Frecuencia del dispositivo     | Cada 30 s (firmware) o 15–120 s (simulación)                                                        |
-| Lecturas guardadas por cultivo | Máximo una cada 5 s; las demás se descartan                                                         |
-| Validación                     | Cada variable debe estar dentro del rango físico del sensor; si no, la lectura completa se descarta |
-| Evaluación del asistente       | Asíncrona; como máximo una vez cada 5 minutos por cultivo (1 minuto en la demo)                     |
-| Historial enviado a la IA      | Las últimas 48 lecturas                                                                             |
-| Enfriamiento del agente        | 10 minutos por actuador entre acciones automáticas                                                  |
-| Vencimiento de un comando      | 2 minutos sin confirmación → `EXPIRED` y alerta al dueño                                            |
-| Cultivo desconectado           | El broker publica `offline` (última voluntad); la API marca el dispositivo y avisa                  |
+| Regla                          | Valor                                                                                                                           |
+|--------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| Frecuencia del dispositivo     | Cada 30 s (firmware) o 15–120 s (simulación)                                                                                    |
+| Lecturas guardadas por cultivo | Máximo una cada 5 s; las demás se descartan                                                                                     |
+| Validación                     | Cada variable debe estar dentro del rango físico del sensor; si no, la lectura completa se descarta                             |
+| Evaluación del asistente       | Asíncrona; como máximo cada 30 s con el modo automático y cada 5 minutos sin él (`AI_EVALUATION_INTERVAL`, 1 minuto en la demo) |
+| Historial enviado a la IA      | 48 puntos repartidos en las últimas 384 lecturas, con la hora de cada una                                                       |
+| Enfriamiento del agente        | 10 minutos por actuador entre acciones automáticas                                                                              |
+| Órdenes por actuador           | Una a la vez: la siguiente espera la confirmación; apagar lo apagado o encender sin límite lo que ya está así responde 409      |
+| Vencimiento de un comando      | 2 minutos sin confirmación → `EXPIRED` y alerta al dueño                                                                        |
+| Lectura tras una orden         | El simulador publica una lectura 2 s después de ejecutar un comando, para ver su efecto                                         |
+| Cultivo desconectado           | El broker publica `offline` (última voluntad); la API marca el dispositivo y avisa                                              |
 
 <!-- diagrama: SmartPot_02_Reading_Sequence | titulo=Secuencia de una lectura con automatización | lamina=H -->
 
@@ -223,7 +232,7 @@ suya. Por ahí publica lo que mide y recibe las órdenes.
 |-------------------------------------|-----------------------------------------|-----|----------------------------------------------------------------------------------------------------------------|
 | `smartpot/v1/{cropId}/telemetry`    | Dispositivo → API                       | 0   | `{"temperature":24.5,"humidity":61,"brightness":710,"ph":6.1,"tds":820,"atmosphere":1012.8,"soilMoisture":55}` |
 | `smartpot/v1/{cropId}/commands`     | API → dispositivo                       | 1   | `{"id":"…","actuator":"WATER_PUMP","action":"ACTIVATE","durationSeconds":30}`                                  |
-| `smartpot/v1/{cropId}/commands/ack` | Dispositivo → API                       | 1   | `{"id":"…","status":"EXECUTED","message":"Bomba encendida"}`                                                   |
+| `smartpot/v1/{cropId}/commands/ack` | Dispositivo → API                       | 1   | `{"id":"…","status":"EXECUTED","message":"Bomba de agua encendida por 15 s"}`                                  |
 | `smartpot/v1/{cropId}/status`       | Dispositivo, retenido y última voluntad | 1   | `online` / `offline`                                                                                           |
 
 ### 4.2 Conexión del dispositivo
@@ -231,7 +240,7 @@ suya. Por ahí publica lo que mide y recibe las órdenes.
 | Parámetro   | Valor                                                                                                                                                                                    |
 |-------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Servidor    | `mqtt.smartpot.app:8883`, MQTT sobre TLS 1.3 (mínimo 1.2)                                                                                                                                |
-| Certificado | Firmado por la CA propia de SmartPot; el dispositivo lo verifica con `ca.crt`, que se distribuye con el firmware                                                                         |
+| Certificado | Firmado por la CA propia de SmartPot; el firmware la lleva en `config.py` (`BROKER["CA_CRT"]`), que la PWA genera con la CA incluida                                                     |
 | Usuario     | El id del cultivo                                                                                                                                                                        |
 | Contraseña  | La clave del dispositivo: 24 bytes aleatorios en Base64 URL, mostrada una sola vez al crear un cultivo real o al rotarla; la de un cultivo virtual solo la conocen la API y el simulador |
 | Client id   | `smartpot-<cropId>`; el broker rechaza ids vacíos                                                                                                                                        |
@@ -264,43 +273,49 @@ sobre sus propios cultivos.
 Base: `https://api.smartpot.app`. Las rutas de negocio viven bajo `/api/v1` y usan `Authorization: Bearer <token>`. La
 documentación interactiva está en `/docs`.
 
-| Método            | Ruta                                                                                                          | Acceso                        |
-|-------------------|---------------------------------------------------------------------------------------------------------------|-------------------------------|
-| GET               | `/health`                                                                                                     | Público                       |
-| POST              | `/api/v1/auth/register`, `/login`                                                                             | Público                       |
-| POST              | `/api/v1/auth/password/forgot`, `/password/reset`                                                             | Público                       |
-| GET               | `/api/v1/crop-profiles`                                                                                       | Público                       |
-| GET, PUT, DELETE  | `/api/v1/users/me` y PUT `/users/me/password`                                                                 | Sesión                        |
-| GET, POST         | `/api/v1/crops` (al crear: `kind` `REAL` o `VIRTUAL`, `form` y, si es virtual, `virtual` con el modo inicial) | Sesión                        |
-| PUT               | `/api/v1/crops/automation` (modo automático en varios cultivos)                                               | Sesión, solo cultivos propios |
-| GET, PUT, DELETE  | `/api/v1/crops/{id}` y PUT `/crops/{id}/automation`                                                           | Dueño                         |
-| GET, POST         | `/api/v1/crops/{id}/device` y `/device/key` (solo cultivos reales)                                            | Dueño                         |
-| GET, POST         | `/api/v1/crops/{id}/readings`, `/latest`, `/summary`, `/export`                                               | Dueño                         |
-| GET, POST, DELETE | `/api/v1/crops/{id}/actuators`                                                                                | Dueño                         |
-| GET, POST         | `/api/v1/crops/{id}/commands`                                                                                 | Dueño                         |
-| GET               | `/api/v1/crops/{id}/insights`                                                                                 | Dueño                         |
-| GET               | `/api/v1/overview`, `/overview/series`, `/overview/fleet` (panel general)                                     | Sesión                        |
-| GET, POST         | `/api/v1/commands` y `/commands/bulk` (historial de todos los cultivos y órdenes en bloque)                   | Sesión, solo cultivos propios |
-| GET, PUT, DELETE  | `/api/v1/notifications`, `/unread-count`, `/{id}/read`, `/read-all`                                           | Sesión                        |
-| GET, POST         | `/api/v1/channels` y `/channels/telegram/link` (código de vinculación de un solo uso)                         | Sesión                        |
-| PUT, POST, DELETE | `/api/v1/channels/links/{id}`, `/links/{id}/test`                                                             | Dueño del vínculo             |
-| POST              | `/api/v1/channels/telegram/webhook`                                                                           | Telegram, con secreto         |
-| GET, PUT, DELETE  | `/api/v1/crops/{id}/virtual-device` (solo cultivos virtuales; PUT cambia o reanuda, DELETE pausa)             | Dueño                         |
-| GET               | `/api/v1/virtual-devices/places?q=`                                                                           | Sesión                        |
-| GET               | `/api/v1/ai/learning` (datos agregados por especie)                                                           | Sesión                        |
+| Método            | Ruta                                                                                                                       | Acceso                        |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------|-------------------------------|
+| GET               | `/health`                                                                                                                  | Público                       |
+| POST              | `/api/v1/auth/register`, `/login`                                                                                          | Público                       |
+| POST              | `/api/v1/auth/password/forgot`, `/password/reset`                                                                          | Público                       |
+| GET               | `/api/v1/crop-profiles`                                                                                                    | Público                       |
+| GET, PUT, DELETE  | `/api/v1/users/me` y PUT `/users/me/password`                                                                              | Sesión                        |
+| GET, POST         | `/api/v1/crops` (al crear: `kind` `REAL` o `VIRTUAL`, `form`, `placement` y, si es virtual, `virtual` con el modo inicial) | Sesión                        |
+| PUT               | `/api/v1/crops/automation` (modo automático en varios cultivos)                                                            | Sesión, solo cultivos propios |
+| GET, PUT, DELETE  | `/api/v1/crops/{id}` (PUT también cambia el lugar) y PUT `/crops/{id}/automation`                                          | Dueño                         |
+| GET               | `/api/v1/crops/{id}/weather` (clima del lugar; 204 sin ubicación o sin clima disponible)                                   | Dueño                         |
+| GET, POST         | `/api/v1/crops/{id}/device` y `/device/key` (solo cultivos reales)                                                         | Dueño                         |
+| GET, POST         | `/api/v1/crops/{id}/readings`, `/latest`, `/summary`, `/export`                                                            | Dueño                         |
+| GET, POST, DELETE | `/api/v1/crops/{id}/actuators`                                                                                             | Dueño                         |
+| GET, POST         | `/api/v1/crops/{id}/commands`                                                                                              | Dueño                         |
+| GET               | `/api/v1/crops/{id}/insights`                                                                                              | Dueño                         |
+| GET               | `/api/v1/overview`, `/overview/series`, `/overview/fleet` (panel general)                                                  | Sesión                        |
+| GET, POST         | `/api/v1/commands` y `/commands/bulk` (historial de todos los cultivos y órdenes en bloque)                                | Sesión, solo cultivos propios |
+| GET, PUT, DELETE  | `/api/v1/notifications`, `/unread-count`, `/{id}/read`, `/read-all`                                                        | Sesión                        |
+| GET, POST         | `/api/v1/channels` y `/channels/telegram/link` (código de vinculación de un solo uso)                                      | Sesión                        |
+| PUT, POST, DELETE | `/api/v1/channels/links/{id}`, `/links/{id}/test`                                                                          | Dueño del vínculo             |
+| POST              | `/api/v1/channels/telegram/webhook`                                                                                        | Telegram, con secreto         |
+| GET, PUT          | `/api/v1/crops/{id}/channels` y `/channels/{type}` (avisos del cultivo por canal)                                          | Dueño                         |
+| POST, DELETE      | `/api/v1/crops/{id}/channels/{type}/recipients` y `/recipients/{recipientId}` (compartir el cultivo con otro chat)         | Dueño                         |
+| GET, PUT, DELETE  | `/api/v1/crops/{id}/virtual-device` (solo cultivos virtuales; PUT cambia o reanuda, DELETE pausa)                          | Dueño                         |
+| GET               | `/api/v1/virtual-devices/places?q=`                                                                                        | Sesión                        |
+| GET               | `/api/v1/ai/learning` (datos agregados por especie)                                                                        | Sesión                        |
 
 ### 5.2 Reglas de la API
 
-| Regla                      | Valor                                                                                                                                                                  |
-|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Sesión                     | JWT HS256 con vencimiento de 7 días; la PWA lo guarda en `sessionStorage` o, con "Mantener sesión iniciada", en `localStorage`                                         |
-| Contraseñas                | 8 caracteres a 72 bytes, con mayúscula, minúscula y número; BCrypt de costo 12                                                                                         |
-| Dueño                      | Un cultivo de otra cuenta responde 404, igual que uno inexistente, para no revelar qué ids existen                                                                     |
-| Límite de peticiones       | 300 por minuto por IP y 10 por minuto en `/api/v1/auth/*`; responde 429 con `Retry-After`                                                                              |
-| Cultivos por cuenta        | Máximo 20, y hasta 5 virtuales                                                                                                                                         |
-| Tipo del cultivo           | `REAL` o `VIRTUAL` al crearlo; cambiarlo después responde 400 («Un cultivo no puede pasar de real a virtual ni al revés: crea uno nuevo»). La forma sí se puede editar |
-| Errores                    | JSON en español: `{"status","error","message","path","timestamp","fields"}`; `fields` detalla cada campo inválido                                                      |
-| Recuperación de contraseña | Responde 202 aunque el correo no exista; el enlace vence en 30 minutos y el token se guarda como hash SHA-256                                                          |
+| Regla                      | Valor                                                                                                                                                                                                    |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Sesión                     | JWT HS256 con vencimiento de 7 días; la PWA lo guarda en `sessionStorage` o, con "Mantener sesión iniciada", en `localStorage`                                                                           |
+| Contraseñas                | 8 caracteres a 72 bytes, con mayúscula, minúscula y número; BCrypt de costo 12                                                                                                                           |
+| Dueño                      | Un cultivo de otra cuenta responde 404, igual que uno inexistente, para no revelar qué ids existen                                                                                                       |
+| Límite de peticiones       | 300 por minuto por IP y 10 por minuto en `/api/v1/auth/*`; responde 429 con `Retry-After`                                                                                                                |
+| Cultivos por cuenta        | Máximo 20, y hasta 5 virtuales                                                                                                                                                                           |
+| Tipo del cultivo           | `REAL` o `VIRTUAL` al crearlo; cambiarlo después responde 400 («Un cultivo no puede pasar de real a virtual ni al revés: crea uno nuevo»). La forma sí se puede editar                                   |
+| Órdenes                    | Una por actuador a la vez; apagar lo que ya está apagado o encender sin límite lo que ya está encendido responde 409 («El ventilador ya está apagado»). En bloque, esos cultivos se omiten con su motivo |
+| Lugar                      | `placement` con `setting` (`INDOOR` u `OUTDOOR`), `exposure` (`FULL_SUN`, `PARTIAL_SUN` o `SHADE`) y `location` opcionales; es uno solo para el cultivo y su simulación                                  |
+| Clima del lugar            | Lo consulta el simulador; se guarda 10 minutos por lugar y, si falla, no se reintenta en 2 minutos                                                                                                       |
+| Errores                    | JSON en español: `{"status","error","message","path","timestamp","fields"}`; `fields` detalla cada campo inválido                                                                                        |
+| Recuperación de contraseña | Responde 202 aunque el correo no exista; el enlace vence en 30 minutos y el token se guarda como hash SHA-256                                                                                            |
 
 ### 5.3 Ciclo de vida de un comando
 
@@ -309,15 +324,48 @@ documentación interactiva está en `/docs`.
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 stateDiagram-v2
-  [*] --> PENDING: el usuario o el agente lo solicita
+  [*] --> PENDING: orden válida del usuario o del agente
   PENDING --> SENT: publicado en commands (QoS 1)
   PENDING --> FAILED: el broker no está disponible
   SENT --> EXECUTED: ACK EXECUTED del dispositivo
   SENT --> FAILED: ACK FAILED del dispositivo
   SENT --> EXPIRED: sin ACK en 2 minutos
-  EXECUTED --> [*]
+  EXECUTED --> [*]: cambia el estado del actuador
   FAILED --> [*]
   EXPIRED --> [*]: alerta al dueño
+```
+
+Antes de crear el comando, la API lo rechaza con 409 si el actuador espera otra confirmación o si la orden no cambiaría
+nada; el agente, en ese caso, simplemente no la propone. Al confirmarse, el actuador queda encendido sin límite o hasta
+`runningUntil`, que la PWA usa para su switch y su cuenta regresiva.
+
+<!-- diagrama: SmartPot_39_Actuator_Switch | titulo=Un actuador como switch -->
+
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}}%%
+flowchart LR
+  start(["Actuador nuevo"]) --> off
+  off("Apagado")
+  timed("Encendido por un tiempo<br/>se apaga solo en runningUntil")
+  unlimited("Encendido sin límite<br/>hasta que se apague")
+  off -->|"encender con duración"| timed
+  off -->|"encender sin límite"| unlimited
+  timed -->|"apagar o vence el tiempo"| off
+  unlimited -->|"apagar"| off
+  timed -->|"encender sin límite"| unlimited
+  unlimited -->|"encender con duración"| timed
+  timed -->|"encender de nuevo<br/>reinicia el tiempo"| timed
+  off -.->|"apagar · 409"| off
+  unlimited -.->|"encender sin límite · 409"| unlimited
+  rule["Cada cambio se aplica al llegar la confirmación del dispositivo.<br/>Mientras la espera, cualquier otra orden al mismo actuador responde 409."]
+  classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  class start core
+  class off muted
+  class timed,unlimited leaf
+  class rule sun
 ```
 
 ### 5.4 Notificaciones por Telegram
@@ -325,7 +373,8 @@ stateDiagram-v2
 Cada notificación de la PWA se reenvía, en segundo plano, a los **canales externos** que la persona vinculó y solo con
 los tipos que eligió (alertas del cultivo, cultivo desconectado, acciones del asistente, comandos, novedades). Los
 canales implementan la interfaz `NotificationChannel`; sumar WhatsApp, correo o Slack es otra implementación sin tocar
-el resto. Hoy existe Telegram, centralizado en la API.
+el resto. Hoy existe Telegram, centralizado en la API. En el perfil, la sección **Aplicaciones** lista los canales: si
+el servidor no tiene uno configurado, aparece en gris con su detalle técnico.
 
 <!-- diagrama: SmartPot_14_Telegram_Sequence | titulo=Vinculación de Telegram -->
 
@@ -352,13 +401,51 @@ sequenceDiagram
   A->>T: ⚠️ Atención en Lechugas del balcón
 ```
 
-| Regla            | Valor                                                                                                       |
-|------------------|-------------------------------------------------------------------------------------------------------------|
-| Vinculación      | Código aleatorio de 144 bits, de un solo uso, que vence en 10 minutos (Redis)                               |
-| Recepción        | `webhook` en producción, validado con `X-Telegram-Bot-Api-Secret-Token`; sondeo largo en local y en la demo |
-| Comandos del bot | `/start <código>`, `/estado` (cultivos, conexión y salud), `/desvincular`, `/ayuda`; solo chats privados    |
-| Mensajes         | HTML escapado con el título, el detalle y un botón al cultivo cuando la PWA está en `https`                 |
-| Fallos           | Si Telegram rechaza el chat (bloqueado o borrado) o falla 5 veces seguidas, el vínculo se pausa             |
+| Regla              | Valor                                                                                                                                                                                                                              |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Vinculación        | Código aleatorio de 144 bits, de un solo uso, que vence en 10 minutos (Redis)                                                                                                                                                      |
+| Recepción          | `webhook` en producción, validado con `X-Telegram-Bot-Api-Secret-Token`; sondeo largo en local y en la demo                                                                                                                        |
+| Comandos del bot   | `/start <código>`, `/estado` (cultivos, conexión y salud), `/desvincular`, `/ayuda`; solo chats privados                                                                                                                           |
+| Mensajes           | HTML escapado con el título, el detalle y un botón al cultivo cuando la PWA está en `https`                                                                                                                                        |
+| Fallos             | Si Telegram rechaza el chat (bloqueado o borrado) o falla 5 veces seguidas, el vínculo se pausa                                                                                                                                    |
+| Avisos por cultivo | `crop_channels`: qué tipos avisa, entrega `INSTANT` o `DIGEST` (un resumen cada 1 a 24 h) y un resumen diario a una hora fija (`HH:mm`, hora local); sin ajustes, el cultivo avisa al instante lo que el dueño eligió en su perfil |
+| Compartir          | Enlace `t.me/bot?start=<código>` de un solo uso y 10 minutos; el chat recibe los avisos del cultivo sin entrar a la cuenta (hasta 10 por cultivo) y `/estado` también le muestra lo compartido                                     |
+| Sin bot            | Telegram figura no disponible con las variables que le faltan al servidor (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`); los ajustes por cultivo responden 503                                                                   |
+
+Los avisos de cada cultivo se eligen en su pestaña Ajustes, que solo muestra la sección de un canal cuando el servidor
+lo ofrece y la persona ya vinculó su chat:
+
+<!-- diagrama: SmartPot_37_Crop_Alerts | titulo=Avisos de un cultivo por Telegram -->
+
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+sequenceDiagram
+  autonumber
+  participant P as Persona
+  participant W as PWA
+  participant A as API
+  participant D as MongoDB
+  participant T as Telegram
+  participant C as Chat compartido
+  P->>W: Ajustes del cultivo › Avisos por Telegram
+  W->>A: PUT /crops/{id}/channels/TELEGRAM (eventos, entrega, resumen diario)
+  A->>D: guarda crop_channels
+  P->>W: Compartir con otro chat
+  W->>A: POST /crops/{id}/channels/TELEGRAM/recipients
+  A-->>W: enlace t.me/bot?start=código · un solo uso · 10 min
+  C->>T: abre el enlace e inicia el bot
+  T->>A: /start código (webhook o sondeo)
+  A->>D: suma el chat a recipients (hasta 10)
+  A->>T: «Desde ahora recibirás los avisos de Lechugas del balcón»
+  Note over A: Llega una notificación del cultivo
+  alt Entrega al instante
+    A->>T: aviso al chat del dueño y a los compartidos
+  else Entrega en resumen
+    A->>D: queda para el resumen
+    A->>T: resumen cada 1 a 24 h con los avisos guardados
+  end
+  A->>T: resumen diario a la hora elegida con salud, lectura y últimas 24 h
+```
 
 ## 6. Asistente de IA
 
@@ -374,7 +461,7 @@ especie.
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  req["Lectura actual<br/>+ historial (48)<br/>+ actuadores<br/>+ hora local"] --> diag["Diagnóstico por variable<br/>LOW · OPTIMAL · HIGH · REST"]
+  req["Lectura actual<br/>+ historial (48)<br/>+ actuadores<br/>+ hora local<br/>+ lugar y clima de afuera"] --> diag["Diagnóstico por variable<br/>LOW · OPTIMAL · HIGH · REST"]
   req --> fc["Pronóstico Theil-Sen<br/>tendencia y horas al límite"]
   req --> lr["Aprendizaje continuo<br/>modelos entrenados con lecturas reales"]
   diag --> norm["Normalización<br/>respecto al perfil"]
@@ -385,22 +472,26 @@ flowchart TB
   lr --> mem
   fc --> ag
   lr --> ag
+  req -.->|"lugar · clima"| mem
   mem --> es["Sistema experto<br/>encadenamiento hacia adelante"]
+  diag --> place["Consejo de lugar<br/>luz que pide la especie"]
+  req --> place
   diag --> fz["Lógica difusa Sugeno<br/>índice de salud 0–100"]
   es --> ag["Agente reactivo<br/>acciones por actuador"]
   diag --> ag
   ml --> ag
-  fz --> out["Respuesta<br/>health · diagnosis · conclusions · predictions<br/>forecasts · learning · actions"]
+  fz --> out["Respuesta<br/>health · diagnosis · conclusions · predictions<br/>forecasts · learning · placement · actions"]
   es --> out
   ag --> out
   lr --> out
+  place --> out
   classDef input fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef step fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef brain fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef result fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class req input
   class diag,norm,mem step
-  class ml,es,fz,ag,fc,lr brain
+  class ml,es,fz,ag,fc,lr,place brain
   class out result
 ```
 
@@ -413,7 +504,7 @@ hallazgo es **crítico**.
 > [!TIP]
 > **Descanso nocturno.** Entre las 22:00 y las 6:00 (hora de Colombia, configurable con `AI_TIMEZONE`) la luz baja no es
 > un problema: la planta necesita su periodo de oscuridad. La variable queda como `REST`, no resta salud, la regla de
-> crecimiento ahilado no se dispara y el agente apaga la luz de cultivo si quedó encendida.
+> crecimiento ahilado no se dispara y el agente apaga la luz ultravioleta si quedó encendida.
 
 ### 6.2 Modelos base
 
@@ -432,27 +523,29 @@ antes de que exista ningún dato real (sección 6.8).
 Un motor de encadenamiento hacia adelante dispara las reglas por prioridad, cada una una sola vez. Las conclusiones de
 primer nivel alimentan a las de segundo nivel.
 
-| Regla               | Se dispara cuando                                                          | Conclusión                                    |
-|---------------------|----------------------------------------------------------------------------|-----------------------------------------------|
-| `heat_stress`       | Temperatura alta y aire seco                                               | Estrés térmico                                |
-| `fungal_risk`       | Humedad alta con temperatura templada o alta                               | Riesgo de hongos                              |
-| `nutrient_lockout`  | pH fuera de rango con nutrientes presentes                                 | Bloqueo de nutrientes: corregir el pH primero |
-| `root_rot_risk`     | Sustrato encharcado y caliente                                             | Riesgo de pudrición de raíz                   |
-| `drought`           | Sustrato críticamente seco                                                 | Sequía                                        |
-| `etiolation`        | Poca luz de día con temperatura cálida                                     | Crecimiento ahilado                           |
-| `cold_stress`       | Temperatura críticamente baja                                              | Estrés por frío                               |
-| `salt_stress`       | Nutrientes críticamente altos                                              | Exceso de sales                               |
-| `ventilation_model` | El modelo estima ≥ 70 % de necesidad de ventilar                           | Recomendación de ventilar                     |
-| `sensor_fault`      | Lectura atípica y dos o más variables críticas                             | Posible falla de sensor: bloquea las acciones |
-| `critical_state`    | Dos o más variables críticas sin falla de sensor                           | Estado crítico                                |
-| `compound_stress`   | Estrés junto con riesgo o bloqueo                                          | Estrés combinado                              |
-| `drying_trend`      | El pronóstico lleva el sustrato al mínimo en 3 h o menos                   | Secado acelerado: regar pronto                |
-| `heat_building`     | El pronóstico lleva la temperatura al máximo en 3 h o menos                | Calor en aumento                              |
-| `learned_drying`    | El modelo aprendido da ≥ 70 % de que el sustrato baje del mínimo en 1 h    | Riego probable en la próxima hora             |
-| `learned_heat`      | El modelo aprendido da ≥ 70 % de que la temperatura pase del máximo en 1 h | Calor probable en la próxima hora             |
-| `unusual_pattern`   | El Isolation Forest de la especie marca la lectura como poco habitual      | Combinación poco habitual: revisar sensores   |
-| `night_rest`        | Luz baja durante el descanso nocturno                                      | Descanso nocturno                             |
-| `ideal_conditions`  | Todas las variables en rango o en descanso                                 | Condiciones ideales                           |
+| Regla               | Se dispara cuando                                                              | Conclusión                                                   |
+|---------------------|--------------------------------------------------------------------------------|--------------------------------------------------------------|
+| `heat_stress`       | Temperatura alta y aire seco                                                   | Estrés térmico                                               |
+| `fungal_risk`       | Humedad alta con temperatura templada o alta                                   | Riesgo de hongos                                             |
+| `nutrient_lockout`  | pH fuera de rango con nutrientes presentes                                     | Bloqueo de nutrientes: corregir el pH primero                |
+| `root_rot_risk`     | Sustrato encharcado y caliente                                                 | Riesgo de pudrición de raíz                                  |
+| `drought`           | Sustrato críticamente seco                                                     | Sequía                                                       |
+| `etiolation`        | Poca luz de día con temperatura cálida                                         | Crecimiento ahilado                                          |
+| `cold_stress`       | Temperatura críticamente baja                                                  | Estrés por frío                                              |
+| `salt_stress`       | Nutrientes críticamente altos                                                  | Exceso de sales                                              |
+| `ventilation_model` | El modelo estima ≥ 70 % de necesidad de ventilar                               | Recomendación de ventilar                                    |
+| `sensor_fault`      | Lectura atípica y dos o más variables críticas                                 | Posible falla de sensor: bloquea las acciones                |
+| `critical_state`    | Dos o más variables críticas sin falla de sensor                               | Estado crítico                                               |
+| `compound_stress`   | Estrés junto con riesgo o bloqueo                                              | Estrés combinado                                             |
+| `drying_trend`      | El pronóstico lleva el sustrato al mínimo en 3 h o menos                       | Secado acelerado: regar pronto                               |
+| `heat_building`     | El pronóstico lleva la temperatura al máximo en 3 h o menos                    | Calor en aumento                                             |
+| `learned_drying`    | El modelo aprendido da ≥ 70 % de que el sustrato baje del mínimo en 1 h        | Riego probable en la próxima hora                            |
+| `learned_heat`      | El modelo aprendido da ≥ 70 % de que la temperatura pase del máximo en 1 h     | Calor probable en la próxima hora                            |
+| `unusual_pattern`   | El Isolation Forest de la especie marca la lectura como poco habitual          | Combinación poco habitual: revisar sensores                  |
+| `rain_outside`      | Llueve 0,5 mm o más donde está un cultivo al aire libre                        | Está lloviendo: la lluvia riega y el agente no riega         |
+| `sensor_vs_outside` | Al aire libre, el sensor marca 8 °C o más de diferencia con el clima de afuera | El sensor no coincide con el clima: darle sombra o revisarlo |
+| `night_rest`        | Luz baja durante el descanso nocturno                                          | Descanso nocturno                                            |
+| `ideal_conditions`  | Todas las variables en rango o en descanso                                     | Condiciones ideales                                          |
 
 ### 6.4 Índice de salud con lógica difusa
 
@@ -478,6 +571,7 @@ sugerencias en la PWA.
 | Situación                                                         | Acción                                                                          |
 |-------------------------------------------------------------------|---------------------------------------------------------------------------------|
 | Sustrato seco                                                     | `WATER_PUMP` 15 s (30 s si es crítico)                                          |
+| Llueve sobre un cultivo al aire libre                             | Ningún riego: la lluvia lo hace                                                 |
 | Sustrato en rango, pero llegará al mínimo en menos de 1 h         | `WATER_PUMP` 10 s (riego preventivo)                                            |
 | Poca luz de día                                                   | `UV_LIGHT` 15 minutos                                                           |
 | Exceso de luz, o luz encendida de noche                           | Apagar `UV_LIGHT`                                                               |
@@ -589,6 +683,67 @@ de riego o calor en la próxima hora y humedad esperada del sustrato, cada una c
 más recientes. La página **Aprendizaje** de la PWA muestra la calidad de los datos, la comparación de modelos, los
 estados y el detector de atípicos por especie (`GET /api/v1/ai/learning`, solo datos agregados).
 
+### 6.9 Lugar del cultivo
+
+Cada especie pide una cantidad de sol. El asistente compara esa necesidad con el lugar del cultivo (bajo techo o al aire
+libre y su exposición) y con el diagnóstico, y devuelve en cada evaluación un consejo `placement` que la PWA muestra en el
+Asistente. Se puede poner el cultivo donde se quiera: el consejo sube de tono solo cuando el lugar ya se nota en las
+lecturas.
+
+<!-- diagrama: SmartPot_38_Placement_Advice | titulo=Consejo de lugar -->
+
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+flowchart TB
+  eval(["Evaluación del cultivo"]) --> known{"¿Se sabe si está bajo techo<br/>o al aire libre y cuánto sol recibe?"}
+  known -->|"No"| unknown["UNKNOWN<br/>preguntar en Ajustes"]
+  known -->|"Sí"| sun["Sol que recibe<br/>de 0 sin luz natural a 3 pleno sol"]
+  sun --> fits{"¿Es lo que pide la especie?<br/>pleno sol o media sombra"}
+  fits -->|"Sí"| ok["OK<br/>el lugar le sienta bien"]
+  fits -->|"Le falta sol"| dark{"¿Luz baja de día<br/>en el diagnóstico?"}
+  dark -->|"Sí"| more["MOVE · Le falta sol<br/>llevarla a pleno sol o a la ventana más soleada"]
+  dark -->|"No"| tipMore["TIP<br/>estaría mejor con más sol"]
+  fits -->|"Le sobra sol"| hot{"¿Calor, exceso de luz<br/>o aire seco?"}
+  hot -->|"Sí"| less["MOVE · Le sobra sol<br/>media sombra o malla en las horas fuertes"]
+  hot -->|"No"| tipLess["TIP<br/>estaría mejor con menos sol"]
+  subgraph outside["Al aire libre, con el clima de afuera"]
+    direction LR
+    rain{"¿Llueve 0,5 mm o más?"} -->|"Sí"| norain["rain_outside<br/>el agente no riega"]
+    gap{"¿El sensor se aleja 8 °C<br/>o más del clima?"} -->|"Sí"| check["sensor_vs_outside<br/>darle sombra o revisarlo"]
+  end
+  eval --> rain
+  eval --> gap
+  classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef clay fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef deep fill:#0B3D2B,stroke:#06281C,color:#FFFFFF
+  classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  class eval core
+  class known,fits,dark,hot,rain,gap sun
+  class ok leaf
+  class tipMore,tipLess water
+  class more,less clay
+  class unknown,sun,norain,check muted
+```
+
+| Especie                            | Luz que pide                      | Lugar ideal                   |
+|------------------------------------|-----------------------------------|-------------------------------|
+| Tomate, pimentón, fresa y albahaca | Pleno sol: 6 a 8 h de sol directo | Al aire libre a pleno sol     |
+| Lechuga y espinaca                 | Media sombra: de 3 a 5 h de sol   | Al aire libre en media sombra |
+
+| Nivel     | Cuándo                                                                                             |
+|-----------|----------------------------------------------------------------------------------------------------|
+| `OK`      | El lugar le sirve a la especie                                                                     |
+| `UNKNOWN` | No se sabe dónde está: el asistente pregunta en Ajustes                                            |
+| `TIP`     | No es su lugar ideal, pero la planta está bien hoy                                                 |
+| `MOVE`    | El lugar ya se nota: poca luz de día en una de sol, o calor y exceso de luz en una de media sombra |
+
+Bajo techo cuenta la ventana: la más soleada equivale a media sombra de afuera. Con el clima del lugar, el asistente
+suma dos reglas: con lluvia sobre un cultivo al aire libre no riega (`rain_outside`) y, si el sensor de temperatura se
+aleja 8 °C o más del clima de afuera, sugiere darle sombra o revisarlo (`sensor_vs_outside`).
+
 ## 7. Modelo de datos
 
 <!-- diagrama: SmartPot_04_Data_Model | titulo=Colecciones de MongoDB | lamina=H -->
@@ -605,6 +760,7 @@ erDiagram
   CROPS ||--o{ COMMANDS : "recibe"
   CROPS ||--o{ NOTIFICATIONS : "genera"
   CROPS ||--o| VIRTUAL_DEVICES : "simula"
+  CROPS ||--o{ CROP_CHANNELS : "avisa por"
   ACTUATORS ||--o{ COMMANDS : "ejecuta"
   USERS {
     ObjectId _id
@@ -621,6 +777,7 @@ erDiagram
     string type "LETTUCE, TOMATO, …"
     string kind "REAL o VIRTUAL, fijo"
     string form "POT, NFT, TOWER, RAFT"
+    object placement "INDOOR u OUTDOOR, sol, ubicación"
     bool automationEnabled
     object device "keyCiphertext AES-GCM, online, lastSeenAt"
     object health "index, level, label, evaluatedAt"
@@ -636,7 +793,8 @@ erDiagram
     ObjectId _id
     ObjectId cropId
     string type "WATER_PUMP, UV_LIGHT, FAN, …"
-    bool active
+    bool active "encendido sin límite"
+    date runningUntil "si corre por tiempo"
   }
   COMMANDS {
     ObjectId _id
@@ -661,13 +819,23 @@ erDiagram
     bool enabled
     array events "tipos elegidos"
   }
+  CROP_CHANNELS {
+    ObjectId _id
+    ObjectId cropId
+    string type "TELEGRAM"
+    array events "tipos que avisa"
+    string delivery "INSTANT o DIGEST"
+    int digestHours "1 a 24"
+    string dailySummaryAt "HH:mm"
+    array recipients "hasta 10 chats"
+  }
   VIRTUAL_DEVICES {
     ObjectId _id
     ObjectId cropId "único"
     ObjectId ownerId
     string mode "AUTO, MANUAL, WEATHER"
     object manual "medidores"
-    object location "nombre, latitud, longitud"
+    object location "anterior al lugar del cultivo"
     bool active "false en pausa"
   }
   PASSWORD_RESET_TOKENS {
@@ -678,17 +846,18 @@ erDiagram
   }
 ```
 
-| Colección               | Índices y vencimiento                                                       | Validación                                                                                                                            |
-|-------------------------|-----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| `users`                 | Correo único                                                                | Correo, hash, rol (`USER` o `ADMIN`) y fecha obligatorios                                                                             |
-| `crops`                 | Dueño + fecha de creación                                                   | Dueño, nombre, especie del catálogo y modo automático obligatorios; `kind` `REAL` o `VIRTUAL` y `form` `POT`, `NFT`, `TOWER` o `RAFT` |
-| `readings`              | Cultivo + fecha descendente; TTL de 365 días                                | Cultivo, fecha y medidas obligatorios; origen `MQTT` o `HTTP` (los rangos físicos los valida la API)                                  |
-| `actuators`             | Cultivo + tipo, único                                                       | Tipo dentro del catálogo                                                                                                              |
-| `commands`              | Cultivo + fecha; estado + envío para vencer los pendientes; TTL de 180 días | Acción, estado y origen (`USER` o `AGENT`) del catálogo                                                                               |
-| `notifications`         | Usuario + fecha; TTL de 90 días                                             | Tipo `INFO`, `ALERT`, `COMMAND`, `DEVICE` o `AI`                                                                                      |
-| `channel_links`         | Usuario + canal, único; canal + dirección, única                            | Canal `TELEGRAM`, chat, eventos elegidos y estado                                                                                     |
-| `virtual_devices`       | Cultivo, único                                                              | Solo de cultivos virtuales: modo `AUTO`, `MANUAL` o `WEATHER`, medidores, ubicación y `active` (`false` en pausa)                     |
-| `password_reset_tokens` | Hash único; TTL por `expiresAt`                                             | Hash, usuario y vencimiento obligatorios                                                                                              |
+| Colección               | Índices y vencimiento                                                       | Validación                                                                                                                                                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `users`                 | Correo único                                                                | Correo, hash, rol (`USER` o `ADMIN`) y fecha obligatorios                                                                                                                                                  |
+| `crops`                 | Dueño + fecha de creación                                                   | Dueño, nombre, especie del catálogo y modo automático obligatorios; `kind` `REAL` o `VIRTUAL`, `form` `POT`, `NFT`, `TOWER` o `RAFT` y `placement` (lugar, exposición y ubicación con coordenadas válidas) |
+| `readings`              | Cultivo + fecha descendente; TTL de 365 días                                | Cultivo, fecha y medidas obligatorios; origen `MQTT` o `HTTP` (los rangos físicos los valida la API)                                                                                                       |
+| `actuators`             | Cultivo + tipo, único                                                       | Tipo dentro del catálogo y `active` (encendido sin límite); `runningUntil` si corre por tiempo                                                                                                             |
+| `commands`              | Cultivo + fecha; estado + envío para vencer los pendientes; TTL de 180 días | Acción, estado y origen (`USER` o `AGENT`) del catálogo                                                                                                                                                    |
+| `notifications`         | Usuario + fecha; TTL de 90 días                                             | Tipo `INFO`, `ALERT`, `COMMAND`, `DEVICE` o `AI`                                                                                                                                                           |
+| `channel_links`         | Usuario + canal, único; canal + dirección, única                            | Canal `TELEGRAM`, chat, eventos elegidos y estado                                                                                                                                                          |
+| `crop_channels`         | Cultivo + canal, único                                                      | Canal `TELEGRAM`, entrega `INSTANT` o `DIGEST`, resumen cada 1 a 24 h, resumen diario `HH:mm` y hasta 10 chats                                                                                             |
+| `virtual_devices`       | Cultivo, único                                                              | Solo de cultivos virtuales: modo `AUTO`, `MANUAL` o `WEATHER`, medidores, ubicación y `active` (`false` en pausa)                                                                                          |
+| `password_reset_tokens` | Hash único; TTL por `expiresAt`                                             | Hash, usuario y vencimiento obligatorios                                                                                                                                                                   |
 
 La API se conecta con un usuario propio (`smartpot`) con permisos `readWrite` solo sobre su base; el usuario
 administrador de MongoDB no se usa en la aplicación.
@@ -701,7 +870,7 @@ para que se puedan seguir actualizando; si no, en `strict`.
 
 Los cultivos creados antes de existir el tipo y la forma se completan solos al arrancar la API (`CropKindBackfill`,
 idempotente): los que tenían una simulación pasan a virtuales, el resto a reales, y los que no tienen forma quedan como
-maceta.
+maceta. La ubicación de una simulación anterior pasa al lugar de su cultivo, que desde entonces es la única.
 
 ## 8. Aplicación web
 
@@ -711,25 +880,25 @@ La PWA es lo que ve el usuario: una página pública que explica SmartPot y, tra
 cultivos, el detalle de cada uno con su ilustración, un control general, un centro de acciones y lo que ha aprendido el
 asistente. Se instala como una app en Android, iOS y escritorio.
 
-| Pantalla                         | Qué permite                                                                                                                                                                                                                                                                                                                                                                    |
-|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Inicio público                   | Presentación, funciones, especies y preguntas frecuentes; indexable                                                                                                                                                                                                                                                                                                            |
-| Ingreso, registro y recuperación | Validaciones en español y "Mantener sesión iniciada"                                                                                                                                                                                                                                                                                                                           |
-| Panel general                    | Salud promedio, cultivos en línea y comandos del día; ranking de salud, análisis de la IA de todos los cultivos, comparación de una variable entre cultivos y tabla de últimas lecturas frente al rango ideal                                                                                                                                                                  |
-| Mis cultivos                     | Tarjetas con tipo (real o virtual), especie y forma, estado en línea, salud y últimas lecturas                                                                                                                                                                                                                                                                                 |
-| Nuevo cultivo                    | Tres pasos: real o virtual (se avisa que no cambia después); nombre, especie y forma con la vista previa de la ilustración y, si es virtual, cómo arranca la simulación; si es real, la clave y la guía de conexión                                                                                                                                                            |
-| Control general                  | Modo automático por cultivo o para todos, atajos (regar, ventilar, luz) y órdenes personalizadas a varios cultivos con el resultado de cada uno                                                                                                                                                                                                                                |
-| Acciones                         | Acciones sugeridas por la IA aplicables en bloque e historial de todas las órdenes, filtrado por estado y origen (persona o agente)                                                                                                                                                                                                                                            |
-| Detalle · Resumen                | Lecturas actuales frente al rango ideal y gráfico de 24 h con la banda ideal                                                                                                                                                                                                                                                                                                   |
-| Aprendizaje                      | Lecturas reales por especie, calidad de los datos, comparación de modelos con su puntaje frente a la línea base, estados de operación y detector de atípicos                                                                                                                                                                                                                   |
-| Detalle · Asistente IA           | Índice de salud y de qué depende, diagnóstico, conclusiones, predicciones, pronóstico de las próximas horas, lo aprendido de cultivos reales y acciones ejecutables                                                                                                                                                                                                            |
-| Detalle · Control                | Modo automático, actuadores y últimos comandos                                                                                                                                                                                                                                                                                                                                 |
-| Detalle · Historial              | 6 h, 24 h o 7 días por variable y exportación CSV                                                                                                                                                                                                                                                                                                                              |
-| Detalle · Ilustración            | Sobre todas las secciones, para reales y virtuales: la forma del cultivo (maceta, tubos NFT, torre o balsa) con su especie y el color de su salud, el entorno (interior de día o de noche, o el clima del lugar) y el estado de cada actuador, animado mientras está encendido. No tiene botones: las órdenes se dan en Control. Si el cultivo no está conectado no se ilustra |
-| Detalle · Simulación             | Solo cultivos virtuales: modo, lugar, medidores, frecuencia, pausa y reanudación                                                                                                                                                                                                                                                                                               |
-| Detalle · Dispositivo            | Solo cultivos reales: estado, guía para el ESP32 físico (circuito, firmware y `config.py`) o para Wokwi, datos de conexión MQTT y rotación de la clave                                                                                                                                                                                                                         |
-| Detalle · Ajustes                | Nombre, especie y forma; el tipo real o virtual se muestra y no se puede cambiar                                                                                                                                                                                                                                                                                               |
-| Alertas y perfil                 | Notificaciones, vinculación de Telegram con los avisos elegidos, datos personales, contraseña y borrado de la cuenta                                                                                                                                                                                                                                                           |
+| Pantalla                         | Qué permite                                                                                                                                                                                                                                                                                                                                                                                                          |
+|----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Inicio público                   | Presentación, funciones, especies y preguntas frecuentes; indexable                                                                                                                                                                                                                                                                                                                                                  |
+| Ingreso, registro y recuperación | Validaciones en español y "Mantener sesión iniciada"                                                                                                                                                                                                                                                                                                                                                                 |
+| Panel general                    | Salud promedio, cultivos en línea y comandos del día; ranking de salud, análisis de la IA de todos los cultivos, comparación de una variable entre cultivos y tabla de últimas lecturas frente al rango ideal                                                                                                                                                                                                        |
+| Mis cultivos                     | Tarjetas con tipo (real o virtual), especie y forma, estado en línea, salud y últimas lecturas                                                                                                                                                                                                                                                                                                                       |
+| Nuevo cultivo                    | Tres pasos: real o virtual (se avisa que no cambia después); nombre, especie y forma con la vista previa de la ilustración y, si es virtual, cómo arranca la simulación; si es real, la clave y la guía de conexión                                                                                                                                                                                                  |
+| Control general                  | Modo automático por cultivo o para todos, atajos (regar, ventilar, luz) y órdenes personalizadas a varios cultivos con el resultado de cada uno; se omiten los que ya están así o esperan otra orden                                                                                                                                                                                                                 |
+| Acciones                         | Acciones sugeridas por la IA aplicables en bloque e historial de todas las órdenes, filtrado por estado y origen (persona o agente)                                                                                                                                                                                                                                                                                  |
+| Detalle · Resumen                | Lecturas actuales frente al rango ideal y gráfico de 24 h con la banda ideal                                                                                                                                                                                                                                                                                                                                         |
+| Aprendizaje                      | Lecturas reales por especie, calidad de los datos, comparación de modelos con su puntaje frente a la línea base, estados de operación y detector de atípicos                                                                                                                                                                                                                                                         |
+| Detalle · Asistente IA           | Índice de salud y de qué depende, consejo de lugar, diagnóstico, conclusiones, predicciones, pronóstico de las próximas horas, lo aprendido de cultivos reales y acciones ejecutables                                                                                                                                                                                                                                |
+| Detalle · Control                | Modo automático, un switch por actuador con la duración al encenderlo (o sin límite, en la luz, el ventilador y el humidificador), su cuenta regresiva y los últimos comandos                                                                                                                                                                                                                                        |
+| Detalle · Historial              | 6 h, 24 h o 7 días por variable y exportación CSV                                                                                                                                                                                                                                                                                                                                                                    |
+| Detalle · Ilustración            | Sobre todas las secciones, para reales y virtuales: la forma del cultivo (maceta, tubos NFT, torre o balsa) con su especie y el color de su salud, su lugar (bajo techo con ventana o al aire libre, con media sombra o sombra) con el clima de afuera y el estado de cada actuador, animado mientras está encendido. No tiene botones: las órdenes se dan en Control. Si el cultivo no está conectado no se ilustra |
+| Detalle · Simulación             | Solo cultivos virtuales, en dos partes como Dispositivo: el estado en línea con Pausar y Reanudar, y cómo se simula (modo, lugar, medidores y frecuencia) con «Aplicar cambios»                                                                                                                                                                                                                                      |
+| Detalle · Dispositivo            | Solo cultivos reales: estado, guía para el ESP32 físico (circuito, firmware y `config.py`) o para Wokwi, datos de conexión MQTT y rotación de la clave                                                                                                                                                                                                                                                               |
+| Detalle · Ajustes                | Nombre, especie y forma; dónde está (bajo techo o al aire libre, cuánto sol y su ubicación); los avisos del cultivo por Telegram cuando el chat está vinculado; el tipo real o virtual se muestra y no se puede cambiar                                                                                                                                                                                              |
+| Alertas y perfil                 | Notificaciones; Aplicaciones (Telegram, en gris con su detalle técnico si el servidor no lo tiene) con los avisos elegidos; datos personales, contraseña y borrado de la cuenta                                                                                                                                                                                                                                      |
 
 ### 8.1 Identidad visual
 
@@ -763,14 +932,15 @@ Al crear un cultivo se elige una sola vez de dónde vienen sus lecturas:
 
 | Tipo                     | Dispositivo                                                          | Credenciales                                              | Qué ofrece la PWA                                                  |
 |--------------------------|----------------------------------------------------------------------|-----------------------------------------------------------|--------------------------------------------------------------------|
-| Real · ESP32 físico      | Una placa con el firmware de SmartPot-IoT, sus sensores y actuadores | Clave mostrada una vez; rotación desde Dispositivo        | Guía del circuito, `config.py` con la red WiFi y `ca.crt`          |
+| Real · ESP32 físico      | Una placa con el firmware de SmartPot-IoT, sus sensores y actuadores | Clave mostrada una vez; rotación desde Dispositivo        | Guía del circuito y `config.py` con la red WiFi y la CA del broker |
 | Real · simulado en Wokwi | El mismo firmware en un ESP32 del navegador                          | Las mismas del cultivo real                               | Enlace al proyecto de Wokwi y `config.py` con la red `Wokwi-GUEST` |
 | Virtual                  | SmartPot-DataGenerator, siempre encendido                            | Ninguna que configurar: la API se la entrega al simulador | Modo día y noche, clima real o manual, pausa y reanudación         |
 
 Simulado en Wokwi y virtual son cosas distintas: Wokwi ejecuta el firmware real y cuenta como cultivo real; el virtual
-lo simula la plataforma. Los cultivos reales nacen con bomba, luz de cultivo y ventilador (los del firmware); los
+lo simula la plataforma. Los cultivos reales nacen con bomba, luz ultravioleta y ventilador (los del firmware); los
 virtuales, con los seis actuadores. La **forma** (maceta, tubos NFT, torre vertical o balsa flotante) solo cambia la
-ilustración y se puede editar.
+ilustración y se puede editar; el **lugar** también se edita y lo usan la ilustración, la
+simulación y el asistente.
 
 ### 9.1 Dispositivo ESP32
 
@@ -782,12 +952,13 @@ ilustración y se puede editar.
 | Nutrientes (TDS)              | GPIO 32         | 0–3000 ppm   |
 | Humedad del sustrato          | GPIO 33         | 0–100 %      |
 | Bomba de agua                 | GPIO 19         | `WATER_PUMP` |
-| Luz de cultivo                | GPIO 18         | `UV_LIGHT`   |
+| Luz ultravioleta              | GPIO 18         | `UV_LIGHT`   |
 | Ventilador                    | GPIO 5          | `FAN`        |
 | LCD 20×4 I2C                  | SCL 16 · SDA 17 | —            |
 
-El firmware sincroniza la hora por NTP, se conecta por TLS con `ca.crt`, publica cada 30 s y apaga cada actuador al
-cumplirse `durationSeconds`. La PWA genera el `config.py` de cada cultivo real, con la red WiFi y sus credenciales.
+El firmware sincroniza la hora por NTP, se conecta por TLS verificando el broker con la CA de `config.py`, publica cada
+30 s, apaga cada actuador al cumplirse `durationSeconds` y confirma cada orden en español («Ventilador encendido por 10
+min»). La PWA genera el `config.py` de cada cultivo real, con la red WiFi, sus credenciales y la CA del broker.
 
 ### 9.2 Wokwi
 
@@ -799,16 +970,17 @@ está abierta, y el cultivo es **real** para la plataforma. La copia del proyect
 ### 9.3 Cultivos virtuales
 
 SmartPot-DataGenerator es el simulador que corre siempre, desplegado con la plataforma. Cada cultivo virtual usa su
-propia cuenta en el broker, publica telemetría, obedece los comandos (la bomba sube la humedad del sustrato, el
-ventilador enfría y seca el aire, la luz de cultivo suma luz, los dosificadores corrigen el pH y los nutrientes) y
-responde su ACK como un dispositivo real. Sus lecturas pasan por la IA, las alertas y el modo automático, pero no por el
-aprendizaje continuo.
+propia cuenta en el broker, publica telemetría, obedece los comandos y responde su ACK como un dispositivo real. En
+los tres modos los actuadores mueven las lecturas: la bomba sube la humedad del sustrato, el ventilador enfría y seca el
+aire, el humidificador lo humedece, la luz ultravioleta suma luz y los dosificadores corrigen el pH y los nutrientes.
+Encendido sin duración, un actuador sigue así hasta que se apaga, y tras cada orden ejecutada llega una lectura nueva a
+los 2 s. Sus lecturas pasan por la IA, las alertas y el modo automático, pero no por el aprendizaje continuo.
 
-| Modo      | Qué refleja                                                                                                                                                                                                                                                                |
-|-----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `WEATHER` | El clima actual del lugar elegido con [Open-Meteo](https://open-meteo.com), un servicio abierto y sin clave: temperatura, humedad, radiación solar convertida a la escala de luz del sensor, lluvia que moja el sustrato y presión. El sol y el aire seco secan más rápido |
-| `MANUAL`  | Los medidores que mueve la persona; los actuadores siguen actuando encima (por ejemplo, el agente riega y la humedad sube)                                                                                                                                                 |
-| `AUTO`    | Día y noche típicos de la especie en la hora local                                                                                                                                                                                                                         |
+| Modo      | Qué refleja                                                                                                                                                                                                                                                                                                                                                       |
+|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `WEATHER` | El clima actual del lugar del cultivo con [Open-Meteo](https://open-meteo.com), un servicio abierto y sin clave: temperatura, humedad, radiación solar convertida a la escala de luz del sensor, lluvia que moja el sustrato y presión, filtrados por el lugar: bajo techo se amortiguan y la lluvia no moja; la media sombra y la sombra bajan la luz y el calor |
+| `MANUAL`  | Los medidores que mueve la persona; los actuadores siguen actuando encima (por ejemplo, el agente riega y la humedad sube)                                                                                                                                                                                                                                        |
+| `AUTO`    | Día y noche típicos de la especie en la hora local                                                                                                                                                                                                                                                                                                                |
 
 <!-- diagrama: SmartPot_15_Virtual_Crop_Sequence | titulo=Cultivo virtual con clima real -->
 
@@ -822,23 +994,24 @@ sequenceDiagram
   participant S as Simulador
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Nuevo cultivo › Virtual › Balsa flotante › Clima real › Medellín
-  W->>A: POST /crops {kind: VIRTUAL, form, virtual}
+  P->>W: Nuevo cultivo › Virtual › Balsa flotante › al aire libre · Clima real · Medellín
+  W->>A: POST /crops {kind: VIRTUAL, form, placement, virtual}
   A->>A: hasta 5 virtuales · el modo clima exige lugar
   A->>A: cultivo, seis actuadores y cuenta MQTT
-  A->>S: PUT /v1/pots/{id} (clave, modo, lugar)
+  A->>S: PUT /v1/pots/{id} (clave, modo, lugar y exposición)
   A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: clima actual (caché 10 min)
   S->>B: conecta con la cuenta del cultivo
   loop cada intervalo
-    S->>B: telemetría según sol, nubes, lluvia y temperatura
+    S->>B: telemetría con el clima filtrado por el lugar y los actuadores encendidos
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Control › Bomba de agua 15 s
+  P->>W: Control › switch de la bomba de agua · 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
-  S->>B: ACK EXECUTED y el sustrato sube
+  S->>B: ACK «Bomba de agua encendida por 15 s»
+  S->>B: lectura nueva a los 2 s con el sustrato más húmedo
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
   W-->>P: la ilustración muestra la bomba en marcha
@@ -859,12 +1032,13 @@ Encima de todas las secciones del detalle, la PWA dibuja cada cultivo, real o vi
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Forma      | Maceta con depósito y riego por goteo; tubos NFT con colectores y retorno; torre con bolsillos escalonados; balsa flotante con raíces en la solución                                                                                             |
 | Planta     | La especie tal como es: lechuga en roseta, espinaca de hoja ancha, albahaca de hojas pareadas, tomate con tutor, flores y frutos rojos, fresa con flor blanca y frutos, pimentón rojo y amarillo; el color de las hojas sigue su índice de salud |
-| Entorno    | Interior de día o de noche según la luz medida, o el clima del lugar en los virtuales con clima real                                                                                                                                             |
+| Entorno    | Bajo techo, una ventana con el cielo de afuera, de día o de noche, con sol que entra si es soleada o cortina si no tiene luz natural; al aire libre, el clima del lugar, con malla de media sombra o un árbol que da sombra                      |
 | Actuadores | Solo los instalados: la bomba hace correr la solución (o burbujas en la balsa), la luz ilumina, el ventilador gira, el humidificador suelta bruma y los dosificadores gotean; cada uno con su estado, sin botones                                |
 
 Un actuador se ve encendido si quedó encendido sin límite o si su última orden por tiempo sigue corriendo; en los
 virtuales también cuenta lo que informa el simulador. Si el cultivo no está conectado (dispositivo sin señal o
-simulación en pausa) la escena no se dibuja y la PWA explica cómo conectarlo o reanudarlo.
+simulación en pausa) la escena no se dibuja y la PWA explica cómo conectarlo o reanudarlo. Junto a la escena, la PWA
+escribe dónde está el cultivo y el clima de afuera; solo los virtuales llevan una etiqueta de tipo.
 
 <!-- parte: PARTE III | Operación -->
 
@@ -884,7 +1058,7 @@ de datos no se ven desde internet y cada dispositivo solo puede tocar lo suyo.
 | Web                  | CSP estricta con `connect-src` limitado a la API, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy` y `Permissions-Policy` (geolocalización solo del propio sitio y solo cuando la persona la pide) |
 | Servicio de IA       | Solo en la red interna y con token de servicio comparado en tiempo constante; aprende con ids de cultivo seudonimizados y solo expone datos agregados                                                   |
 | Simulador            | API de control interna con token; recibe la clave de cada cultivo virtual solo por la red interna; sale a internet únicamente para el clima                                                             |
-| Telegram             | Códigos de vinculación de un solo uso y 10 minutos, webhook con secreto comparado en tiempo constante, solo chats privados y sin datos a chats no vinculados                                            |
+| Telegram             | Códigos de vinculación y enlaces para compartir un cultivo de un solo uso y 10 minutos, webhook con secreto comparado en tiempo constante, solo chats privados y sin datos a chats no vinculados        |
 | Contenedores         | Solo lectura, sin capacidades de Linux, `no-new-privileges`, usuarios sin privilegios, límites de CPU y memoria                                                                                         |
 | Red                  | Solo el broker (8883) escucha fuera de `127.0.0.1`; MongoDB, Redis y la IA en una red sin salida; el simulador no publica puertos                                                                       |
 | Cadena de suministro | Dependabot, revisión de dependencias, CodeQL, SBOM y atestación de procedencia de cada imagen                                                                                                           |
@@ -1038,7 +1212,7 @@ flowchart LR
   web --> e2e
   py --> e2e
   ct --> e2e
-  e2e --> flow["registro → cultivo → telemetría MQTT → comando con ACK<br/>→ asistente → panel general → órdenes en bloque<br/>→ cultivo virtual → aprendizaje → canales → borrado"]
+  e2e --> flow["registro → cultivo → telemetría MQTT → comando con ACK → switches<br/>→ asistente → lugar y clima → panel general<br/>→ órdenes en bloque → cultivo virtual → aprendizaje<br/>→ canales y avisos por cultivo → borrado"]
   classDef start fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef job fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef final fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
@@ -1049,16 +1223,16 @@ flowchart LR
   class flow detail
 ```
 
-| Repositorio                | Pruebas           | Qué cubren                                                                                                                                                                                                                                                                                                                                                                                          |
-|----------------------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| SmartPot-API               | 118               | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos, cultivos, agente, caché, historial con hora para la IA, panel general, órdenes y automatización en bloque, envío de lecturas para el aprendizaje, canales y bot de Telegram, webhook firmado, tipo fijo y forma de los cultivos, simulación solo de virtuales con pausa, aprendizaje solo con reales y seguridad de los controladores |
-| SmartPot-AI                | 73                | Base de conocimiento, reglas, descanso nocturno, pronóstico Theil-Sen, acciones preventivas, análisis de flota, índice difuso, exactitud de los modelos, agente, contrato HTTP y aprendizaje continuo (seudonimización, calidad, etiquetas, modelos frente a la línea base, campeón y retador, persistencia)                                                                                        |
-| SmartPot-Web               | 54                | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, asistente con pronóstico y lo aprendido, comparación de modelos, canales de Telegram, ilustración del cultivo (formas, especies, actuadores, clima y conexión), creación real o virtual, guía de conexión, panel general y requisitos de SEO y PWA                                                                            |
-| SmartPot-DataGenerator     | 23                | Modelo físico, modos manual y clima, lluvia y sol, caché del clima, contrato MQTT, comandos y API de control                                                                                                                                                                                                                                                                                        |
-| SmartPot-IoT               | 13                | Cliente MQTT, telemetría, comandos, actuadores y sensores con MicroPython simulado                                                                                                                                                                                                                                                                                                                  |
-| SmartPot-Broker            | 10 comprobaciones | Autenticación, ACL por cultivo, client ids, anónimos y TLS                                                                                                                                                                                                                                                                                                                                          |
-| SmartPot-DB, -Cache, -Mail | Pruebas de humo   | Validadores, permisos, datos demo, comandos deshabilitados de Redis y autenticación SMTP                                                                                                                                                                                                                                                                                                            |
-| End-to-End                 | 35 comprobaciones | Registro, cultivo real con su forma, telemetría MQTT, clave incorrecta rechazada, comando con ACK, asistente, panel general, series, análisis de flota, orden y automatización en bloque, tipo que no cambia, cultivo virtual sin credenciales con seis actuadores publicando por MQTT, pausa de la simulación, aprendizaje continuo, canales y borrado                                             |
+| Repositorio                | Pruebas           | Qué cubren                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+|----------------------------|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| SmartPot-API               | 147               | Cifrado, JWT, contraseñas, MQTT, aprovisionamiento, comandos y switches (409 al no cambiar nada o al cruzar órdenes), cultivos, lugar y clima, agente, caché, historial con hora para la IA, panel general, órdenes y automatización en bloque, envío de lecturas para el aprendizaje, canales, avisos por cultivo y compartidos, bot de Telegram, webhook firmado, tipo fijo y forma de los cultivos, simulación solo de virtuales con pausa, aprendizaje solo con reales y seguridad de los controladores           |
+| SmartPot-AI                | 84                | Base de conocimiento, reglas, descanso nocturno, pronóstico Theil-Sen, acciones preventivas, lluvia y sensor frente al clima, consejo de lugar, análisis de flota, índice difuso, exactitud de los modelos, agente, contrato HTTP y aprendizaje continuo (seudonimización, calidad, etiquetas, modelos frente a la línea base, campeón y retador, persistencia)                                                                                                                                                       |
+| SmartPot-Web               | 65                | Cliente HTTP, sesión, validaciones, ingreso, componentes del cultivo, switches, asistente con pronóstico, consejo de lugar y lo aprendido, comparación de modelos, Aplicaciones y avisos por cultivo, ilustración (formas, especies, lugar, actuadores, clima y conexión), Simulación en dos partes, creación real o virtual, guía de conexión con la CA, panel general y requisitos de SEO y PWA                                                                                                                     |
+| SmartPot-DataGenerator     | 34                | Modelo físico, efecto de los actuadores en los tres modos, actuadores sin duración, lugar y clima, lluvia y sol, caché del clima, contrato MQTT, lectura tras una orden, mensajes de confirmación y API de control                                                                                                                                                                                                                                                                                                    |
+| SmartPot-IoT               | 15                | Cliente MQTT, verificación del broker con la CA de la plantilla, telemetría, comandos y sus mensajes, actuadores y sensores con MicroPython simulado                                                                                                                                                                                                                                                                                                                                                                  |
+| SmartPot-Broker            | 10 comprobaciones | Autenticación, ACL por cultivo, client ids, anónimos y TLS                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| SmartPot-DB, -Cache, -Mail | Pruebas de humo   | Validadores, permisos, datos demo, comandos deshabilitados de Redis y autenticación SMTP                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| End-to-End                 | 46 comprobaciones | Registro, cultivo real con su forma, telemetría MQTT, clave incorrecta rechazada, comando con ACK, switches (orden cruzada y orden que no cambia nada, 409), asistente, lugar con su consejo y su clima, panel general, series, análisis de flota, orden en bloque que omite lo que no cambia y automatización en bloque, tipo que no cambia, cultivo virtual sin credenciales con seis actuadores publicando por MQTT, pausa de la simulación, aprendizaje continuo, canales y avisos por cultivo sin bot, y borrado |
 
 ## 13. Operación
 
@@ -1082,32 +1256,35 @@ flowchart LR
 
 ## 14. Glosario
 
-| Término                       | Definición                                                                                                |
-|-------------------------------|-----------------------------------------------------------------------------------------------------------|
-| ACK                           | Confirmación que envía el dispositivo al ejecutar o fallar un comando                                     |
-| Actuador                      | Salida del dispositivo que cambia el cultivo: bomba, luz, ventilador, humidificador o dosificadores       |
-| Aprendizaje autosupervisado   | Etiquetas que salen de los propios datos: lo que pasó después de cada lectura                             |
-| Campeón y retador             | El modelo vigente solo se reemplaza si el nuevo lo supera en las lecturas más recientes                   |
-| Broker                        | Servidor MQTT que recibe y reparte los mensajes entre los dispositivos y la API                           |
-| Clave del dispositivo         | Contraseña MQTT de un cultivo, generada por la API                                                        |
-| Ilustración del cultivo       | Dibujo sobre todas las secciones del detalle con su forma, su especie y cada actuador encendido o apagado |
-| Cultivo real                  | Cultivo cuyas lecturas envía un ESP32 con el firmware, físico o simulado en Wokwi                         |
-| Cultivo virtual               | Cultivo que simula SmartPot, siempre encendido, con su propia cuenta en el broker                         |
-| Forma del cultivo             | Maceta, tubos NFT, torre vertical o balsa flotante: cómo se ilustra                                       |
-| Encadenamiento hacia adelante | Técnica del sistema experto que parte de los hechos y dispara reglas hasta no poder concluir más          |
-| GHCR                          | GitHub Container Registry, donde se publican las imágenes y desde donde se despliega                      |
-| Isolation Forest              | Modelo que detecta datos atípicos aislándolos con árboles aleatorios                                      |
-| Línea base                    | Modelo trivial (la clase mayoritaria o «no cambia») que todo modelo debe superar para usarse              |
-| Lógica difusa                 | Razonamiento con grados de pertenencia en lugar de sí o no                                                |
-| Modo automático               | Permiso del dueño para que el agente ejecute acciones sin preguntar                                       |
-| MQTT                          | Protocolo de mensajería liviano para dispositivos conectados                                              |
-| PWA                           | Aplicación web progresiva: se instala y funciona como una app nativa                                      |
-| QoS 1                         | Nivel de MQTT que garantiza al menos una entrega                                                          |
-| Seguridad dinámica            | Plugin de Mosquitto para administrar usuarios, roles y permisos en caliente                               |
-| Silueta                       | Medida de qué tan separados están los grupos de K-Means; elige cuántos grupos usar                        |
-| Sondeo largo                  | Consulta que espera hasta que hay mensajes; alternativa al webhook sin dirección pública                  |
-| TDS                           | Sólidos disueltos totales: concentración de nutrientes en ppm                                             |
-| Tolerancia                    | Unidad con la que se mide cuánto se aleja una variable de su rango ideal                                  |
-| Última voluntad (LWT)         | Mensaje que el broker publica solo si el dispositivo se desconecta sin avisar                             |
-| Validación cruzada temporal   | Evaluación que siempre entrena con el pasado y prueba con el futuro                                       |
-| Webhook                       | Dirección a la que Telegram envía cada mensaje del bot, firmada con un secreto                            |
+| Término                       | Definición                                                                                                 |
+|-------------------------------|------------------------------------------------------------------------------------------------------------|
+| ACK                           | Confirmación que envía el dispositivo al ejecutar o fallar un comando                                      |
+| Actuador                      | Salida del dispositivo que cambia el cultivo: bomba, luz, ventilador, humidificador o dosificadores        |
+| Aprendizaje autosupervisado   | Etiquetas que salen de los propios datos: lo que pasó después de cada lectura                              |
+| Campeón y retador             | El modelo vigente solo se reemplaza si el nuevo lo supera en las lecturas más recientes                    |
+| Broker                        | Servidor MQTT que recibe y reparte los mensajes entre los dispositivos y la API                            |
+| Clave del dispositivo         | Contraseña MQTT de un cultivo, generada por la API                                                         |
+| Ilustración del cultivo       | Dibujo sobre todas las secciones del detalle con su forma, su especie y cada actuador encendido o apagado  |
+| Cultivo real                  | Cultivo cuyas lecturas envía un ESP32 con el firmware, físico o simulado en Wokwi                          |
+| Cultivo virtual               | Cultivo que simula SmartPot, siempre encendido, con su propia cuenta en el broker                          |
+| Forma del cultivo             | Maceta, tubos NFT, torre vertical o balsa flotante: cómo se ilustra                                        |
+| Encadenamiento hacia adelante | Técnica del sistema experto que parte de los hechos y dispara reglas hasta no poder concluir más           |
+| GHCR                          | GitHub Container Registry, donde se publican las imágenes y desde donde se despliega                       |
+| Isolation Forest              | Modelo que detecta datos atípicos aislándolos con árboles aleatorios                                       |
+| Lugar del cultivo             | Bajo techo o al aire libre, cuánto sol recibe y su ubicación; uno solo para el cultivo y su simulación     |
+| Línea base                    | Modelo trivial (la clase mayoritaria o «no cambia») que todo modelo debe superar para usarse               |
+| Lógica difusa                 | Razonamiento con grados de pertenencia en lugar de sí o no                                                 |
+| Modo automático               | Permiso del dueño para que el agente ejecute acciones sin preguntar                                        |
+| MQTT                          | Protocolo de mensajería liviano para dispositivos conectados                                               |
+| PWA                           | Aplicación web progresiva: se instala y funciona como una app nativa                                       |
+| QoS 1                         | Nivel de MQTT que garantiza al menos una entrega                                                           |
+| Resumen de avisos             | Mensaje que reúne los avisos de un cultivo cada cierta cantidad de horas, o una vez al día a una hora fija |
+| Seguridad dinámica            | Plugin de Mosquitto para administrar usuarios, roles y permisos en caliente                                |
+| Silueta                       | Medida de qué tan separados están los grupos de K-Means; elige cuántos grupos usar                         |
+| Sondeo largo                  | Consulta que espera hasta que hay mensajes; alternativa al webhook sin dirección pública                   |
+| Switch                        | Control de encendido y apagado de un actuador que solo admite órdenes que cambian su estado                |
+| TDS                           | Sólidos disueltos totales: concentración de nutrientes en ppm                                              |
+| Tolerancia                    | Unidad con la que se mide cuánto se aleja una variable de su rango ideal                                   |
+| Última voluntad (LWT)         | Mensaje que el broker publica solo si el dispositivo se desconecta sin avisar                              |
+| Validación cruzada temporal   | Evaluación que siempre entrena con el pasado y prueba con el futuro                                        |
+| Webhook                       | Dirección a la que Telegram envía cada mensaje del bot, firmada con un secreto                             |
