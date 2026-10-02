@@ -7,23 +7,24 @@ sequenceDiagram
   participant S as Simulador
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Nuevo cultivo › Virtual › Balsa flotante › Clima real › Medellín
-  W->>A: POST /crops {kind: VIRTUAL, form, virtual}
+  P->>W: Nuevo cultivo › Virtual › Balsa flotante › al aire libre · Clima real · Medellín
+  W->>A: POST /crops {kind: VIRTUAL, form, placement, virtual}
   A->>A: hasta 5 virtuales · el modo clima exige lugar
   A->>A: cultivo, seis actuadores y cuenta MQTT
-  A->>S: PUT /v1/pots/{id} (clave, modo, lugar)
+  A->>S: PUT /v1/pots/{id} (clave, modo, lugar y exposición)
   A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: clima actual (caché 10 min)
   S->>B: conecta con la cuenta del cultivo
   loop cada intervalo
-    S->>B: telemetría según sol, nubes, lluvia y temperatura
+    S->>B: telemetría con el clima filtrado por el lugar y los actuadores encendidos
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Control › Bomba de agua 15 s
+  P->>W: Control › switch de la bomba de agua · 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
-  S->>B: ACK EXECUTED y el sustrato sube
+  S->>B: ACK «Bomba de agua encendida por 15 s»
+  S->>B: lectura nueva a los 2 s con el sustrato más húmedo
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
   W-->>P: la ilustración muestra la bomba en marcha
