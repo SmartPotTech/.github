@@ -5,7 +5,7 @@ acento: plataforma
 subtitulo: Inicio, análisis, diseño, construcción y pruebas de SmartPot
 bajada: Cómo nació SmartPot, qué se planeó en la fase de diseño, qué se construyó de verdad, por qué cambió y cómo se comprueba que funciona.
 documento: Recorrido del proyecto
-version: 1.0 · septiembre 2026
+version: 1.1 · octubre 2026
 equipo: SmartPotTech
 proyecto: smartpot.app
 -->
@@ -19,7 +19,7 @@ proyecto: smartpot.app
 | Proyecto            | SmartPot · [smartpot.app](https://smartpot.app)                                                                                                                                                                                                            |
 | Organización        | SmartPotTech                                                                                                                                                                                                                                               |
 | Documento           | Recorrido del proyecto: inicio, análisis, diseño, construcción y pruebas                                                                                                                                                                                   |
-| Versión             | 1.0 · septiembre 2026                                                                                                                                                                                                                                      |
+| Versión             | 1.1 · octubre 2026                                                                                                                                                                                                                                         |
 | Fuentes             | Documentación de diseño del proyecto (requisitos, casos de uso, diagramas UML, acta de constitución, estudio de mercado, matriz de interesados, propuesta de investigación y plan de trabajo), contrastada con el código de los diez repositorios          |
 | Documentos hermanos | [Documentación técnica](SmartPot_Technical_Documentation.md): la referencia de la plataforma tal como funciona hoy. [Ciclo de vida del software](SmartPot_Software_Lifecycle.md): la lectura crítica de cada etapa, de la formulación a la mejora continua |
 | Cómo leerlo         | Cada parte empieza con lo que se planeó y termina con lo que quedó construido. Las tablas de estado dicen, requisito por requisito, qué se cumplió, qué cambió y qué sigue pendiente                                                                       |
@@ -250,25 +250,25 @@ Los requisitos se escribieron antes de programar, cuando SmartPot todavía era u
 algunos cambiaron porque la construcción encontró una forma mejor, y unos pocos quedan como trabajo futuro. Esta tabla
 es la matriz de trazabilidad: requisito, estado y dónde vive.
 
-| Requisito                                  | Estado      | Cómo quedó construido                                                                                                                                 |
-|--------------------------------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| RF-001 Acceder a la plataforma             | Cumplido    | Registro, ingreso con JWT y recuperación con enlace de 30 minutos (en lugar de enviar credenciales por correo)                                        |
-| RF-002 Calibrar sensores                   | Parcial     | La escala de cada sensor se ajusta en el firmware; la PWA administra los actuadores y la clave del dispositivo. La calibración remota queda pendiente |
-| RF-003 Visualizar el estado de las plantas | Cumplido    | Lecturas frente al rango ideal, índice de salud y panel general de todos los cultivos                                                                 |
-| RF-004 Regar automáticamente               | Cumplido    | El agente riega con el modo automático; también de forma preventiva por pronóstico y por lo aprendido                                                 |
-| RF-005 Notificar alertas                   | Cumplido    | Alertas en la PWA y por Telegram, con los tipos que cada persona elige                                                                                |
-| RF-006 Visualizar datos históricos         | Cumplido    | Historial de 6 h, 24 h o 7 días por variable y exportación CSV                                                                                        |
-| RF-007 Registrar datos de sensores         | Cumplido    | Cada lectura MQTT se guarda en MongoDB durante un año                                                                                                 |
-| RF-008 Configurar parámetros               | Replanteado | Los umbrales vienen de la base de conocimiento de seis especies; umbrales propios por cultivo quedan pendientes                                       |
-| RF-009 Automatizar el control de luz       | Cumplido    | Luz de cultivo cuando falta de día y apagado en el descanso nocturno                                                                                  |
-| RF-010 Controlar manualmente               | Cumplido    | Actuadores por cultivo y órdenes en bloque a varios cultivos                                                                                          |
-| RF-011 Visualizar y editar el perfil       | Cumplido    | Perfil, contraseña, canales de notificación y borrado de la cuenta                                                                                    |
-| RF-012 Generar reportes                    | Parcial     | Resumen estadístico, exportación CSV, análisis de todos los cultivos y aprendizaje por especie; los reportes programados quedan pendientes            |
-| RF-013 Gestión integral de plantas         | Cumplido    | Crear, editar y eliminar cultivos de seis especies, reales o virtuales, con su forma y sus actuadores                                                 |
-| RF-014 Gestión de nutrientes               | Parcial     | Se mide el TDS, existe el dosificador como actuador y la regla de bloqueo de nutrientes; la dosificación física espera hardware                       |
-| RF-015 Conectar con la API                 | Cumplido    | Contrato MQTT v1 para los dispositivos y REST documentado en `/docs`                                                                                  |
-| RF-016 Visualizar gráficos históricos      | Cumplido    | Gráficos con la banda ideal y comparación de una variable entre cultivos                                                                              |
-| RF-017 Determinar el estado general        | Cumplido    | Índice difuso de 0 a 100 en cinco niveles, más fino que los tres planteados                                                                           |
+| Requisito                                  | Estado      | Cómo quedó construido                                                                                                                                                                                        |
+|--------------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| RF-001 Acceder a la plataforma             | Cumplido    | Registro, ingreso con JWT y recuperación con enlace de 30 minutos (en lugar de enviar credenciales por correo)                                                                                               |
+| RF-002 Calibrar sensores                   | Parcial     | La escala de cada sensor se ajusta en el firmware; la PWA administra los actuadores y la clave del dispositivo. La calibración remota queda pendiente                                                        |
+| RF-003 Visualizar el estado de las plantas | Cumplido    | Lecturas frente al rango ideal, índice de salud y panel general de todos los cultivos                                                                                                                        |
+| RF-004 Regar automáticamente               | Cumplido    | El agente riega con el modo automático; también de forma preventiva por pronóstico y por lo aprendido                                                                                                        |
+| RF-005 Notificar alertas                   | Cumplido    | Alertas en la PWA y por Telegram: cada cultivo elige qué avisa, al instante o en resúmenes, con un resumen diario y chats con los que se comparte                                                            |
+| RF-006 Visualizar datos históricos         | Cumplido    | Historial de 6 h, 24 h o 7 días por variable y exportación CSV                                                                                                                                               |
+| RF-007 Registrar datos de sensores         | Cumplido    | Cada lectura MQTT se guarda en MongoDB durante un año                                                                                                                                                        |
+| RF-008 Configurar parámetros               | Replanteado | Los umbrales vienen de la base de conocimiento de seis especies; umbrales propios por cultivo quedan pendientes                                                                                              |
+| RF-009 Automatizar el control de luz       | Cumplido    | Luz ultravioleta cuando falta de día y apagado en el descanso nocturno; el asistente recomienda sol directo a las especies que lo piden                                                                      |
+| RF-010 Controlar manualmente               | Cumplido    | Un switch por actuador que solo acepta órdenes que cambian algo, y órdenes en bloque a varios cultivos                                                                                                       |
+| RF-011 Visualizar y editar el perfil       | Cumplido    | Perfil, contraseña, canales de notificación y borrado de la cuenta                                                                                                                                           |
+| RF-012 Generar reportes                    | Parcial     | Resumen estadístico, exportación CSV, análisis de todos los cultivos, aprendizaje por especie y resúmenes programados por Telegram (cada 1 a 24 h y uno diario); los reportes en documento quedan pendientes |
+| RF-013 Gestión integral de plantas         | Cumplido    | Crear, editar y eliminar cultivos de seis especies, reales o virtuales, con su forma, su lugar y sus actuadores                                                                                              |
+| RF-014 Gestión de nutrientes               | Parcial     | Se mide el TDS, existe el dosificador como actuador y la regla de bloqueo de nutrientes; la dosificación física espera hardware                                                                              |
+| RF-015 Conectar con la API                 | Cumplido    | Contrato MQTT v1 para los dispositivos y REST documentado en `/docs`                                                                                                                                         |
+| RF-016 Visualizar gráficos históricos      | Cumplido    | Gráficos con la banda ideal y comparación de una variable entre cultivos                                                                                                                                     |
+| RF-017 Determinar el estado general        | Cumplido    | Índice difuso de 0 a 100 en cinco niveles, más fino que los tres planteados                                                                                                                                  |
 
 ## 6. Requisitos no funcionales
 
@@ -376,7 +376,7 @@ IA deciden. Así un dispositivo barato se beneficia de todo lo que la plataforma
 | Abstracción del diseño                                | Implementación                                                                                                                                                                                      |
 |-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Sensor` con `Brightness`, `Atmosphere`, `PH` y `TDS` | Firmware: `ADCSensor` con `LightSensor`, `PHSensor`, `TDSSensor` y `SoilMoistureSensor`, y `AtmosphereSensor` (DHT22) que entrega temperatura y humedad por separado en lugar de un valor compuesto |
-| `Actuador` con `WaterPump` y `UVLight`                | Firmware: `Actuator` y `ActuatorBank` con apagado al cumplir la duración. API: `Actuator` con seis tipos (bomba, luz de cultivo, ventilador, humidificador y dosificadores de pH y nutrientes)      |
+| `Actuador` con `WaterPump` y `UVLight`                | Firmware: `Actuator` y `ActuatorBank` con apagado al cumplir la duración. API: `Actuator` con seis tipos (bomba, luz ultravioleta, ventilador, humidificador y dosificadores de pH y nutrientes)    |
 | `LCD Display`                                         | Se conserva en el firmware (`LCDDisplay` 20×4 por I2C) como respaldo local cuando no hay conexión                                                                                                   |
 | `DeviceController`                                    | Firmware: ciclo principal y `SmartPotClient` (MQTT con TLS). La toma de decisiones pasó al agente de la plataforma                                                                                  |
 | `API` con consulta periódica de solicitudes           | Tópico `commands` con QoS 1 y confirmación en `commands/ack`; el «identificador de última solicitud» se volvió el id del comando y su máquina de estados                                            |
@@ -615,7 +615,8 @@ La construcción sumó otros patrones:
 
 Los prototipos de Figma definieron las pantallas principales y la navegación. La PWA las conserva (ingreso, panel,
 detalle del cultivo, historial, perfil y alertas) y suma el panel general, el control general, el centro de acciones, la
-página de aprendizaje y la maceta virtual con su escena del clima. El requisito de una paleta orientada a la naturaleza
+página de aprendizaje, la ilustración de cada cultivo en su lugar, la pestaña de simulación de los cultivos virtuales y
+las aplicaciones de notificación del perfil. El requisito de una paleta orientada a la naturaleza
 se cumplió con la paleta SmartPot, que también usan estos documentos.
 
 <!-- parte: PARTE IV | Construcción -->
@@ -642,7 +643,7 @@ estimaciones PERT y un cronograma con ruta crítica.
 | Frontend                     | React con Vite                                                                | PWA en React 19, TypeScript 6 y Tailwind CSS 4                                                                                   | Instalable y con un solo código para teléfono y escritorio                                                                  |
 | Infraestructura              | Capas gratuitas en la nube                                                    | Servidor propio con Docker, Nginx, TLS y despliegue automático desde GHCR                                                        | Sin límites de cuota y con control de la seguridad                                                                          |
 | Inteligencia                 | `evaluarSalud()` con reglas fijas; propuesta de LSTM y regresión              | Sistema experto, lógica difusa, modelos base, pronóstico Theil-Sen, análisis de flota y aprendizaje continuo con lecturas reales | Explicable desde el primer día y cada vez más preciso con datos reales; una LSTM necesita meses de datos que aún no existen |
-| Notificaciones               | Correo y bot en la maceta                                                     | PWA y Telegram desde la API, con canales intercambiables                                                                         | Un solo lugar con los permisos y datos de cada cuenta                                                                       |
+| Notificaciones               | Correo y bot en la maceta                                                     | PWA y Telegram desde la API, con canales intercambiables, avisos por cultivo, resúmenes y chats compartidos                      | Un solo lugar con los permisos y datos de cada cuenta                                                                       |
 | Simulación                   | Wokwi                                                                         | Wokwi a mano (cultivo real) y cultivos virtuales siempre encendidos con clima real                                               | Una demo y un QA que no dependen de una pestaña abierta                                                                     |
 | Seguridad                    | JWT, AES y límite de peticiones en el acta                                    | Todo lo anterior más control de dueño, cuenta MQTT por cultivo, contenedores endurecidos, CodeQL y SBOM                          | La revisión encontró rutas sin control de dueño y servicios expuestos                                                       |
 
@@ -651,11 +652,11 @@ estimaciones PERT y un cronograma con ruta crítica.
 | Repositorio                         | Contenido                                                                                                   |
 |-------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | `.github`                           | Entornos Docker (demo, desarrollo y producción), Kubernetes, despliegue central, QA, documentación y perfil |
-| SmartPot-API                        | Java 21 y Spring Boot 4.1                                                                                   |
-| SmartPot-Web                        | PWA en React                                                                                                |
-| SmartPot-AI                         | FastAPI y scikit-learn                                                                                      |
-| SmartPot-DataGenerator              | Simulador de los cultivos virtuales y su API de control                                                     |
-| SmartPot-IoT                        | Firmware MicroPython para ESP32 y Wokwi                                                                     |
+| SmartPot-API                        | 147                                                                                                         |
+| SmartPot-Web                        | 65                                                                                                          |
+| SmartPot-AI                         | 84                                                                                                          |
+| SmartPot-DataGenerator              | 34                                                                                                          |
+| SmartPot-IoT                        | 15                                                                                                          |
 | SmartPot-Broker, -DB, -Cache, -Mail | Imágenes endurecidas de Mosquitto, MongoDB, Redis y Mailpit                                                 |
 | SmartPot-Proxy                      | Archivado: su función la cumple Nginx en el servidor                                                        |
 
@@ -772,27 +773,78 @@ sequenceDiagram
   participant S as Simulador
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Nuevo cultivo › Virtual › Balsa flotante › Clima real › Medellín
-  W->>A: POST /crops {kind: VIRTUAL, form, virtual}
+  P->>W: Nuevo cultivo › Virtual › Balsa flotante › al aire libre · Clima real · Medellín
+  W->>A: POST /crops {kind: VIRTUAL, form, placement, virtual}
   A->>A: hasta 5 virtuales · el modo clima exige lugar
   A->>A: cultivo, seis actuadores y cuenta MQTT
-  A->>S: PUT /v1/pots/{id} (clave, modo, lugar)
+  A->>S: PUT /v1/pots/{id} (clave, modo, lugar y exposición)
   A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: clima actual (caché 10 min)
   S->>B: conecta con la cuenta del cultivo
   loop cada intervalo
-    S->>B: telemetría según sol, nubes, lluvia y temperatura
+    S->>B: telemetría con el clima filtrado por el lugar y los actuadores encendidos
     B->>A: lectura → asistente → agente (no entra al aprendizaje)
   end
-  P->>W: Control › Bomba de agua 15 s
+  P->>W: Control › switch de la bomba de agua · 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
-  S->>B: ACK EXECUTED y el sustrato sube
+  S->>B: ACK «Bomba de agua encendida por 15 s»
+  S->>B: lectura nueva a los 2 s con el sustrato más húmedo
   W->>A: GET /crops/{id}/virtual-device
   A-->>W: clima, lecturas y actuadores encendidos
   W-->>P: la ilustración muestra la bomba en marcha
   Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
+```
+
+### 14.6 El lugar, los switches y los avisos por cultivo
+
+La revisión de la interfaz con cultivos de verdad dejó tres ajustes. El primero es el **lugar**: la persona indica si el
+cultivo está bajo techo o al aire libre, cuánto sol recibe y en qué ciudad. La ilustración lo dibuja (una ventana con el
+cielo de afuera, una malla de media sombra o un árbol), el simulador filtra el clima por ese lugar y el asistente
+compara la luz que pide la especie con la que recibe: deja poner el cultivo donde se quiera, pero recomienda moverlo
+cuando el lugar ya afecta la salud. El segundo son los **switches**: cada actuador se maneja con un interruptor que solo
+acepta órdenes que cambian algo, lo que eliminó los dobles clics y las órdenes repetidas; en los cultivos virtuales cada
+orden mueve las lecturas en los tres modos y llega una lectura nueva a los dos segundos. El tercero son los **avisos por
+cultivo**: cada cultivo elige qué avisa por Telegram, al instante o en resúmenes, con un resumen diario y hasta diez
+chats con los que se comparte; si el servidor no tiene el bot, la aplicación lo muestra en gris con lo que falta.
+
+<!-- diagrama: SmartPot_38_Placement_Advice | titulo=Consejo de lugar -->
+
+```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+flowchart TB
+  eval(["Evaluación del cultivo"]) --> known{"¿Se sabe si está bajo techo<br/>o al aire libre y cuánto sol recibe?"}
+  known -->|"No"| unknown["UNKNOWN<br/>preguntar en Ajustes"]
+  known -->|"Sí"| sun["Sol que recibe<br/>de 0 sin luz natural a 3 pleno sol"]
+  sun --> fits{"¿Es lo que pide la especie?<br/>pleno sol o media sombra"}
+  fits -->|"Sí"| ok["OK<br/>el lugar le sienta bien"]
+  fits -->|"Le falta sol"| dark{"¿Luz baja de día<br/>en el diagnóstico?"}
+  dark -->|"Sí"| more["MOVE · Le falta sol<br/>llevarla a pleno sol o a la ventana más soleada"]
+  dark -->|"No"| tipMore["TIP<br/>estaría mejor con más sol"]
+  fits -->|"Le sobra sol"| hot{"¿Calor, exceso de luz<br/>o aire seco?"}
+  hot -->|"Sí"| less["MOVE · Le sobra sol<br/>media sombra o malla en las horas fuertes"]
+  hot -->|"No"| tipLess["TIP<br/>estaría mejor con menos sol"]
+  subgraph outside["Al aire libre, con el clima de afuera"]
+    direction LR
+    rain{"¿Llueve 0,5 mm o más?"} -->|"Sí"| norain["rain_outside<br/>el agente no riega"]
+    gap{"¿El sensor se aleja 8 °C<br/>o más del clima?"} -->|"Sí"| check["sensor_vs_outside<br/>darle sombra o revisarlo"]
+  end
+  eval --> rain
+  eval --> gap
+  classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
+  classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef clay fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  classDef deep fill:#0B3D2B,stroke:#06281C,color:#FFFFFF
+  classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  class eval core
+  class known,fits,dark,hot,rain,gap sun
+  class ok leaf
+  class tipMore,tipLess water
+  class more,less clay
+  class unknown,sun,norain,check muted
 ```
 
 <!-- parte: PARTE V | Pruebas -->
@@ -820,26 +872,26 @@ sequenceDiagram
 | SmartPot-IoT               | 13                |
 | SmartPot-Broker            | 10 comprobaciones |
 | SmartPot-DB, -Cache, -Mail | Pruebas de humo   |
-| End-to-End                 | 30 comprobaciones |
+| End-to-End                 | 46 comprobaciones |
 
 El workflow de QA corre en cada cambio de la organización, cada lunes y a mano; compila las ocho imágenes, levanta la
 demo y recorre el camino completo de una persona nueva.
 
 ### 16.1 Aceptación de los casos de uso
 
-| Caso de uso  | Cómo se comprueba                                                                                                             |
-|--------------|-------------------------------------------------------------------------------------------------------------------------------|
-| CU001        | E2E: registro, ingreso y rechazo sin sesión                                                                                   |
-| CU002        | E2E: cultivo real con credenciales, telemetría con la clave y rechazo de una clave incorrecta; pruebas de la guía de conexión |
-| CU003        | E2E: la lectura llega por MQTT y el panel general resume la cuenta; pruebas de la ilustración y de la conexión                |
-| CU004        | Pruebas del agente y de la API: acciones con modo automático, enfriamiento y falla de sensor                                  |
-| CU005        | Pruebas de notificaciones y del reenvío a canales                                                                             |
-| CU006        | E2E: series agregadas; pruebas del historial y la exportación                                                                 |
-| CU007, CU008 | Pruebas de controladores y validaciones; E2E: el tipo no cambia y un cultivo real no se simula                                |
-| CU009        | E2E: comando con ACK, orden en bloque y automatización en bloque                                                              |
-| CU010        | E2E: cultivo virtual manual creado sin credenciales, con seis actuadores, que publica por MQTT, informa su estado y se pausa  |
-| CU011        | Pruebas del bot: código de un solo uso, chats privados, estado y escape de HTML                                               |
-| CU012        | E2E: la IA recibe lecturas reales; pruebas de la página y de los modelos                                                      |
+| Caso de uso  | Cómo se comprueba                                                                                                                          |
+|--------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| CU001        | E2E: registro, ingreso y rechazo sin sesión                                                                                                |
+| CU002        | E2E: cultivo real con credenciales, telemetría con la clave y rechazo de una clave incorrecta; pruebas de la guía de conexión              |
+| CU003        | E2E: la lectura llega por MQTT, el panel general resume la cuenta y el lugar recibe su consejo; pruebas de la ilustración y de la conexión |
+| CU004        | Pruebas del agente y de la API: acciones con modo automático, enfriamiento y falla de sensor                                               |
+| CU005        | Pruebas de notificaciones, del reenvío a canales y de los avisos por cultivo                                                               |
+| CU006        | E2E: series agregadas; pruebas del historial y la exportación                                                                              |
+| CU007, CU008 | Pruebas de controladores y validaciones; E2E: el tipo no cambia y un cultivo real no se simula                                             |
+| CU009        | E2E: comando con ACK, switches que rechazan órdenes cruzadas o sin cambio, orden en bloque y automatización en bloque                      |
+| CU010        | E2E: cultivo virtual manual creado sin credenciales, con seis actuadores, que publica por MQTT, informa su estado y se pausa               |
+| CU011        | Pruebas del bot: código de un solo uso, enlaces para compartir un cultivo, chats privados, estado y escape de HTML                         |
+| CU012        | E2E: la IA recibe lecturas reales; pruebas de la página y de los modelos                                                                   |
 
 ### 16.2 Calidad de los modelos aprendidos
 
@@ -864,7 +916,7 @@ línea base en el 20 % de lecturas más recientes:
 | Autenticación en dos pasos                                         | RNF-001                           |
 | Temas y ajustes de visualización                                   | RNF-006                           |
 | Umbrales propios por cultivo y calibración remota de sensores      | RF-008, RF-002                    |
-| Reportes periódicos programados                                    | RF-012                            |
+| Reportes descargables en documento                                 | RF-012                            |
 | Actualización en vivo hacia la PWA                                 | RNF-003                           |
 | Más canales (WhatsApp, correo) sobre la misma interfaz             | Arquitectura de canales           |
 | Prototipo físico y validación experimental con un ciclo de cultivo | Propuesta de investigación        |
