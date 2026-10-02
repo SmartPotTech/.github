@@ -21,15 +21,15 @@ flowchart LR
   maceta <-->|"MQTT TLS 8883<br/>telemetría · comandos · ACK"| broker
   wokwi <-->|"MQTT TLS"| broker
   sim <-->|"MQTT interno"| broker
-  clima -.->|"modo clima"| sim
+  clima -.->|"clima del lugar"| sim
   broker <-->|"MQTT interno"| api
   pwa -->|"HTTPS · REST + JWT"| api
-  api -->|"control con token"| sim
+  api -->|"simulaciones y clima<br/>con token"| sim
   api -->|"evaluación · lecturas para aprender"| ai
   api -->|"lecturas, cultivos, comandos"| db
   api -->|"límites y caché"| cache
   api -->|"SMTP"| mail
-  api -->|"alertas · bot"| tg
+  api -->|"avisos · resúmenes · bot"| tg
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
   classDef edge fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
