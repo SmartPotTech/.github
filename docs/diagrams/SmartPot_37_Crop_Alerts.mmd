@@ -1,0 +1,27 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+sequenceDiagram
+  autonumber
+  participant P as Persona
+  participant W as PWA
+  participant A as API
+  participant D as MongoDB
+  participant T as Telegram
+  participant C as Chat compartido
+  P->>W: Ajustes del cultivo › Avisos por Telegram
+  W->>A: PUT /crops/{id}/channels/TELEGRAM (eventos, entrega, resumen diario)
+  A->>D: guarda crop_channels
+  P->>W: Compartir con otro chat
+  W->>A: POST /crops/{id}/channels/TELEGRAM/recipients
+  A-->>W: enlace t.me/bot?start=código · un solo uso · 10 min
+  C->>T: abre el enlace e inicia el bot
+  T->>A: /start código (webhook o sondeo)
+  A->>D: suma el chat a recipients (hasta 10)
+  A->>T: «Desde ahora recibirás los avisos de Lechugas del balcón»
+  Note over A: Llega una notificación del cultivo
+  alt Entrega al instante
+    A->>T: aviso al chat del dueño y a los compartidos
+  else Entrega en resumen
+    A->>D: queda para el resumen
+    A->>T: resumen cada 1 a 24 h con los avisos guardados
+  end
+  A->>T: resumen diario a la hora elegida con salud, lectura y últimas 24 h
