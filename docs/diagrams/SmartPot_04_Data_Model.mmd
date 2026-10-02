@@ -9,6 +9,7 @@ erDiagram
   CROPS ||--o{ COMMANDS : "recibe"
   CROPS ||--o{ NOTIFICATIONS : "genera"
   CROPS ||--o| VIRTUAL_DEVICES : "simula"
+  CROPS ||--o{ CROP_CHANNELS : "avisa por"
   ACTUATORS ||--o{ COMMANDS : "ejecuta"
   USERS {
     ObjectId _id
@@ -25,6 +26,7 @@ erDiagram
     string type "LETTUCE, TOMATO, …"
     string kind "REAL o VIRTUAL, fijo"
     string form "POT, NFT, TOWER, RAFT"
+    object placement "INDOOR u OUTDOOR, sol, ubicación"
     bool automationEnabled
     object device "keyCiphertext AES-GCM, online, lastSeenAt"
     object health "index, level, label, evaluatedAt"
@@ -40,7 +42,8 @@ erDiagram
     ObjectId _id
     ObjectId cropId
     string type "WATER_PUMP, UV_LIGHT, FAN, …"
-    bool active
+    bool active "encendido sin límite"
+    date runningUntil "si corre por tiempo"
   }
   COMMANDS {
     ObjectId _id
@@ -65,13 +68,23 @@ erDiagram
     bool enabled
     array events "tipos elegidos"
   }
+  CROP_CHANNELS {
+    ObjectId _id
+    ObjectId cropId
+    string type "TELEGRAM"
+    array events "tipos que avisa"
+    string delivery "INSTANT o DIGEST"
+    int digestHours "1 a 24"
+    string dailySummaryAt "HH:mm"
+    array recipients "hasta 10 chats"
+  }
   VIRTUAL_DEVICES {
     ObjectId _id
     ObjectId cropId "único"
     ObjectId ownerId
     string mode "AUTO, MANUAL, WEATHER"
     object manual "medidores"
-    object location "nombre, latitud, longitud"
+    object location "anterior al lugar del cultivo"
     bool active "false en pausa"
   }
   PASSWORD_RESET_TOKENS {
