@@ -1,9 +1,10 @@
 """Prueba de extremo a extremo sobre el entorno demo de SmartPot.
 
 Recorre el camino completo de un usuario nuevo: registro, cultivo real, telemetría MQTT,
-comando con confirmación del dispositivo, evaluación del asistente, panel general (totales,
-series comparativas y análisis de flota), órdenes en bloque, cultivo virtual con su simulación,
-aprendizaje continuo, canales de notificación y borrado de la cuenta.
+comando con confirmación del dispositivo, switches de los actuadores, evaluación del asistente,
+lugar del cultivo con su consejo y su clima, panel general (totales, series comparativas y
+análisis de flota), órdenes en bloque, cultivo virtual con su simulación, aprendizaje continuo,
+canales de notificación con los avisos por cultivo y borrado de la cuenta.
 Solo usa la biblioteca estándar; publica por MQTT con mosquitto_pub dentro del broker.
 
     python3 scripts/e2e.py
@@ -118,9 +119,14 @@ def run_flow(token: str) -> None:
 
     status, actuators = call("GET", f"/api/v1/crops/{crop_id}/actuators", token=token)
     pump = next(a for a in actuators if a["type"] == "WATER_PUMP")
+    fan = next(a for a in actuators if a["type"] == "FAN")
     status, command = call("POST", f"/api/v1/crops/{crop_id}/commands",
-                           {"actuatorId": pump["id"], "action": "ACTIVATE", "durationSeconds": 5}, token)
+                           {"actuatorId": pump["id"], "action": "ACTIVATE", "durationSeconds": 60}, token)
     expect(status in (200, 201, 202) and command["status"] in ("PENDING", "SENT"), "envío de un comando a la bomba")
+
+    status, body = call("POST", f"/api/v1/crops/{crop_id}/commands",
+                        {"actuatorId": pump["id"], "action": "DEACTIVATE"}, token)
+    expect(status == 409 and "en curso" in body["message"], "no se solapan dos órdenes al mismo actuador")
 
     publish(username, key, topics["commandAck"], {"id": command["id"], "status": "EXECUTED", "message": "E2E"})
 
@@ -131,10 +137,23 @@ def run_flow(token: str) -> None:
     wait_for("la confirmación del comando", executed)
     expect(True, "la confirmación del dispositivo marca el comando como ejecutado")
 
+    status, actuators = call("GET", f"/api/v1/crops/{crop_id}/actuators", token=token)
+    pump = next(a for a in actuators if a["type"] == "WATER_PUMP")
+    expect(pump["running"] and not pump["active"] and pump.get("runningUntil"),
+           "el switch de la bomba queda encendido hasta que vence su tiempo")
+
+    status, body = call("POST", f"/api/v1/crops/{crop_id}/commands",
+                        {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token)
+    expect(status == 409 and body["message"] == "El ventilador ya está apagado",
+           "una orden que no cambia nada se rechaza")
+
     status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
     expect(status == 200 and 0 <= insight["health"]["index"] <= 100, "el asistente evalúa el cultivo")
     expect(bool(insight["summary"]), "el asistente entrega un resumen en español")
     expect(insight.get("learning", {}).get("source") in ("BASE", "LEARNED"), "la evaluación informa lo aprendido")
+    expect(insight["placement"]["level"] == "UNKNOWN", "sin lugar, el asistente pregunta dónde está el cultivo")
+
+    check_placement(token, crop_id)
 
     status, overview = call("GET", "/api/v1/overview", token=token)
     expect(status == 200 and overview["totals"]["crops"] == 1, "el panel general resume la cuenta")
@@ -147,6 +166,11 @@ def run_flow(token: str) -> None:
     expect(status == 200 and fleet["crops"][0]["id"] == crop_id, "el asistente analiza todos los cultivos")
 
     status, bulk = call("POST", "/api/v1/commands/bulk", {"actuatorType": "FAN", "action": "DEACTIVATE"}, token)
+    expect(status == 202 and bulk["skipped"] == 1 and "ya está apagado" in bulk["results"][0]["message"],
+           "la orden en bloque omite los cultivos donde no cambiaría nada")
+
+    status, bulk = call("POST", "/api/v1/commands/bulk",
+                        {"actuatorType": "FAN", "action": "ACTIVATE", "durationSeconds": 60}, token)
     expect(status == 202 and bulk["sent"] == 1, "orden en bloque a todos los cultivos")
 
     status, history = call("GET", "/api/v1/commands?limit=10", token=token)
@@ -159,11 +183,47 @@ def run_flow(token: str) -> None:
     check_virtual_crop(token)
     check_learning(token)
 
-    status, channels = call("GET", "/api/v1/channels", token=token)
-    expect(status == 200 and channels[0]["type"] == "TELEGRAM", "los canales de notificación se listan")
+    check_channels(token, crop_id)
 
     status, _ = call("DELETE", f"/api/v1/crops/{crop_id}", token=token)
     expect(status == 204, "borrado del cultivo")
+
+
+def check_placement(token: str, crop_id: str) -> None:
+    status, _ = call("GET", f"/api/v1/crops/{crop_id}/weather", token=token)
+    expect(status == 204, "sin ubicación no hay clima que mostrar")
+
+    placement = {"setting": "OUTDOOR", "exposure": "PARTIAL_SUN",
+                 "location": {"name": "Medellín, Antioquia", "latitude": 6.25, "longitude": -75.56}}
+    status, crop = call("PUT", f"/api/v1/crops/{crop_id}",
+                        {"name": "Lechuga de prueba", "type": "LETTUCE", "placement": placement}, token)
+    expect(status == 200 and crop["placement"]["setting"] == "OUTDOOR"
+           and crop["placement"]["location"]["name"] == "Medellín, Antioquia", "el cultivo guarda su lugar")
+
+    status, weather = call("GET", f"/api/v1/crops/{crop_id}/weather", token=token)
+    expect(status == 204 or (status == 200 and "temperature" in weather),
+           "el clima del lugar llega o se informa que no está disponible")
+
+    status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
+    advice = insight["placement"]
+    expect(advice["level"] == "OK" and advice["idealExposure"] == "PARTIAL_SUN",
+           "el asistente aprueba la media sombra para la lechuga")
+
+
+def check_channels(token: str, crop_id: str) -> None:
+    status, channels = call("GET", "/api/v1/channels", token=token)
+    telegram = next(channel for channel in channels if channel["type"] == "TELEGRAM")
+    expect(status == 200 and not telegram["available"] and "TELEGRAM_BOT_TOKEN" in telegram["requirements"],
+           "sin bot, Telegram aparece no disponible con lo que le falta al servidor")
+
+    status, settings = call("GET", f"/api/v1/crops/{crop_id}/channels", token=token)
+    telegram = next(channel for channel in settings if channel["type"] == "TELEGRAM")
+    expect(status == 200 and not telegram["available"] and not telegram["linked"],
+           "los avisos del cultivo informan si su canal está disponible y vinculado")
+
+    status, body = call("PUT", f"/api/v1/crops/{crop_id}/channels/TELEGRAM", {"delivery": "DIGEST"}, token)
+    expect(status == 503 and "no está configurado" in body["message"],
+           "sin el canal en el servidor no se guardan avisos por cultivo")
 
 
 def check_kinds(token: str, crop_id: str) -> None:
