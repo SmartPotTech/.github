@@ -18,12 +18,15 @@ ventilarlos.
    reactivo para diagnosticar el cultivo, calcular su índice de salud y proponer acciones. De noche entiende que la
    planta descansa. Además **aprende sin parar** de las lecturas reales de cada especie: anticipa cuándo hará falta
    regar o ventilar en la próxima hora y reconoce lo poco habitual, sin saber de qué cuenta viene cada lectura. Un
-   modelo nuevo solo reemplaza al vigente si lo mejora.
-4. **La app** (PWA instalable) muestra cada cultivo **en vivo**, dibujado con su forma, su planta y cada actuador
-   encendido o apagado; envía alertas y permite encender la bomba, la luz, el ventilador, el humidificador o los
-   dosificadores, o dejar que el agente lo haga en modo automático.
-5. **Telegram** te avisa aunque no tengas la app abierta: vinculas tu chat desde el perfil con un código de un solo uso,
-   eliges qué avisos recibir y consultas cómo van tus cultivos con `/estado`.
+   modelo nuevo solo reemplaza al vigente si lo mejora. También mira **dónde está** cada cultivo: si al lugar le falta o
+   le sobra sol para la especie, te recomienda moverlo, y con lluvia afuera no riega.
+4. **La app** (PWA instalable) muestra cada cultivo **en vivo**, dibujado en su lugar (bajo techo o al aire libre, con
+   el clima de afuera), con su forma, su planta y cada actuador encendido o apagado. Cada actuador tiene su **switch**:
+   enciendes la bomba, la luz ultravioleta, el ventilador, el humidificador o los dosificadores con un solo toque, o
+   dejas que el agente lo haga en modo automático.
+5. **Telegram** te avisa aunque no tengas la app abierta: vinculas tu chat desde el perfil con un código de un solo uso
+   y **cada cultivo** elige qué avisa, al instante o en resúmenes, con un resumen diario y los chats con los que lo
+   compartes. Con `/estado` consultas cómo van tus cultivos.
 
 ## La plataforma en diagramas
 
