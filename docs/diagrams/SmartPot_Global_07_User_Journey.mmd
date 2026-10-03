@@ -15,21 +15,22 @@ flowchart LR
   subgraph app["/app · requiere sesión · navegación lateral o inferior"]
     direction TB
     overview["/app · Panel general<br/>salud promedio · en línea · comandos del día<br/>ranking · análisis de la IA · comparador · últimas lecturas"]
-    crops["/app/crops · Mis cultivos<br/>tarjetas real o virtual · forma<br/>Nuevo cultivo: tipo fijo · especie · forma<br/>vista previa · guía ESP32 o Wokwi"]
+    crops["/app/crops · Mis cultivos<br/>tarjetas real o virtual · forma<br/>Nuevo cultivo: tipo fijo · especie · forma · lugar<br/>vista previa · guía ESP32 o Wokwi"]
     control["/app/control · Control general<br/>automático por cultivo o todos · atajos · órdenes en bloque"]
     actions["/app/actions · Acciones<br/>sugerencias en bloque · historial de órdenes"]
     learningp["/app/learning · Aprendizaje (escritorio)<br/>calidad · modelos · estados · atípicos"]
     alerts["/app/notifications · Alertas"]
-    profile["/app/profile · Perfil<br/>datos · contraseña · Telegram · borrar cuenta"]
+    profile["/app/profile · Perfil<br/>datos · contraseña · Aplicaciones<br/>Telegram en gris si el servidor no lo tiene · borrar cuenta"]
     subgraph detail["/app/crops/:cropId · Detalle del cultivo"]
       direction TB
       summary["Resumen<br/>lecturas frente al rango · gráfico 24 h"]
-      assistant["Asistente IA<br/>índice y de qué depende · diagnóstico<br/>pronóstico · lo aprendido · acciones"]
-      ctrl["Control<br/>modo automático · actuadores · comandos"]
+      assistant["Asistente IA<br/>índice y de qué depende · consejo de lugar<br/>diagnóstico · pronóstico · lo aprendido · acciones"]
+      ctrl["Control<br/>modo automático · un switch por actuador<br/>con su duración · comandos"]
       history["Historial<br/>6 h · 24 h · 7 días · CSV"]
-      hero["Ilustración del cultivo · sobre todas las secciones<br/>forma y especie · cada actuador encendido<br/>o apagado · clima · sin acciones"]
-      virtualtab["Simulación · solo virtuales<br/>modo · lugar · medidores · pausa"]
-      devicetab["Dispositivo · solo reales<br/>guía ESP32 o Wokwi · config.py · rotar clave"]
+      hero["Ilustración del cultivo · sobre todas las secciones<br/>forma y especie en su lugar · cada actuador<br/>encendido o apagado · clima de afuera · sin acciones"]
+      virtualtab["Simulación · solo virtuales<br/>estado con Pausar y Reanudar<br/>cómo se simula · modo · medidores · Aplicar cambios"]
+      settings["Ajustes<br/>datos · dónde está (lugar, sol, ubicación)<br/>avisos por Telegram si el chat está vinculado"]
+      devicetab["Dispositivo · solo reales<br/>guía ESP32 o Wokwi · config.py con la CA · rotar clave"]
     end
   end
 
@@ -38,7 +39,7 @@ flowchart LR
     eauth["POST auth/register · auth/login<br/>auth/password/forgot · auth/password/reset"]
     eprofiles["GET crop-profiles (público)"]
     eusers["GET PUT DELETE users/me · PUT users/me/password"]
-    ecrops["GET POST crops · GET PUT DELETE crops/{id}<br/>PUT crops/{id}/automation · PUT crops/automation"]
+    ecrops["GET POST crops · GET PUT DELETE crops/{id}<br/>PUT crops/{id}/automation · PUT crops/automation<br/>GET crops/{id}/weather"]
     edevice["GET crops/{id}/device · POST crops/{id}/device/key"]
     ereadings["GET POST crops/{id}/readings<br/>latest · summary · export"]
     eactuators["GET POST DELETE crops/{id}/actuators"]
@@ -46,7 +47,7 @@ flowchart LR
     einsights["GET crops/{id}/insights"]
     eoverview["GET overview · overview/series · overview/fleet"]
     enotif["GET notifications · unread-count<br/>PUT {id}/read · read-all · DELETE {id}"]
-    echannels["GET channels · POST channels/telegram/link<br/>PUT DELETE channels/links/{id} · POST links/{id}/test"]
+    echannels["GET channels · POST channels/telegram/link<br/>PUT DELETE channels/links/{id} · POST links/{id}/test<br/>GET PUT crops/{id}/channels · POST DELETE recipients"]
     evirtual["GET PUT DELETE crops/{id}/virtual-device<br/>GET virtual-devices/places"]
     elearning["GET ai/learning"]
   end
@@ -82,7 +83,8 @@ flowchart LR
   ctrl --> ecrops & eactuators & ecommands
   history --> ereadings
   devicetab --> edevice
-  hero --> eactuators & ecommands & evirtual
+  hero --> eactuators & ecommands & evirtual & ecrops
+  settings --> ecrops & echannels
   virtualtab --> evirtual
   overview --> eoverview
   control --> ecrops & ecommands
@@ -117,6 +119,6 @@ flowchart LR
   classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
   class visitor,owner person
   class landing,login,register,forgot,reset web
-  class overview,crops,control,actions,learningp,alerts,profile,summary,assistant,ctrl,history,devicetab,virtualtab,hero web
+  class overview,crops,control,actions,learningp,alerts,profile,summary,assistant,ctrl,history,devicetab,virtualtab,hero,settings web
   class eauth,eprofiles,eusers,ecrops,edevice,ereadings,eactuators,ecommands,einsights,eoverview,enotif,echannels,evirtual,elearning edge
   class sauth,scrop,sread,scmd,sinsight,sover,snotif,schan,svirt,slearn module
