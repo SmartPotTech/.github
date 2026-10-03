@@ -35,6 +35,7 @@ classDiagram
       +CropType type
       +CropKind kind
       +CropForm form
+      +Placement placement
       +boolean automationEnabled
       +Device device
       +CropHealth health
@@ -75,11 +76,28 @@ classDiagram
       TOWER
       RAFT
     }
+    class Placement {
+      +PlacementSetting setting
+      +SunExposure exposure
+      +Location location
+    }
+    class PlacementSetting {
+      <<enumeration>>
+      INDOOR
+      OUTDOOR
+    }
+    class SunExposure {
+      <<enumeration>>
+      FULL_SUN
+      PARTIAL_SUN
+      SHADE
+    }
     class Actuator {
       +String id
       +String cropId
       +ActuatorType type
       +boolean active
+      +Instant runningUntil
       +Instant lastChangedAt
       +Instant createdAt
     }
@@ -185,6 +203,29 @@ classDiagram
       +Instant lastDeliveredAt
       +int failures
     }
+    class CropChannel {
+      +String id
+      +String cropId
+      +String ownerId
+      +ChannelType type
+      +boolean enabled
+      +Set~NotificationType~ events
+      +Delivery delivery
+      +int digestHours
+      +String dailySummaryAt
+      +List~Recipient~ recipients
+    }
+    class Delivery {
+      <<enumeration>>
+      INSTANT
+      DIGEST
+    }
+    class Recipient {
+      +String id
+      +String address
+      +String displayName
+      +Instant addedAt
+    }
     class ChannelType {
       <<enumeration>>
       TELEGRAM
@@ -255,6 +296,8 @@ classDiagram
       +List~Measures~ history
       +List~String~ actuators
       +int localHour
+      +Place placement
+      +Outside weather
     }
     class InsightResponse {
       +String cropType
@@ -264,6 +307,7 @@ classDiagram
       +List~Prediction~ predictions
       +List~Forecast~ forecasts
       +Learning learning
+      +PlacementAdvice placement
       +List~Action~ actions
       +String summary
     }
@@ -282,6 +326,14 @@ classDiagram
       +double hoursToLimit
       +String limit
       +double confidence
+    }
+    class PlacementAdvice {
+      +String level
+      +String title
+      +String message
+      +String lightNeed
+      +String idealSetting
+      +String idealExposure
     }
     class Action {
       +String actuator
@@ -309,6 +361,10 @@ classDiagram
   Crop --> CropType
   Crop --> CropKind
   Crop --> CropForm
+  Crop *-- Placement
+  Placement --> PlacementSetting
+  Placement --> SunExposure
+  Crop "1" --> "0..*" CropChannel : cropId, uno por canal
   Crop "1" --> "0..6" Actuator : cropId
   Crop "1" --> "0..*" Reading : cropId
   Crop "1" --> "0..*" Command : cropId
@@ -323,6 +379,9 @@ classDiagram
   Notification --> NotificationType
   ChannelLink --> ChannelType
   ChannelLink ..> NotificationType : events
+  CropChannel --> ChannelType
+  CropChannel --> Delivery
+  CropChannel *-- Recipient : hasta 10
   NotificationChannel <|.. TelegramChannel
   NotificationChannel ..> ChannelLink : entrega a
   VirtualDevice *-- VirtualLocation
@@ -338,5 +397,6 @@ classDiagram
   InsightResponse *-- Forecast
   InsightResponse *-- Action
   InsightResponse *-- Learning
+  InsightResponse *-- PlacementAdvice
   InsightResponse ..> CropHealth : actualiza
   Action ..> Command : con modo automático
