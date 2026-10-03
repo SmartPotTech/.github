@@ -40,6 +40,20 @@ stateDiagram-v2
     EXPIRED --> [*] : alerta al dueño
   }
 
+  state "Switch de un actuador" as switch {
+    direction LR
+    state "Apagado" as SwitchOff
+    state "Encendido por un tiempo" as SwitchTimed
+    state "Encendido sin límite" as SwitchUnlimited
+    [*] --> SwitchOff
+    SwitchOff --> SwitchTimed : encender con duración, al confirmar
+    SwitchOff --> SwitchUnlimited : encender sin límite, al confirmar
+    SwitchTimed --> SwitchOff : apagar o vence runningUntil
+    SwitchTimed --> SwitchUnlimited : encender sin límite
+    SwitchUnlimited --> SwitchTimed : encender con duración
+    SwitchUnlimited --> SwitchOff : apagar, al confirmar
+  }
+
   state "Evaluación del cultivo" as salud {
     direction LR
     [*] --> SinLecturas
