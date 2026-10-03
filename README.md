@@ -42,12 +42,12 @@ flowchart LR
   S -->|clima real| O[Open-Meteo]
   U[PWA<br>SmartPot-Web] -->|HTTPS REST| A[API<br>SmartPot-API]
   A <-->|MQTT| B
-  A -->|HTTP + token| S
+  A -->|HTTP + token<br>simulación y clima del lugar| S
   A --> D[(MongoDB<br>SmartPot-DB)]
   A --> C[(Redis<br>SmartPot-Cache)]
   A -->|SMTP| E[Mailpit<br>SmartPot-Mail]
   A -->|HTTP + token<br>evaluación y aprendizaje| I[Asistente de IA<br>SmartPot-AI]
-  A <-->|avisos y webhook| T[Telegram]
+  A <-->|avisos por cultivo<br>resúmenes y webhook| T[Telegram]
   classDef platform fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
   classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
@@ -63,12 +63,13 @@ flowchart LR
 Cada cultivo es **real** o **virtual**, y eso se elige al crearlo. Uno real publica sus lecturas en
 `smartpot/v1/{cropId}/telemetry` desde un ESP32 con el firmware, físico o simulado en Wokwi; uno virtual lo simula
 SmartPot, que sigue el clima de la ciudad, los medidores que mueva la persona o el día y la noche de la especie. Los dos
-se ven en vivo con su forma (maceta, tubos NFT, torre o balsa) y cada actuador. La API guarda cada lectura, pide al
-asistente de IA un diagnóstico (sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo)
-y, si el cultivo tiene el modo automático, envía comandos a los actuadores por `smartpot/v1/{cropId}/commands`. El
-asistente además **aprende de forma continua** con las lecturas de los cultivos reales de cada especie, seudonimizadas,
-para anticipar el riego y el calor de la próxima hora. Los avisos llegan a la PWA, que se instala en el teléfono, y a *
-*Telegram** para quien vincula su chat.
+se ven en vivo con su forma (maceta, tubos NFT, torre o balsa), en su lugar (bajo techo o al aire libre, con el clima
+de afuera) y con cada actuador, que se maneja con un switch. La API guarda cada lectura, pide al asistente de IA un
+diagnóstico (sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo) con el consejo de
+lugar y, si el cultivo tiene el modo automático, envía comandos a los actuadores por `smartpot/v1/{cropId}/commands`.
+El asistente además **aprende de forma continua** con las lecturas de los cultivos reales de cada especie,
+seudonimizadas, para anticipar el riego y el calor de la próxima hora. Los avisos llegan a la PWA, que se instala en el
+teléfono, y a **Telegram**: cada cultivo elige qué avisa, al instante o en resúmenes, y con qué chats se comparte.
 
 Para ver cada pieza por dentro y toda la operación paso a paso están
 los [diagramas generales](docs/README.md#diagramas-generales).
@@ -88,13 +89,13 @@ los [diagramas generales](docs/README.md#diagramas-generales).
 
 El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada cambio de este repositorio, cada lunes y a mano:
 
-| Trabajo                             | Qué valida                                                                                                                                                                                                                                                      |
-|-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| API                                 | Pruebas unitarias y de controladores con Maven                                                                                                                                                                                                                  |
-| Web                                 | Lint, tipos, pruebas con Vitest y build de producción                                                                                                                                                                                                           |
-| SmartPot-AI, -DataGenerator, -IoT   | Ruff y pytest                                                                                                                                                                                                                                                   |
-| SmartPot-Broker, -DB, -Cache, -Mail | Imagen endurecida y pruebas de humo (autenticación, ACL por cultivo, TLS, validadores de MongoDB)                                                                                                                                                               |
-| End-to-End                          | Compila las ocho imágenes, levanta la demo y recorre registro, cultivo real, telemetría MQTT, comando con confirmación, asistente, panel general, órdenes en bloque, tipo fijo, cultivo virtual con pausa, aprendizaje continuo, canales y borrado de la cuenta |
+| Trabajo                             | Qué valida                                                                                                                                                                                                                                                                                                                                                                           |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| API                                 | Pruebas unitarias y de controladores con Maven                                                                                                                                                                                                                                                                                                                                       |
+| Web                                 | Lint, tipos, pruebas con Vitest y build de producción                                                                                                                                                                                                                                                                                                                                |
+| SmartPot-AI, -DataGenerator, -IoT   | Ruff y pytest                                                                                                                                                                                                                                                                                                                                                                        |
+| SmartPot-Broker, -DB, -Cache, -Mail | Imagen endurecida y pruebas de humo (autenticación, ACL por cultivo, TLS, validadores de MongoDB)                                                                                                                                                                                                                                                                                    |
+| End-to-End                          | Compila las ocho imágenes, levanta la demo y recorre en 46 comprobaciones registro, cultivo real, telemetría MQTT, comando con confirmación, switches que rechazan órdenes repetidas, asistente, lugar con su consejo y su clima, panel general, órdenes en bloque, tipo fijo, cultivo virtual con pausa, aprendizaje continuo, canales y avisos por cultivo, y borrado de la cuenta |
 
 ## Despliegue
 
