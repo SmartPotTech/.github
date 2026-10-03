@@ -6,7 +6,7 @@ flowchart LR
     physics["Física del simulador<br/>AUTO · MANUAL · WEATHER<br/>los actuadores cambian el entorno"]
     climate["Clima de Open-Meteo<br/>temperatura · humedad · radiación<br/>lluvia · presión"]
     manual["Lectura manual<br/>POST /crops/{id}/readings<br/>origen HTTP"]
-    person(["Persona<br/>órdenes · modo automático<br/>medidores · avisos elegidos"])
+    person(["Persona<br/>órdenes · modo automático · lugar<br/>medidores · avisos por cultivo"])
     climate --> physics
   end
 
@@ -34,25 +34,26 @@ flowchart LR
   subgraph mongo["MongoDB · base smartpot"]
     direction TB
     readings[("readings<br/>cropId · measuredAt · measures · source<br/>índice cropId + measuredAt · TTL 365 d")]
-    crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type · kind · form")]
+    crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type · kind · form<br/>placement: setting · exposure · location")]
     commands[("commands<br/>actuatorType · action · durationSeconds<br/>status · source USER o AGENT · reason<br/>createdAt · sentAt · completedAt · TTL 180 d")]
-    actuators[("actuators<br/>type · active · lastChangedAt")]
+    actuators[("actuators<br/>type · active · runningUntil · lastChangedAt")]
     notifications[("notifications<br/>type INFO, ALERT, COMMAND, DEVICE o AI<br/>title · message · read · TTL 90 d")]
     links[("channel_links<br/>TELEGRAM · address (chat) · events<br/>enabled · failures · lastDeliveredAt")]
+    cropch[("crop_channels<br/>events · delivery · digestHours<br/>dailySummaryAt · recipients (hasta 10)")]
     vdevices[("virtual_devices<br/>mode · manual · location · intervalSeconds · active")]
     users[("users · password_reset_tokens<br/>hash BCrypt · hash SHA-256 del token")]
   end
 
   subgraph redis["Redis · datos efímeros"]
     direction TB
-    rkeys[("reading · ai-eval · agent · notify<br/>rate · channel-link<br/>ai:learning-status · ai:crop-profiles")]
+    rkeys[("reading · ai-eval · agent · notify<br/>rate · channel-link · crop-share · weather<br/>ai:learning-status · ai:crop-profiles")]
   end
 
   subgraph ia["Asistente de IA"]
     direction TB
-    request["InsightRequest<br/>cropType · measures · history (48)<br/>actuators · localHour"]
+    request["InsightRequest<br/>cropType · measures · history (48)<br/>actuators · localHour · placement · weather"]
     analysis["analyze()<br/>diagnóstico · pronóstico · modelos<br/>sistema experto · lógica difusa · agente"]
-    response["InsightResponse<br/>health (índice, nivel, byParameter)<br/>diagnosis · conclusions · predictions<br/>forecasts · learning · actions · summary"]
+    response["InsightResponse<br/>health (índice, nivel, byParameter)<br/>diagnosis · conclusions · predictions<br/>forecasts · learning · placement · actions · summary"]
     feed["LearningFeed → POST /v1/learning/readings<br/>lotes de hasta 1000 cada minuto"]
     sqlite[("SQLite · readings<br/>crop_key SHA-256 · crop_type · measured_at<br/>local_hour · 7 variables · received_at<br/>60 días · 200 000 filas")]
     trainer["Entrenamiento por especie<br/>calidad · variables · etiquetas a 1 h<br/>7 modelos frente a la línea base"]
@@ -68,7 +69,7 @@ flowchart LR
     direction TB
     pwa["PWA<br/>lecturas frente al rango ideal · gráficos con banda<br/>historial 6 h, 24 h y 7 días · CSV<br/>panel general y comparador · asistente<br/>página Aprendizaje"]
     overview["Panel general<br/>KPIs · series $dateTrunc · flota K-Means"]
-    telegram["Telegram<br/>avisos elegidos y /estado"]
+    telegram["Telegram<br/>avisos por cultivo · resúmenes<br/>chats compartidos · /estado"]
     device(["Dispositivo o simulación<br/>ejecuta la orden y confirma"])
     browser[("Navegador<br/>JWT en sessionStorage o localStorage<br/>caché del app shell")]
   end
@@ -91,6 +92,9 @@ flowchart LR
   rest --> commands
   rest --> vdevices
   rest --> links
+  rest --> cropch
+  climate -->|"clima del lugar · 10 min"| request
+  climate -->|"clima de afuera"| pwa
   vdevices --> physics
   commands --> cmdtopic --> device
   device --> ack --> commands
@@ -98,6 +102,7 @@ flowchart LR
   commands -->|"FAILED o EXPIRED"| notifications
   crops -->|"offline"| notifications
   notifications --> links --> telegram
+  notifications --> cropch --> telegram
   readings --> overview
   response --> overview
   readings & crops & commands & notifications --> pwa
@@ -123,6 +128,6 @@ flowchart LR
   class telemetry,status,ack,cmdtopic,rest edge
   class parser,throttle,ranges module
   class discard warn
-  class readings,crops,commands,actuators,notifications,links,vdevices,users,rkeys,sqlite,joblib,browser store
+  class readings,crops,commands,actuators,notifications,links,cropch,vdevices,users,rkeys,sqlite,joblib,browser store
   class request,analysis,response,feed,trainer,status_out ai
   class manual,pwa,overview,telegram web
