@@ -28,44 +28,53 @@ misma identidad, un diagrama general del componente y los específicos en `docs/
 
 ## Diagramas
 
-| Diagrama                                 | Tipo                | Documentos               |
-|------------------------------------------|---------------------|--------------------------|
-| 01 Arquitectura                          | Flujo               | Técnica, ciclo de vida   |
-| 02 Secuencia de una lectura              | Secuencia           | Técnica, ciclo de vida   |
-| 03 Asistente de IA                       | Flujo               | Técnica, ciclo de vida   |
-| 04 Modelo de datos                       | Entidad-relación    | Técnica, ciclo de vida   |
-| 05 Estados de un comando                 | Estados             | Técnica, ciclo de vida   |
-| 06 Despliegue                            | Flujo               | Técnica, ciclo de vida   |
-| 07 Redes                                 | Flujo               | Técnica, ciclo de vida   |
-| 08 QA                                    | Flujo               | Técnica, ciclo de vida   |
-| 09 Causa y efecto                        | Flujo               | Recorrido, ciclo de vida |
-| 10 Casos de uso                          | Flujo con actores   | Recorrido, ciclo de vida |
-| 11 Clases del dominio                    | Clases              | Recorrido, ciclo de vida |
-| 12 Componentes                           | Flujo               | Recorrido, ciclo de vida |
-| 13 Actividad del control automático      | Actividad           | Recorrido, ciclo de vida |
-| 14 Vinculación de Telegram               | Secuencia           | Los tres                 |
-| 15 Cultivo virtual con clima real        | Secuencia           | Los tres                 |
-| 16 Aprendizaje continuo                  | Flujo               | Los tres                 |
-| 17 Etapas del proyecto                   | Flujo               | Recorrido, ciclo de vida |
-| 18 Árbol de problemas                    | Flujo               | Ciclo de vida            |
-| 19 Árbol de objetivos                    | Flujo               | Ciclo de vida            |
-| 20 Poder e interés de los interesados    | Cuadrantes          | Ciclo de vida            |
-| 21 Estructura de desglose del trabajo    | Flujo               | Ciclo de vida            |
-| 22 Red de precedencias                   | Flujo               | Ciclo de vida            |
-| 23 Ruta crítica                          | Gantt               | Ciclo de vida            |
-| 24 Ciclo Scrum                           | Flujo               | Ciclo de vida            |
-| 25 Riesgos y su desenlace                | Flujo               | Ciclo de vida            |
-| 26 Contexto del sistema                  | Flujo (C4, nivel 1) | Ciclo de vida            |
-| 27 Clases del diseño original            | Clases              | Ciclo de vida            |
-| 28 Componentes del diseño original       | Flujo               | Ciclo de vida            |
-| 29 Actividad original: enviar un comando | Actividad           | Ciclo de vida            |
-| 30 Secuencia original: datos históricos  | Secuencia           | Ciclo de vida            |
-| 31 Modelo de datos original              | Entidad-relación    | Ciclo de vida            |
-| 32 Mapa de la PWA                        | Flujo               | Ciclo de vida            |
-| 33 Pirámide de pruebas                   | Flujo               | Ciclo de vida            |
-| 34 Ciclo PDCA                            | Flujo               | Ciclo de vida            |
-| 35 Ciclos de mejora                      | Flujo               | Ciclo de vida            |
-| 36 Fases de la investigación             | Flujo               | Ciclo de vida            |
+| Diagrama                                  | Tipo                | Documentos               |
+|-------------------------------------------|---------------------|--------------------------|
+| 01 Arquitectura                           | Flujo               | Técnica, ciclo de vida   |
+| 02 Secuencia de una lectura               | Secuencia           | Técnica, ciclo de vida   |
+| 03 Asistente de IA                        | Flujo               | Técnica, ciclo de vida   |
+| 04 Modelo de datos                        | Entidad-relación    | Técnica, ciclo de vida   |
+| 05 Estados de un comando                  | Estados             | Técnica, ciclo de vida   |
+| 06 Despliegue                             | Flujo               | Técnica, ciclo de vida   |
+| 07 Redes                                  | Flujo               | Técnica, ciclo de vida   |
+| 08 QA                                     | Flujo               | Técnica, ciclo de vida   |
+| 09 Causa y efecto                         | Flujo               | Recorrido, ciclo de vida |
+| 10 Casos de uso                           | Flujo con actores   | Recorrido, ciclo de vida |
+| 11 Clases del dominio                     | Clases              | Recorrido, ciclo de vida |
+| 12 Componentes                            | Flujo               | Recorrido, ciclo de vida |
+| 13 Actividad del control automático       | Actividad           | Recorrido, ciclo de vida |
+| 14 Vinculación de Telegram                | Secuencia           | Los tres                 |
+| 15 Cultivo virtual con clima real         | Secuencia           | Los tres                 |
+| 16 Aprendizaje continuo                   | Flujo               | Los tres                 |
+| 17 Etapas del proyecto                    | Flujo               | Recorrido, ciclo de vida |
+| 18 Árbol de problemas                     | Flujo               | Ciclo de vida            |
+| 19 Árbol de objetivos                     | Flujo               | Ciclo de vida            |
+| 20 Poder e interés de los interesados     | Cuadrantes          | Ciclo de vida            |
+| 21 Estructura de desglose del trabajo     | Flujo               | Ciclo de vida            |
+| 22 Red de precedencias                    | Flujo               | Ciclo de vida            |
+| 23 Ruta crítica                           | Gantt               | Ciclo de vida            |
+| 24 Ciclo Scrum                            | Flujo               | Ciclo de vida            |
+| 25 Riesgos y su desenlace                 | Flujo               | Ciclo de vida            |
+| 26 Contexto del sistema                   | Flujo (C4, nivel 1) | Ciclo de vida            |
+| 27 Clases del diseño original             | Clases              | Ciclo de vida            |
+| 28 Componentes del diseño original        | Flujo               | Ciclo de vida            |
+| 29 Actividad original: enviar un comando  | Actividad           | Ciclo de vida            |
+| 30 Secuencia original: datos históricos   | Secuencia           | Ciclo de vida            |
+| 31 Modelo de datos original               | Entidad-relación    | Ciclo de vida            |
+| 32 Mapa de la PWA                         | Flujo               | Ciclo de vida            |
+| 33 Pirámide de pruebas                    | Flujo               | Ciclo de vida            |
+| 34 Ciclo PDCA                             | Flujo               | Ciclo de vida            |
+| 35 Ciclos de mejora                       | Flujo               | Ciclo de vida            |
+| 36 Fases de la investigación              | Flujo               | Ciclo de vida            |
+| 37 Avisos de un cultivo                   | Secuencia           | Técnica                  |
+| 38 Consejo de lugar                       | Flujo               | Técnica, recorrido       |
+| 39 Un actuador como switch                | Flujo de estados    | Técnica                  |
+| 40 Paquetes del diseño original           | Paquetes            | Ciclo de vida            |
+| 41 Objetos del diseño original            | Objetos             | Ciclo de vida            |
+| 42 Artefactos del diseño original         | Despliegue          | Ciclo de vida            |
+| 43 Actividad original: datos históricos   | Actividad           | Ciclo de vida            |
+| 44 Actividad original: control automático | Actividad           | Ciclo de vida            |
+| 45 Cronograma de la investigación         | Gantt               | Ciclo de vida            |
 
 ## Diagramas generales
 
