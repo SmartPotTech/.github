@@ -2,7 +2,7 @@
 flowchart LR
   subgraph entrada["Entrada · POST /v1/insights"]
     direction TB
-    req["InsightRequest<br/>especie · medidas actuales<br/>historial de 48 lecturas con hora<br/>actuadores del cultivo · hora local"]
+    req["InsightRequest<br/>especie · medidas actuales<br/>historial de 48 lecturas con hora<br/>actuadores del cultivo · hora local<br/>lugar y clima de afuera"]
     profile["Perfil de la especie<br/>rango ideal por variable<br/>tolerancias: 5 °C · 15 % · 300 lux<br/>0.8 de pH · 400 ppm · 15 % de sustrato"]
     rest{"¿22:00 a 6:00?<br/>descanso nocturno"}
   end
@@ -54,6 +54,8 @@ flowchart LR
       r13["learned_heat · 70 % o más"]
       r14["unusual_pattern · poco habitual para la especie"]
       r15["night_rest · luz baja de noche"]
+      r20["rain_outside · 0,5 mm o más al aire libre"]
+      r21["sensor_vs_outside · 8 °C de diferencia con el clima"]
     end
     subgraph segundo["Hechos de segundo nivel"]
       direction TB
@@ -88,6 +90,14 @@ flowchart LR
     a10["pH alto → PH_DOSER 3 s"]
     a11["Nutrientes bajos sin bloqueo → NUTRIENT_DOSER 3 s"]
     a0["Falla de sensor → ninguna acción"]
+    a12["Llueve al aire libre → no riega"]
+  end
+
+  subgraph lugar["7 · Consejo de lugar"]
+    direction TB
+    need["Luz que pide la especie<br/>pleno sol o media sombra"]
+    advice["OK · UNKNOWN · TIP · MOVE<br/>sube de tono si el lugar ya se nota"]
+    need --> advice
   end
 
   subgraph api["En la API"]
@@ -106,6 +116,9 @@ flowchart LR
   profile --> status & norm & sets
   req --> theil & norm
   req --> ldry & lheat & lmoist & lstate & lunusual
+  req --> r20 & r21 & need
+  severity --> advice
+  r20 --> a12
   severity --> primer
   fout --> r10 & r11
   vent --> r9
