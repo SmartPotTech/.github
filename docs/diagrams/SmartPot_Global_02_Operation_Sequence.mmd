@@ -54,15 +54,15 @@ sequenceDiagram
 
   rect rgb(227,242,251)
     Note over U,B: 3 · Crear un cultivo real o virtual (el tipo no cambia después)
-    U->>PWA: Nuevo cultivo · real o virtual · nombre, especie y forma (maceta, NFT, torre o balsa)
-    PWA->>API: POST /api/v1/crops · Bearer · kind, form y, si es virtual, cómo arranca la simulación
+    U->>PWA: Nuevo cultivo · real o virtual · nombre, especie, forma (maceta, NFT, torre o balsa) y dónde está
+    PWA->>API: POST /api/v1/crops · Bearer · kind, form, placement y, si es virtual, cómo arranca la simulación
     API->>DB: Cuenta los cultivos del dueño (máximo 20 · 5 virtuales)
     API->>API: Clave de 24 bytes aleatorios · la cifra con AES-256-GCM
     API->>B: createClient cropId con rol device
     alt Real
       API->>DB: crops REAL y actuators WATER_PUMP, UV_LIGHT y FAN
       API-->>PWA: Cultivo y credenciales · la clave se muestra una sola vez
-      PWA-->>U: Guía para el ESP32 físico o Wokwi con su config.py
+      PWA-->>U: Guía para el ESP32 físico o Wokwi con su config.py (red, clave y CA del broker)
     else Virtual
       API->>DB: crops VIRTUAL con los seis actuadores y virtual_devices activo
       API-->>PWA: Cultivo sin credenciales · la simulación arranca sola (escena 5)
@@ -171,9 +171,16 @@ sequenceDiagram
   rect rgb(253,244,221)
     Note over API,TG: 8 · Avisos por Telegram
     API-)API: NotificationCreatedEvent (cada notificación)
-    API->>DB: channel_links activos del dueño que eligieron ese tipo de aviso
-    API->>TAPI: sendMessage · HTML escapado y botón al cultivo
-    TAPI->>TG: Mensaje
+    API->>DB: crop_channels del cultivo o, sin ajustes, channel_links del dueño con ese tipo de aviso
+    alt Entrega al instante
+      API->>TAPI: sendMessage al dueño y a los chats compartidos · HTML escapado y botón al cultivo
+      TAPI->>TG: Mensaje
+    else Entrega en resumen
+      API->>DB: Queda para el resumen del cultivo
+    end
+    loop Cada minuto · CropChannelDigest
+      API->>TAPI: Resumen cada 1 a 24 h y resumen diario a la hora elegida (salud, lectura y últimas 24 h)
+    end
     alt Chat bloqueado o 5 fallos seguidos
       API->>DB: channel_links enabled false (vínculo pausado)
     end
@@ -187,8 +194,10 @@ sequenceDiagram
       API-->>PWA: JSON en español
     end
     opt Ilustración del cultivo sobre todas sus secciones
-      PWA->>API: GET /crops/{id}/actuators y /commands cada 5 a 10 s · /virtual-device si es virtual
-      PWA-->>U: La forma del cultivo con cada actuador encendido o apagado · sin conexión no se ilustra
+      PWA->>API: GET /crops/{id}/actuators y /commands cada 5 a 10 s · /weather · /virtual-device si es virtual
+      API->>R: GET weather:{lat}:{lon} (10 min)
+      API->>SIM: GET /v1/weather si no está en caché
+      PWA-->>U: El cultivo en su lugar con el clima de afuera y cada actuador · sin conexión no se ilustra
     end
     PWA->>API: GET /api/v1/overview/fleet
     API->>IA: POST /v1/fleet
@@ -202,15 +211,19 @@ sequenceDiagram
 
   rect rgb(227,242,251)
     Note over U,M: 10 · Órdenes de la persona
-    U->>PWA: Regar ahora en un cultivo o una orden a varios en Control general
+    U->>PWA: Switch de un actuador o una orden a varios en Control general
     PWA->>API: POST /crops/{id}/commands o POST /commands/bulk
+    opt Otra orden en curso o la orden no cambia nada
+      API-->>PWA: 409 «El ventilador ya está apagado» · en bloque, ese cultivo se omite con su motivo
+    end
     API->>DB: commands PENDING (origen USER) por cada cultivo con ese actuador
     API->>B: PUBLISH commands (QoS 1)
     alt El dispositivo o la simulación confirma
       B->>M: commands
       M->>B: commands/ack EXECUTED
       B->>API: ack
-      API->>DB: commands EXECUTED
+      API->>DB: commands EXECUTED y el switch: active o runningUntil
+      M->>B: telemetry a los 2 s si es una simulación
     else Sin ACK en 2 minutos
       API->>DB: Revisión cada 30 s → commands EXPIRED
       API->>DB: notifications COMMAND El dispositivo no respondió
@@ -232,6 +245,15 @@ sequenceDiagram
     API->>DB: channel_links (TELEGRAM, chat, avisos elegidos, activo)
     API->>TAPI: sendMessage Listo, este chat quedó vinculado
     TAPI->>TG: Confirmación
+    opt Compartir un cultivo con otro chat
+      U->>PWA: Ajustes del cultivo · Avisos · Compartir
+      PWA->>API: POST /crops/{id}/channels/TELEGRAM/recipients
+      API->>R: SET crop-share:telegram:código (10 min)
+      API-->>PWA: Enlace t.me/bot?start=código de un solo uso
+      TG->>TAPI: /start código desde el otro chat
+      TAPI->>API: webhook
+      API->>DB: crop_channels.recipients (hasta 10)
+    end
   end
 
   rect rgb(251,227,227)
