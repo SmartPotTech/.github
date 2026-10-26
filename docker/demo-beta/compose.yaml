@@ -1,5 +1,5 @@
-# Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go y PostgreSQL + TimescaleDB en lugar de
-# Spring Boot y MongoDB. El resto de componentes (broker, caché, correo, IA, PWA y simulador) no cambian.
+# Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go, PostgreSQL + TimescaleDB y el broker EMQX
+# en lugar de Spring Boot, MongoDB y Mosquitto. El resto de componentes (caché, correo, IA, PWA y simulador) no cambian.
 # Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican en GHCR; mientras tanto, usa
 # el override de construcción local (ver README): docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
 name: smartpot-demo-beta
@@ -42,6 +42,9 @@ x-db-hardening: &db-hardening
 
 x-demo-secrets:
   mqtt-admin: &mqtt-admin demo-mqtt-admin-password
+  mqtt-authn-token: &mqtt-authn-token demo-broker-authn-token-123456
+  broker-api-key: &broker-api-key demo-broker-api-key
+  broker-api-secret: &broker-api-secret demo-broker-api-secret-123456
   ai-token: &ai-token demo-ai-token-for-local-use-only
   simulator-token: &simulator-token demo-simulator-token-for-local-use
   redis: &redis demo-redis-password-123
@@ -98,16 +101,23 @@ services:
 
   broker-smartpot:
     <<: *hardening
-    image: ghcr.io/smartpottech/smartpot-broker:latest
+    # EMQX gestiona un directorio de datos mutable, así que este contenedor no puede ser de solo lectura.
+    read_only: false
+    image: ghcr.io/smartpottech/smartpot-broker-emqx:latest
     container_name: smartpot-demo-beta-broker
     environment:
       MQTT_ADMIN_USERNAME: smartpot-api
       MQTT_ADMIN_PASSWORD: *mqtt-admin
+      MQTT_AUTHN_TOKEN: *mqtt-authn-token
+      MQTT_AUTHN_URL: http://api-smartpot:8091/internal/mqtt/authn
+      MQTT_BROKER_API_KEY: *broker-api-key
+      MQTT_BROKER_API_SECRET: *broker-api-secret
+      MQTT_SCHEDULERS: "2"
     ports:
       - "127.0.0.1:1883:1883"
       - "127.0.0.1:9001:9001"
     volumes:
-      - broker_data:/mosquitto/data
+      - broker_data:/opt/emqx/data
     tmpfs:
       - /tmp
     networks:
@@ -149,6 +159,10 @@ services:
       MAIL_SMTP_AUTH: "true"
       MQTT_BROKER_URI: tcp://broker-smartpot:1883
       MQTT_ADMIN_PASSWORD: *mqtt-admin
+      MQTT_AUTHN_TOKEN: *mqtt-authn-token
+      MQTT_BROKER_API_URL: http://broker-smartpot:18083
+      MQTT_BROKER_API_KEY: *broker-api-key
+      MQTT_BROKER_API_SECRET: *broker-api-secret
       MQTT_PUBLIC_HOST: localhost
       MQTT_PUBLIC_PORT: "1883"
       MQTT_WEBSOCKET_URL: ws://localhost:9001
