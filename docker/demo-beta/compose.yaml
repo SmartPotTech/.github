@@ -73,10 +73,11 @@ services:
 
   cache-smartpot:
     <<: *hardening
-    image: ghcr.io/smartpottech/smartpot-cache:latest
+    image: ghcr.io/smartpottech/smartpot-cache-valkey:latest
     container_name: smartpot-demo-beta-cache
     environment:
-      REDIS_PASSWORD: *redis
+      # Valkey, el reemplazo libre de Redis. Acepta REDIS_PASSWORD por compatibilidad; la API aún la envía con ese nombre.
+      VALKEY_PASSWORD: *redis
     tmpfs:
       - /tmp
     networks:
