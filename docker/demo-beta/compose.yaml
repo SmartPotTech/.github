@@ -152,8 +152,8 @@ services:
       SMARTPOT_AES_KEY: ZGVtby1vbmx5LXNtYXJ0cG90LWFlcy1rZXktMzJieXQ=
       # Única diferencia de conexión con la demo en Spring Boot: una URL de PostgreSQL en vez de MONGODB_URI.
       DATABASE_URL: postgres://smartpot:demo-app-password-123@db-smartpot:5432/smartpot?sslmode=disable
-      REDIS_HOST: cache-smartpot
-      REDIS_PASSWORD: *redis
+      CACHE_HOST: cache-smartpot
+      CACHE_PASSWORD: *redis
       MAIL_HOST: mail-smartpot
       MAIL_USERNAME: smartpot
       MAIL_PASSWORD: *mail
