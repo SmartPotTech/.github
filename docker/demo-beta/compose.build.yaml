@@ -2,7 +2,7 @@
 # junto a .github/ (igual que el entorno de desarrollo). El resto de componentes se siguen descargando de GHCR.
 #   SmartPot/
 #   ├── .github/docker/demo-beta/compose.yaml + compose.build.yaml   (este archivo)
-#   ├── SmartPot-API-Go/  SmartPot-DB-Postgre/  SmartPot-Broker-EMQX/  ...
+#   ├── SmartPot-API-Go/  SmartPot-DB-Postgre/  SmartPot-Broker-EMQX/  SmartPot-Cache-Valkey/  ...
 #
 # Uso:
 #   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
@@ -19,4 +19,8 @@ services:
 
   broker-smartpot:
     build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Broker-EMQX
+    pull_policy: build
+
+  cache-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Cache-Valkey
     pull_policy: build
