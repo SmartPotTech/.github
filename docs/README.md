@@ -9,6 +9,13 @@
 Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos salen los DOCX y los PDF con la identidad de
 SmartPot.
 
+> [!NOTE]
+> **Documento de migración.** [Migración de SmartPot](SmartPot_Migration.md) describe el paso del stack original a la
+> nueva generación de componentes: la hoja de ruta por componente, la primera fase ya construida (API en Go y
+> PostgreSQL + TimescaleDB), la [versión demo beta](../docker/demo-beta/README.md) para probarla y el camino al corte de
+> producción. A diferencia de los tres documentos de arriba (que describen la plataforma **como funciona hoy**), este es
+> un documento **transitorio**: hoy solo en Markdown; se generan DOCX y PDF cuando la migración avance.
+
 ## Documentación de cada componente
 
 Esta carpeta reúne la plataforma completa. Cada repositorio tiene además su propia documentación en `docs/`, con la

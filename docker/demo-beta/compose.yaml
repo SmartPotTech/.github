@@ -1,0 +1,222 @@
+# Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go y PostgreSQL + TimescaleDB en lugar de
+# Spring Boot y MongoDB. El resto de componentes (broker, caché, correo, IA, PWA y simulador) no cambian.
+# Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican en GHCR; mientras tanto, usa
+# el override de construcción local (ver README): docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
+name: smartpot-demo-beta
+
+x-hardening: &hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pull_policy: always
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+# PostgreSQL necesita unos pocos caps para preparar su directorio de datos y bajar al usuario postgres; los caps de
+# escalado (NET_ADMIN, SYS_ADMIN, etc.) siguen descartados.
+x-db-hardening: &db-hardening
+  restart: unless-stopped
+  read_only: true
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  cap_add:
+    - CHOWN
+    - DAC_OVERRIDE
+    - FOWNER
+    - SETGID
+    - SETUID
+  pull_policy: always
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-demo-secrets:
+  mqtt-admin: &mqtt-admin demo-mqtt-admin-password
+  ai-token: &ai-token demo-ai-token-for-local-use-only
+  simulator-token: &simulator-token demo-simulator-token-for-local-use
+  redis: &redis demo-redis-password-123
+  db-app: &db-app demo-app-password-123
+  mail: &mail demo-mail-password
+
+services:
+  db-smartpot:
+    <<: *db-hardening
+    image: ghcr.io/smartpottech/smartpot-db-postgre:latest
+    container_name: smartpot-demo-beta-db
+    environment:
+      POSTGRES_USER: smartpot-root
+      POSTGRES_PASSWORD: demo-root-password-123
+      POSTGRES_DB: smartpot
+      SMARTPOT_DB_USERNAME: smartpot
+      SMARTPOT_DB_PASSWORD: *db-app
+      SMARTPOT_SEED_DEMO: "true"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /run/postgresql
+    networks:
+      - internal
+
+  cache-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-cache:latest
+    container_name: smartpot-demo-beta-cache
+    environment:
+      REDIS_PASSWORD: *redis
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+
+  mail-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-mail:latest
+    container_name: smartpot-demo-beta-mail
+    environment:
+      MAIL_USERNAME: smartpot
+      MAIL_PASSWORD: *mail
+      MAILPIT_UI_USERNAME: admin
+      MAILPIT_UI_PASSWORD: demo-mailpit-ui
+    ports:
+      - "127.0.0.1:8025:8025"
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+      - public
+
+  broker-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-broker:latest
+    container_name: smartpot-demo-beta-broker
+    environment:
+      MQTT_ADMIN_USERNAME: smartpot-api
+      MQTT_ADMIN_PASSWORD: *mqtt-admin
+    ports:
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - broker_data:/mosquitto/data
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+      - public
+
+  ai-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-ai:latest
+    container_name: smartpot-demo-beta-ai
+    environment:
+      SMARTPOT_AI_TOKEN: *ai-token
+      # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar.
+      LEARNING_CHECK_SECONDS: "120"
+    volumes:
+      - ai_data:/data
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+
+  api-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-api-go:latest
+    container_name: smartpot-demo-beta-api
+    environment:
+      WEB_BASE_URL: http://localhost:5173
+      PUBLIC_API_URL: http://localhost:8091
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
+      SMARTPOT_JWT_SECRET: demo-jwt-secret-for-local-use-only-0123456789
+      SMARTPOT_AES_KEY: ZGVtby1vbmx5LXNtYXJ0cG90LWFlcy1rZXktMzJieXQ=
+      # Única diferencia de conexión con la demo en Spring Boot: una URL de PostgreSQL en vez de MONGODB_URI.
+      DATABASE_URL: postgres://smartpot:demo-app-password-123@db-smartpot:5432/smartpot?sslmode=disable
+      REDIS_HOST: cache-smartpot
+      REDIS_PASSWORD: *redis
+      MAIL_HOST: mail-smartpot
+      MAIL_USERNAME: smartpot
+      MAIL_PASSWORD: *mail
+      MAIL_SMTP_AUTH: "true"
+      MQTT_BROKER_URI: tcp://broker-smartpot:1883
+      MQTT_ADMIN_PASSWORD: *mqtt-admin
+      MQTT_PUBLIC_HOST: localhost
+      MQTT_PUBLIC_PORT: "1883"
+      MQTT_WEBSOCKET_URL: ws://localhost:9001
+      AI_BASE_URL: http://ai-smartpot:8000
+      SMARTPOT_AI_TOKEN: *ai-token
+      AI_EVALUATION_INTERVAL: PT1M
+      AI_LEARNING_FLUSH_INTERVAL: PT15S
+      SIMULATOR_BASE_URL: http://simulator-smartpot:8081
+      SIMULATOR_TOKEN: *simulator-token
+      # Opcional: con tu propio bot de @BotFather las alertas llegan por Telegram (sondeo, sin dirección pública).
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_MODE: polling
+    ports:
+      - "127.0.0.1:8091:8091"
+    tmpfs:
+      - /tmp
+    depends_on:
+      db-smartpot:
+        condition: service_healthy
+      broker-smartpot:
+        condition: service_healthy
+      cache-smartpot:
+        condition: service_healthy
+    networks:
+      - internal
+      - public
+
+  web-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-web:latest
+    container_name: smartpot-demo-beta-web
+    environment:
+      API_URL: http://localhost:8091
+    ports:
+      - "127.0.0.1:5173:8080"
+    tmpfs:
+      - /tmp
+      - /etc/nginx/conf.d:uid=101,gid=101
+    networks:
+      - public
+
+  simulator-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-datagenerator:latest
+    container_name: smartpot-demo-beta-simulator
+    environment:
+      MQTT_HOST: broker-smartpot
+      MQTT_PORT: "1883"
+      SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
+      SIMULATOR_INTERVAL_SECONDS: "15"
+      SIMULATOR_TOKEN: *simulator-token
+    tmpfs:
+      - /tmp
+    depends_on:
+      api-smartpot:
+        condition: service_healthy
+    # La red pública solo da salida a internet para consultar el clima; no publica puertos.
+    networks:
+      - internal
+      - public
+
+volumes:
+  db_data:
+  broker_data:
+  ai_data:
+
+networks:
+  internal:
+    internal: true
+  public:

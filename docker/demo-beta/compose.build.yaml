@@ -1,0 +1,18 @@
+# Override para construir la API en Go y la base PostgreSQL + TimescaleDB desde los repositorios locales, clonados
+# junto a .github/ (igual que el entorno de desarrollo). El resto de componentes se siguen descargando de GHCR.
+#   SmartPot/
+#   ├── .github/docker/demo-beta/compose.yaml + compose.build.yaml   (este archivo)
+#   ├── SmartPot-API-Go/  SmartPot-DB-Postgre/  ...
+#
+# Uso:
+#   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
+name: smartpot-demo-beta
+
+services:
+  db-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DB-Postgre
+    pull_policy: build
+
+  api-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-API-Go
+    pull_policy: build

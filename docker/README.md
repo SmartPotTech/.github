@@ -6,8 +6,15 @@ usuarios sin privilegios y healthchecks):
 | Carpeta                               | Entorno      | Imágenes                                      | Para qué sirve                                             |
 |---------------------------------------|--------------|-----------------------------------------------|------------------------------------------------------------|
 | [`demo/`](demo/README.md)             | Demostración | GHCR (principal) o Docker Hub, a elección     | Probar SmartPot completo con un comando y datos de ejemplo |
+| [`demo-beta/`](demo-beta/README.md)   | Demostración beta | GHCR o construidas localmente            | Vista previa del stack nuevo: API en Go y PostgreSQL + TimescaleDB |
 | [`dev/`](dev/README.md)               | Desarrollo   | Compiladas desde los repositorios locales     | Programar y probar cambios con toda la plataforma          |
 | [`production/`](production/README.md) | Producción   | Publicadas en GHCR, con etiqueta configurable | Servidor con Nginx, HTTPS y despliegue automático          |
+
+> [!NOTE]
+> **`demo-beta/` es la vista previa de la migración.** Igual que `demo/`, pero con la API reescrita en Go
+> (`smartpot-api-go`) y PostgreSQL + TimescaleDB (`smartpot-db-postgre`) en lugar de Spring Boot y MongoDB; el resto de
+> componentes no cambia. Hoy producción sigue en el stack original. El plan completo está en la
+> [documentación de migración](../docs/SmartPot_Migration.md).
 
 ## Servicios
 
