@@ -104,7 +104,7 @@ docker compose down -v
 | Contenedor                     | Imagen                   | Función                                                               |
 |--------------------------------|--------------------------|-----------------------------------------------------------------------|
 | `smartpot-demo-beta-db`        | `smartpot-db-postgre`    | **PostgreSQL 17 + TimescaleDB** con esquema, usuario de app y datos demo |
-| `smartpot-demo-beta-cache`     | `smartpot-cache`         | Redis 8 para el límite de peticiones y la caché de la IA              |
+| `smartpot-demo-beta-cache`     | `smartpot-cache-valkey`  | Valkey 9.1 (reemplazo libre de Redis) para el límite de peticiones y la caché de la IA |
 | `smartpot-demo-beta-mail`      | `smartpot-mail`          | Mailpit con SMTP autenticado                                          |
 | `smartpot-demo-beta-broker`    | `smartpot-broker`        | Mosquitto 2.1 con una cuenta MQTT por cultivo                         |
 | `smartpot-demo-beta-ai`        | `smartpot-ai`            | Sistema experto, lógica difusa, modelos de ML y agente                |
@@ -112,5 +112,5 @@ docker compose down -v
 | `smartpot-demo-beta-web`       | `smartpot-web`           | PWA en React servida por nginx                                        |
 | `smartpot-demo-beta-simulator` | `smartpot-datagenerator` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
 
-PostgreSQL, Redis y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
+PostgreSQL, Valkey y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
 correo publican puertos, y únicamente en `127.0.0.1`. El simulador sale a internet solo para consultar el clima.
