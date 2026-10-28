@@ -1,9 +1,14 @@
-# **Demostración BETA de SmartPot (API en Go + PostgreSQL)**
+# **Demostración BETA de SmartPot (API en Go + PostgreSQL + Valkey + EMQX + PWA en SolidJS)**
 
-Esta demo levanta SmartPot completo igual que la [demo estable](../demo/README.md), con una sola diferencia: en lugar de
-la API en **Spring Boot** y la base en **MongoDB**, usa la **API reescrita en Go** ([SmartPot-API-Go](https://github.com/SmartPotTech/SmartPot-API-Go))
-y **PostgreSQL + TimescaleDB** ([SmartPot-DB-Postgre](https://github.com/SmartPotTech/SmartPot-DB-Postgre)). El resto de
-componentes (broker MQTT, caché, correo, asistente de IA, PWA y simulador) son **los mismos de siempre**: la migración es
+Esta demo levanta SmartPot completo igual que la [demo estable](../demo/README.md), sustituyendo progresivamente los
+componentes migrados de nueva generación:
+- **API en Go** ([SmartPot-API-Go](https://github.com/SmartPotTech/SmartPot-API-Go)) en lugar de Spring Boot.
+- **PostgreSQL 17 + TimescaleDB** ([SmartPot-DB-Postgre](https://github.com/SmartPotTech/SmartPot-DB-Postgre)) en lugar de MongoDB.
+- **Valkey 9.1** ([SmartPot-Cache-Valkey](https://github.com/SmartPotTech/SmartPot-Cache-Valkey)) en lugar de Redis.
+- **EMQX 5.8** ([SmartPot-Broker-EMQX](https://github.com/SmartPotTech/SmartPot-Broker-EMQX)) en lugar de Mosquitto.
+- **PWA en SolidJS** ([SmartPot-Web-Solid](https://github.com/SmartPotTech/SmartPot-Web-Solid)) en lugar de React.
+
+El resto de componentes (correo, asistente de IA y simulador) son **los mismos de siempre**: la migración es
 transparente y no cambia ningún contrato.
 
 > [!WARNING]
@@ -18,8 +23,8 @@ transparente y no cambia ningún contrato.
 
 * **Docker** con **Docker Compose v2.20 o superior**: [instrucciones](https://docs.docker.com/get-docker/)
 * Unos 2 GB de memoria libre.
-* Para construir localmente (ver abajo): los repositorios `SmartPot-API-Go` y `SmartPot-DB-Postgre` clonados junto a
-  `.github/`.
+* Para construir localmente (ver abajo): los repositorios `SmartPot-API-Go`, `SmartPot-DB-Postgre`,
+  `SmartPot-Cache-Valkey`, `SmartPot-Broker-EMQX` y `SmartPot-Web-Solid` clonados junto a `.github/`.
 
 ---
 
@@ -47,6 +52,9 @@ docker compose up -d --wait
 |------------------|-------------------------------------------------|
 | API (Go)         | `ghcr.io/smartpottech/smartpot-api-go`          |
 | Base (Postgre)   | `ghcr.io/smartpottech/smartpot-db-postgre`      |
+| Caché (Valkey)   | `ghcr.io/smartpottech/smartpot-cache-valkey`    |
+| Broker (EMQX)    | `ghcr.io/smartpottech/smartpot-broker-emqx`     |
+| PWA (SolidJS)    | `ghcr.io/smartpottech/smartpot-web-solid`       |
 
 Abre http://localhost:5173 e ingresa con la **misma cuenta de la demo** (el seed de PostgreSQL replica el de MongoDB):
 
@@ -73,8 +81,11 @@ recomienda), alimentados por el simulador como si fueran su ESP32.
 |------------------------|------------------------------|--------------------------------------------|
 | API                    | `smartpot-api` (Spring Boot) | `smartpot-api-go` (Go 1.26 + Echo)         |
 | Base de datos          | `smartpot-db` (MongoDB 8)    | `smartpot-db-postgre` (PostgreSQL 17 + TimescaleDB) |
+| Caché                  | `smartpot-cache` (Redis 8)   | `smartpot-cache-valkey` (Valkey 9.1)       |
+| Broker MQTT            | `smartpot-broker` (Mosquitto)| `smartpot-broker-emqx` (EMQX 5.8)          |
+| PWA                    | `smartpot-web` (React 19)    | `smartpot-web-solid` (SolidJS + SVG nativo)|
 | Conexión de la API     | `MONGODB_URI`                | `DATABASE_URL` (URL de PostgreSQL)         |
-| Broker, caché, correo, IA, PWA, simulador | Sin cambios | **Idénticos**              |
+| Correo, IA, simulador  | Sin cambios                  | **Idénticos**                              |
 | Contratos (REST, MQTT, JWT, claves de dispositivo, cuentas) | — | **Idénticos**: mismos secretos, mismo contrato |
 
 La telemetría vive en una **hipertabla de TimescaleDB** (fragmentos de 7 días y retención de 1 año, el equivalente al
@@ -109,7 +120,7 @@ docker compose down -v
 | `smartpot-demo-beta-broker`    | `smartpot-broker-emqx`   | EMQX 5.8 con autenticación por cultivo delegada en la API            |
 | `smartpot-demo-beta-ai`        | `smartpot-ai`            | Sistema experto, lógica difusa, modelos de ML y agente                |
 | `smartpot-demo-beta-api`       | `smartpot-api-go`        | **API REST en Go 1.26 + Echo** (base de datos desacoplada)           |
-| `smartpot-demo-beta-web`       | `smartpot-web`           | PWA en React servida por nginx                                        |
+| `smartpot-demo-beta-web`       | `smartpot-web-solid`     | **PWA en SolidJS** servida por nginx endurecido sin privilegios      |
 | `smartpot-demo-beta-simulator` | `smartpot-datagenerator` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
 
 PostgreSQL, Valkey y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de

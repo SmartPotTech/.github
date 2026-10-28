@@ -1,7 +1,8 @@
-# Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go, PostgreSQL + TimescaleDB y el broker EMQX
-# en lugar de Spring Boot, MongoDB y Mosquitto. El resto de componentes (caché, correo, IA, PWA y simulador) no cambian.
-# Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican en GHCR; mientras tanto, usa
-# el override de construcción local (ver README): docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
+# Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go, PostgreSQL + TimescaleDB, Valkey, el broker
+# EMQX y la PWA en SolidJS en lugar de Spring Boot, MongoDB, Redis, Mosquitto y React. El resto de componentes (correo,
+# IA y simulador) no cambian. Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican en GHCR;
+# mientras tanto, usa el override de construcción local (ver README):
+#   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
 name: smartpot-demo-beta
 
 x-hardening: &hardening
@@ -194,7 +195,7 @@ services:
 
   web-smartpot:
     <<: *hardening
-    image: ghcr.io/smartpottech/smartpot-web:latest
+    image: ghcr.io/smartpottech/smartpot-web-solid:latest
     container_name: smartpot-demo-beta-web
     environment:
       API_URL: http://localhost:8091
