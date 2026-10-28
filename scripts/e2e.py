@@ -22,6 +22,11 @@ import urllib.request
 
 API = os.environ.get("SMARTPOT_API_URL", "http://localhost:8091").rstrip("/")
 BROKER = os.environ.get("SMARTPOT_BROKER_CONTAINER", "smartpot-demo-broker")
+if not os.environ.get("SMARTPOT_BROKER_CONTAINER"):
+    check_beta = subprocess.run(["docker", "ps", "--filter", "name=smartpot-demo-beta-broker", "--format", "{{.Names}}"],
+                                capture_output=True, text=True)
+    if "smartpot-demo-beta-broker" in check_beta.stdout:
+        BROKER = "smartpot-demo-beta-broker"
 
 
 class CheckFailed(Exception):
@@ -63,7 +68,27 @@ def publish(username: str, password: str, topic: str, payload: dict) -> bool:
     command = ["docker", "exec", BROKER, "mosquitto_pub", "-h", "127.0.0.1", "-p", "1883",
                "-i", f"e2e-{username}", "-u", username, "-P", password, "-q", "1",
                "-t", topic, "-m", json.dumps(payload)]
-    return subprocess.run(command, capture_output=True, text=True).returncode == 0
+    res = subprocess.run(command, capture_output=True, text=True)
+    if res.returncode == 0:
+        return True
+
+    network = os.environ.get("SMARTPOT_DOCKER_NETWORK")
+    if not network:
+        net_inspect = subprocess.run(["docker", "inspect", BROKER, "--format", "{{json .NetworkSettings.Networks}}"],
+                                     capture_output=True, text=True)
+        if net_inspect.returncode == 0 and "smartpot-demo-beta_internal" in net_inspect.stdout:
+            network = "smartpot-demo-beta_internal"
+        elif net_inspect.returncode == 0 and "smartpot-demo_internal" in net_inspect.stdout:
+            network = "smartpot-demo_internal"
+        else:
+            network = "smartpot-demo-beta_internal"
+
+    broker_host = os.environ.get("SMARTPOT_BROKER_HOST", "broker-smartpot")
+    command_aux = ["docker", "run", "--rm", "--network", network, "eclipse-mosquitto:2.0",
+                   "mosquitto_pub", "-h", broker_host, "-p", "1883",
+                   "-i", f"e2e-{username}", "-u", username, "-P", password, "-q", "1",
+                   "-t", topic, "-m", json.dumps(payload)]
+    return subprocess.run(command_aux, capture_output=True, text=True).returncode == 0
 
 
 def main() -> None:

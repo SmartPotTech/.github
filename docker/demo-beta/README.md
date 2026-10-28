@@ -1,4 +1,4 @@
-# **Demostración BETA de SmartPot (API en Go + PostgreSQL + Valkey + EMQX + PWA en SolidJS)**
+# **Demostración BETA de SmartPot (API en Go + PostgreSQL + Valkey + EMQX + PWA en SolidJS + Simulador en Rust)**
 
 Esta demo levanta SmartPot completo igual que la [demo estable](../demo/README.md), sustituyendo progresivamente los
 componentes migrados de nueva generación:
@@ -7,8 +7,9 @@ componentes migrados de nueva generación:
 - **Valkey 9.1** ([SmartPot-Cache-Valkey](https://github.com/SmartPotTech/SmartPot-Cache-Valkey)) en lugar de Redis.
 - **EMQX 5.8** ([SmartPot-Broker-EMQX](https://github.com/SmartPotTech/SmartPot-Broker-EMQX)) en lugar de Mosquitto.
 - **PWA en SolidJS** ([SmartPot-Web-Solid](https://github.com/SmartPotTech/SmartPot-Web-Solid)) en lugar de React.
+- **Simulador en Rust** ([SmartPot-DataGenerator-Rust](https://github.com/SmartPotTech/SmartPot-DataGenerator-Rust)) en lugar de Python.
 
-El resto de componentes (correo, asistente de IA y simulador) son **los mismos de siempre**: la migración es
+El resto de componentes (correo y asistente de IA) son **los mismos de siempre**: la migración es
 transparente y no cambia ningún contrato.
 
 > [!WARNING]
@@ -24,7 +25,7 @@ transparente y no cambia ningún contrato.
 * **Docker** con **Docker Compose v2.20 o superior**: [instrucciones](https://docs.docker.com/get-docker/)
 * Unos 2 GB de memoria libre.
 * Para construir localmente (ver abajo): los repositorios `SmartPot-API-Go`, `SmartPot-DB-Postgre`,
-  `SmartPot-Cache-Valkey`, `SmartPot-Broker-EMQX` y `SmartPot-Web-Solid` clonados junto a `.github/`.
+  `SmartPot-Cache-Valkey`, `SmartPot-Broker-EMQX`, `SmartPot-Web-Solid` y `SmartPot-DataGenerator-Rust` clonados junto a `.github/`.
 
 ---
 
@@ -48,13 +49,14 @@ curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/de
 docker compose up -d --wait
 ```
 
-| Componente nuevo | Imagen en GHCR                                  |
-|------------------|-------------------------------------------------|
-| API (Go)         | `ghcr.io/smartpottech/smartpot-api-go`          |
-| Base (Postgre)   | `ghcr.io/smartpottech/smartpot-db-postgre`      |
-| Caché (Valkey)   | `ghcr.io/smartpottech/smartpot-cache-valkey`    |
-| Broker (EMQX)    | `ghcr.io/smartpottech/smartpot-broker-emqx`     |
-| PWA (SolidJS)    | `ghcr.io/smartpottech/smartpot-web-solid`       |
+| Componente nuevo | Imagen en GHCR                                     |
+|------------------|----------------------------------------------------|
+| API (Go)         | `ghcr.io/smartpottech/smartpot-api-go`             |
+| Base (Postgre)   | `ghcr.io/smartpottech/smartpot-db-postgre`         |
+| Caché (Valkey)   | `ghcr.io/smartpottech/smartpot-cache-valkey`       |
+| Broker (EMQX)    | `ghcr.io/smartpottech/smartpot-broker-emqx`        |
+| PWA (SolidJS)    | `ghcr.io/smartpottech/smartpot-web-solid`          |
+| Simulador (Rust) | `ghcr.io/smartpottech/smartpot-datagenerator-rust` |
 
 Abre http://localhost:5173 e ingresa con la **misma cuenta de la demo** (el seed de PostgreSQL replica el de MongoDB):
 
@@ -84,8 +86,9 @@ recomienda), alimentados por el simulador como si fueran su ESP32.
 | Caché                  | `smartpot-cache` (Redis 8)   | `smartpot-cache-valkey` (Valkey 9.1)       |
 | Broker MQTT            | `smartpot-broker` (Mosquitto)| `smartpot-broker-emqx` (EMQX 5.8)          |
 | PWA                    | `smartpot-web` (React 19)    | `smartpot-web-solid` (SolidJS + SVG nativo)|
+| Simulador              | `smartpot-datagenerator` (Python 3.13) | `smartpot-datagenerator-rust` (Rust 1.85 + Tokio) |
 | Conexión de la API     | `MONGODB_URI`                | `DATABASE_URL` (URL de PostgreSQL)         |
-| Correo, IA, simulador  | Sin cambios                  | **Idénticos**                              |
+| Correo e IA            | Sin cambios                  | **Idénticos**                              |
 | Contratos (REST, MQTT, JWT, claves de dispositivo, cuentas) | — | **Idénticos**: mismos secretos, mismo contrato |
 
 La telemetría vive en una **hipertabla de TimescaleDB** (fragmentos de 7 días y retención de 1 año, el equivalente al

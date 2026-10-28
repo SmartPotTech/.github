@@ -1,7 +1,7 @@
 # Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go, PostgreSQL + TimescaleDB, Valkey, el broker
-# EMQX y la PWA en SolidJS en lugar de Spring Boot, MongoDB, Redis, Mosquitto y React. El resto de componentes (correo,
-# IA y simulador) no cambian. Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican en GHCR;
-# mientras tanto, usa el override de construcción local (ver README):
+# EMQX, la PWA en SolidJS y el simulador en Rust en lugar de Spring Boot, MongoDB, Redis, Mosquitto, React y Python. El resto
+# de componentes (correo e IA) no cambian. Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican
+# en GHCR; mientras tanto, usa el override de construcción local (ver README):
 #   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
 name: smartpot-demo-beta
 
@@ -209,7 +209,7 @@ services:
 
   simulator-smartpot:
     <<: *hardening
-    image: ghcr.io/smartpottech/smartpot-datagenerator:latest
+    image: ghcr.io/smartpottech/smartpot-datagenerator-rust:latest
     container_name: smartpot-demo-beta-simulator
     environment:
       MQTT_HOST: broker-smartpot
@@ -217,6 +217,7 @@ services:
       SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
       SIMULATOR_INTERVAL_SECONDS: "15"
       SIMULATOR_TOKEN: *simulator-token
+      RUST_LOG: info
     tmpfs:
       - /tmp
     depends_on:

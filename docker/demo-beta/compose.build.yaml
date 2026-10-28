@@ -1,9 +1,10 @@
-# Override para construir los servicios migrados (API en Go, PostgreSQL + TimescaleDB, EMQX, Valkey y PWA en SolidJS)
-# desde los repositorios locales clonados junto a .github/ (igual que el entorno de desarrollo). El resto de componentes
-# se siguen descargando de GHCR.
+# Override para construir los servicios migrados (API en Go, PostgreSQL + TimescaleDB, EMQX, Valkey, PWA en SolidJS
+# y el simulador en Rust) desde los repositorios locales clonados junto a .github/ (igual que el entorno de desarrollo).
+# El resto de componentes se siguen descargando de GHCR.
 #   SmartPot/
 #   ├── .github/docker/demo-beta/compose.yaml + compose.build.yaml   (este archivo)
 #   ├── SmartPot-API-Go/  SmartPot-DB-Postgre/  SmartPot-Broker-EMQX/  SmartPot-Cache-Valkey/  SmartPot-Web-Solid/
+#   └── SmartPot-DataGenerator-Rust/
 #
 # Uso:
 #   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
@@ -28,4 +29,8 @@ services:
 
   web-smartpot:
     build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Web-Solid
+    pull_policy: build
+
+  simulator-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DataGenerator-Rust
     pull_policy: build
