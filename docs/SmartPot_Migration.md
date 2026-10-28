@@ -19,9 +19,9 @@ proyecto: smartpot.app
 | Proyecto          | SmartPot · [smartpot.app](https://smartpot.app)                                                                                                       |
 | Organización      | SmartPotTech                                                                                                                                           |
 | Documento         | Documentación de migración de la plataforma                                                                                                           |
-| Versión           | 1.0 · octubre 2026                                                                                                                                    |
-| Estado            | En curso. La API y la base de datos están migradas en código y validadas en una demo beta; el resto de la hoja de ruta está planeado o en sus inicios |
-| Alcance           | La estrategia de migración, la hoja de ruta por componente, la primera fase (API en Go y PostgreSQL + TimescaleDB), la versión demo beta y el corte   |
+| Versión           | 1.1 · octubre 2026                                                                                                                                    |
+| Estado            | En curso. La API, la base de datos, el broker MQTT, la caché y la PWA están migrados en código y validados en la demo beta; el resto está en curso    |
+| Alcance           | La estrategia de migración, la hoja de ruta por componente, los componentes migrados (Go, PostgreSQL + TimescaleDB, Valkey, EMQX y SolidJS) y el corte|
 | Fuente de verdad  | Los README de cada repositorio y la [documentación técnica](SmartPot_Technical_Documentation.md) describen la plataforma **como funciona hoy**        |
 | Documento hermano | [Documentación técnica](SmartPot_Technical_Documentation.md): la plataforma tal como está en producción                                               |
 
@@ -61,12 +61,12 @@ que ya está construida.
 |-------------------|------------------------------------------------------------|--------------------------|------------------------------------------------|------------------------------------------|
 | API               | `SmartPot-API` → `SmartPot-API-Go`                         | Spring Boot 4 / Java 21  | **Go 1.26 + Echo**, base desacoplada           | **Migrada (código)**, en la demo beta    |
 | Base de datos     | `SmartPot-DB` → `SmartPot-DB-Postgre`                      | MongoDB 8                | **PostgreSQL 17 + TimescaleDB**                | **Migrada (código)**, en la demo beta    |
+| Caché             | `SmartPot-Cache` → `SmartPot-Cache-Valkey`                 | Redis 8                  | **Valkey 9.1** endurecido                      | **Migrada (código)**, en la demo beta    |
+| Broker MQTT       | `SmartPot-Broker` → `SmartPot-Broker-EMQX`                 | Mosquitto 2.1            | **EMQX 5.8** (Apache-2.0, auth HTTP en la API) | **Migrado (código)**, en la demo beta    |
+| Web (PWA)         | `SmartPot-Web` → `SmartPot-Web-Solid`                      | React 19 + Vite          | **SolidJS + TypeScript + Vite (SVG nativo)**   | **Migrada (código)**, en la demo beta    |
 | Firmware IoT      | `SmartPot-IoT` → `SmartPot-IoT-Rust`                       | MicroPython              | **Rust** (ESP32, tareas asíncronas, MQTT/TLS)  | En curso (repositorio creado, inicial)   |
-| Web (PWA)         | `SmartPot-Web`                                             | React 19 + Vite          | **Svelte 5 o SolidJS**                         | Planeado (sigue en React)                |
 | Asistente de IA   | `SmartPot-AI`                                              | Python / FastAPI         | **Mejora con componentes en C++**              | Planeado                                 |
 | Simulador         | `SmartPot-DataGenerator`                                   | Python / FastAPI         | **Mejora con componentes en C++**              | Planeado                                 |
-| Broker MQTT       | `SmartPot-Broker`                                          | Mosquitto 2.1            | Por definir                                    | Planeado                                 |
-| Caché             | `SmartPot-Cache`                                           | Redis 8                  | Por definir                                    | Planeado                                 |
 | Correo            | `SmartPot-Mail`                                            | Mailpit                  | Sin cambio en el plan                          | —                                        |
 
 ### Por qué cada destino
@@ -84,12 +84,16 @@ que ya está construida.
   para la ingesta continua de lecturas de sensores.
 - **Firmware en Rust.** Seguridad de memoria sin recolector de basura, tareas asíncronas y canales para desacoplar la
   adquisición de datos, la conectividad y los comandos, con drivers embebidos propios y MQTT sobre TLS.
-- **PWA en Svelte 5 o SolidJS.** Reactividad más fina y un paquete más liviano que React, para una app instalable más
-  rápida de cargar.
+- **PWA en SolidJS (`SmartPot-Web-Solid`).** Reactividad de grano fino sin Virtual DOM (`createSignal`, `createMemo`,
+  `createEffect`), gráficos de series temporales renderizados en SVG nativo sin bibliotecas externas pesadas,
+  revalidación condicional por `ETag` (`If-None-Match` / `304 Not Modified`) coordinada con `SmartPot-API-Go` para no
+  transferir ni volver a parsear JSON cuando las lecturas no cambian, sincronización instantánea de sesión entre
+  pestañas y cabecera `Cross-Origin-Resource-Policy: same-origin` en el contenedor Nginx sin privilegios.
+- **Caché en Valkey (`SmartPot-Cache-Valkey`) y Broker en EMQX (`SmartPot-Broker-EMQX`).** Valkey 9.1 sustituye a Redis
+  con licencia libre manteniendo el protocolo y las claves; EMQX 5.8 delega la autenticación y las ACL por cultivo en la
+  API (`POST /internal/mqtt/authn`) sin reiniciar ni sincronizar archivos.
 - **IA y simulador con C++.** Componentes nativos para el cálculo numérico pesado (modelos, lógica difusa, simulación
   física), manteniendo la capa de servicio y los contratos HTTP actuales.
-- **Broker y caché.** Su migración está prevista; el destino se definirá más adelante. Mientras tanto, Mosquitto y Redis
-  siguen sirviendo, y el stack nuevo los reutiliza sin cambios.
 
 ## 3. Estrategia de migración
 
@@ -226,8 +230,11 @@ http://localhost:8091/health. El [README de la demo beta](../docker/demo-beta/RE
 |-------------------------------|-------------------------------|--------------------------------------------|
 | API                           | `smartpot-api` (Spring Boot)  | `smartpot-api-go` (Go 1.26 + Echo)         |
 | Base de datos                 | `smartpot-db` (MongoDB 8)     | `smartpot-db-postgre` (PostgreSQL + TimescaleDB) |
+| Caché                         | `smartpot-cache` (Redis 8)    | `smartpot-cache-valkey` (Valkey 9.1)       |
+| Broker MQTT                   | `smartpot-broker` (Mosquitto) | `smartpot-broker-emqx` (EMQX 5.8)          |
+| PWA                           | `smartpot-web` (React 19)     | `smartpot-web-solid` (SolidJS + SVG nativo)|
 | Conexión de la API            | `MONGODB_URI`                 | `DATABASE_URL`                             |
-| Broker, caché, correo, IA, PWA, simulador | Las mismas imágenes | **Las mismas imágenes**                  |
+| Correo, IA y simulador        | Las mismas imágenes           | **Las mismas imágenes**                    |
 | Cuenta y cultivos demo        | `demo@smartpot.app`, 2 cultivos | **Idénticos**                            |
 
 <!-- parte: PARTE IV | Camino a producción y próximas fases -->
@@ -258,15 +265,13 @@ anterior queda deprecado solo después de que el nuevo lo reemplace en producci�
 
 ## 14. Próximas fases
 
-Tras la API y la base de datos, la hoja de ruta continúa (ver la [sección 2](#2-hoja-de-ruta-por-componente)):
+Tras la API en Go, PostgreSQL + TimescaleDB, Valkey, EMQX y la PWA en SolidJS (`SmartPot-Web-Solid`), la hoja de ruta
+continúa (ver la [sección 2](#2-hoja-de-ruta-por-componente)):
 
 - **Firmware en Rust** (`SmartPot-IoT-Rust`): ya existe el repositorio, en etapa temprana, con arquitectura modular de
   tareas asíncronas y MQTT sobre TLS para el ESP32. Convivirá con el firmware en MicroPython hasta reemplazarlo.
-- **PWA en Svelte 5 o SolidJS**: reescritura de `SmartPot-Web` manteniendo las mismas pantallas, el mismo contrato con
-  la API y la identidad de SmartPot.
 - **IA y simulador con componentes en C++**: cálculo numérico nativo detrás de la misma capa de servicio y los mismos
   contratos HTTP.
-- **Broker y caché**: migración prevista, con el destino por definir. Mientras tanto siguen en Mosquitto y Redis.
 
-Cada fase repetirá el mismo patrón: reescritura transparente, validación en la demo, corte con aprobación y depreciación
-del componente anterior.
+Cada fase repetirá el mismo patrón: reescritura transparente, validación en la demo beta, corte con aprobación y
+depreciación del componente anterior.
