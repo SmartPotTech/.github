@@ -72,8 +72,13 @@ que ya está construida.
 ### Por qué cada destino
 
 - **API en Go.** Un solo binario estático, concurrencia con goroutines (el cliente MQTT, el bot, los trabajos
-  periódicos y el bus de eventos corren en paralelo sin hilos ni cron), e imagen final `scratch`. Reemplaza al tiempo de
-  ejecución de la JVM sin perder ninguna función.
+  periódicos y el bus de eventos corren en paralelo sin hilos ni cron), e imagen final `scratch`. Sobre **Echo**, la
+  capa HTTP aprovecha que `echo.Context` es una interfaz desacoplada para inyectar un contexto propio con tipado
+  estricto en tiempo de compilación (`*httpserver.RequestContext`, reciclado con `sync.Pool`) que transporta la
+  identidad del usuario, las credenciales JWT y la traza de telemetría sin mapas de cadenas ni conversiones inseguras;
+  combina manejadores con retorno explícito de error (`func(echo.Context) error`) conectados a un `HTTPErrorHandler`
+  centralizado, middlewares por composición funcional lineal, enrutamiento en árbol Radix *zero-allocation* y una
+  interfaz `echo.Validator` intercambiable. Reemplaza al tiempo de ejecución de la JVM sin perder ninguna función.
 - **Base en PostgreSQL + TimescaleDB.** Relacional tipado con restricciones `CHECK` (en lugar de validadores
   `$jsonSchema`), `JSONB` para los subdocumentos ricos y opcionales, y una **hipertabla** para la telemetría, pensada
   para la ingesta continua de lecturas de sensores.
