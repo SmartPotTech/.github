@@ -71,7 +71,7 @@ recomienda), alimentados por el simulador como si fueran su ESP32.
 
 | Pieza                  | Demo estable                 | Demo beta                                  |
 |------------------------|------------------------------|--------------------------------------------|
-| API                    | `smartpot-api` (Spring Boot) | `smartpot-api-go` (Go 1.26 + Gin)          |
+| API                    | `smartpot-api` (Spring Boot) | `smartpot-api-go` (Go 1.26 + Echo)         |
 | Base de datos          | `smartpot-db` (MongoDB 8)    | `smartpot-db-postgre` (PostgreSQL 17 + TimescaleDB) |
 | Conexión de la API     | `MONGODB_URI`                | `DATABASE_URL` (URL de PostgreSQL)         |
 | Broker, caché, correo, IA, PWA, simulador | Sin cambios | **Idénticos**              |
@@ -108,7 +108,7 @@ docker compose down -v
 | `smartpot-demo-beta-mail`      | `smartpot-mail`          | Mailpit con SMTP autenticado                                          |
 | `smartpot-demo-beta-broker`    | `smartpot-broker-emqx`   | EMQX 5.8 con autenticación por cultivo delegada en la API            |
 | `smartpot-demo-beta-ai`        | `smartpot-ai`            | Sistema experto, lógica difusa, modelos de ML y agente                |
-| `smartpot-demo-beta-api`       | `smartpot-api-go`        | **API REST en Go 1.26 + Gin** (base de datos desacoplada)            |
+| `smartpot-demo-beta-api`       | `smartpot-api-go`        | **API REST en Go 1.26 + Echo** (base de datos desacoplada)           |
 | `smartpot-demo-beta-web`       | `smartpot-web`           | PWA en React servida por nginx                                        |
 | `smartpot-demo-beta-simulator` | `smartpot-datagenerator` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
 

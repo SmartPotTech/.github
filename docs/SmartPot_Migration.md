@@ -59,7 +59,7 @@ que ya está construida.
 
 | Componente        | Repositorio                                                | Hoy (producción)         | Destino                                        | Estado                                   |
 |-------------------|------------------------------------------------------------|--------------------------|------------------------------------------------|------------------------------------------|
-| API               | `SmartPot-API` → `SmartPot-API-Go`                         | Spring Boot 4 / Java 21  | **Go 1.26 + Gin**, base desacoplada            | **Migrada (código)**, en la demo beta    |
+| API               | `SmartPot-API` → `SmartPot-API-Go`                         | Spring Boot 4 / Java 21  | **Go 1.26 + Echo**, base desacoplada           | **Migrada (código)**, en la demo beta    |
 | Base de datos     | `SmartPot-DB` → `SmartPot-DB-Postgre`                      | MongoDB 8                | **PostgreSQL 17 + TimescaleDB**                | **Migrada (código)**, en la demo beta    |
 | Firmware IoT      | `SmartPot-IoT` → `SmartPot-IoT-Rust`                       | MicroPython              | **Rust** (ESP32, tareas asíncronas, MQTT/TLS)  | En curso (repositorio creado, inicial)   |
 | Web (PWA)         | `SmartPot-Web`                                             | React 19 + Vite          | **Svelte 5 o SolidJS**                         | Planeado (sigue en React)                |
@@ -104,7 +104,7 @@ que ya está construida.
 
 La primera fase reescribe **dos** componentes a la vez, porque van de la mano:
 
-- **`SmartPot-API-Go`**: el núcleo de la plataforma reescrito en **Go 1.26 con Gin**. Reproduce idénticos todos los
+- **`SmartPot-API-Go`**: el núcleo de la plataforma reescrito en **Go 1.26 con Echo**. Reproduce idénticos todos los
   contratos externos de la versión en Spring Boot: rutas REST, formas JSON, códigos y mensajes en español, tópicos MQTT
   y aprovisionamiento en Mosquitto, claves de Redis, SMTP y las llamadas HTTP a la IA, al simulador y a Telegram.
 - **`SmartPot-DB-Postgre`**: la base de datos sobre **PostgreSQL 17 + TimescaleDB**, que sustituye a MongoDB
@@ -219,7 +219,7 @@ http://localhost:8091/health. El [README de la demo beta](../docker/demo-beta/RE
 
 | Pieza                         | Demo estable (`docker/demo/`) | Demo beta (`docker/demo-beta/`)            |
 |-------------------------------|-------------------------------|--------------------------------------------|
-| API                           | `smartpot-api` (Spring Boot)  | `smartpot-api-go` (Go 1.26 + Gin)          |
+| API                           | `smartpot-api` (Spring Boot)  | `smartpot-api-go` (Go 1.26 + Echo)         |
 | Base de datos                 | `smartpot-db` (MongoDB 8)     | `smartpot-db-postgre` (PostgreSQL + TimescaleDB) |
 | Conexión de la API            | `MONGODB_URI`                 | `DATABASE_URL`                             |
 | Broker, caché, correo, IA, PWA, simulador | Las mismas imágenes | **Las mismas imágenes**                  |
