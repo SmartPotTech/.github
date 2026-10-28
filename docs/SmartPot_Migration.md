@@ -20,8 +20,8 @@ proyecto: smartpot.app
 | Organización      | SmartPotTech                                                                                                                                           |
 | Documento         | Documentación de migración de la plataforma                                                                                                           |
 | Versión           | 1.1 · octubre 2026                                                                                                                                    |
-| Estado            | En curso. La API, la base de datos, el broker MQTT, la caché y la PWA están migrados en código y validados en la demo beta; el resto está en curso    |
-| Alcance           | La estrategia de migración, la hoja de ruta por componente, los componentes migrados (Go, PostgreSQL + TimescaleDB, Valkey, EMQX y SolidJS) y el corte|
+| Estado            | En curso. La API, la base de datos, el broker MQTT, la caché, la PWA y el simulador están migrados en código y validados en la demo beta; el resto está en curso    |
+| Alcance           | La estrategia de migración, la hoja de ruta por componente, los componentes migrados (Go, PostgreSQL + TimescaleDB, Valkey, EMQX, SolidJS y Rust) y el corte|
 | Fuente de verdad  | Los README de cada repositorio y la [documentación técnica](SmartPot_Technical_Documentation.md) describen la plataforma **como funciona hoy**        |
 | Documento hermano | [Documentación técnica](SmartPot_Technical_Documentation.md): la plataforma tal como está en producción                                               |
 
@@ -66,7 +66,7 @@ que ya está construida.
 | Web (PWA)         | `SmartPot-Web` → `SmartPot-Web-Solid`                      | React 19 + Vite          | **SolidJS + TypeScript + Vite (SVG nativo)**   | **Migrada (código)**, en la demo beta    |
 | Firmware IoT      | `SmartPot-IoT` → `SmartPot-IoT-Rust`                       | MicroPython              | **Rust** (ESP32, tareas asíncronas, MQTT/TLS)  | En curso (repositorio creado, inicial)   |
 | Asistente de IA   | `SmartPot-AI`                                              | Python / FastAPI         | **Mejora con componentes en C++**              | Planeado                                 |
-| Simulador         | `SmartPot-DataGenerator`                                   | Python / FastAPI         | **Mejora con componentes en C++**              | Planeado                                 |
+| Simulador         | `SmartPot-DataGenerator` → `SmartPot-DataGenerator-Rust`   | Python 3.13 / FastAPI    | **Rust 1.85 + Tokio + Axum 0.8 + rumqttc**     | **Migrado (código)**, en la demo beta    |
 | Correo            | `SmartPot-Mail`                                            | Mailpit                  | Sin cambio en el plan                          | —                                        |
 
 ### Por qué cada destino
@@ -92,8 +92,11 @@ que ya está construida.
 - **Caché en Valkey (`SmartPot-Cache-Valkey`) y Broker en EMQX (`SmartPot-Broker-EMQX`).** Valkey 9.1 sustituye a Redis
   con licencia libre manteniendo el protocolo y las claves; EMQX 5.8 delega la autenticación y las ACL por cultivo en la
   API (`POST /internal/mqtt/authn`) sin reiniciar ni sincronizar archivos.
-- **IA y simulador con C++.** Componentes nativos para el cálculo numérico pesado (modelos, lógica difusa, simulación
-  física), manteniendo la capa de servicio y los contratos HTTP actuales.
+- **Simulador en Rust (`SmartPot-DataGenerator-Rust`).** Reescritura completa en Rust 1.85 con el runtime Tokio,
+  servidor HTTP Axum 0.8, cliente MQTT `rumqttc`, validación de tokens en tiempo constante (`subtle`), `#![deny(unsafe_code)]`
+  y huella de memoria < 15 MB RAM, con healthcheck nativo embebido en el binario (`--healthcheck`).
+- **IA con C++.** Componentes nativos para el cálculo numérico pesado (modelos, lógica difusa), manteniendo la capa de
+  servicio y los contratos HTTP actuales.
 
 ## 3. Estrategia de migración
 
