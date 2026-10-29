@@ -1,0 +1,45 @@
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
+sequenceDiagram
+  autonumber
+  participant SDET as SDET Harness (CI/CD)
+  participant API as SmartPot-API-Go
+  participant DB as TimescaleDB
+  participant BROKER as EMQX 5.8
+  participant SIM as Simulador Rust
+  participant AI as SmartPot-AI
+
+  SDET->>API: GET /health
+  API-->>SDET: 200 OK (database, broker, cache, ai, simulator UP)
+  
+  SDET->>API: POST /api/v1/auth/login (demo@smartpot.app)
+  API-->>SDET: 200 OK (Token JWT HS256)
+
+  SDET->>API: POST /api/v1/crops (kind: VIRTUAL, form: TOWER)
+  API->>DB: INSERT INTO crops (...)
+  API->>SIM: PUT /v1/pots/{id} (Aprovisiona simulación)
+  SIM-->>API: 200 OK (Simulación activa)
+  API-->>SDET: 201 Created (ID CHAR(24), sin credenciales al usuario)
+
+  SIM->>BROKER: CONNECT / SUBSCRIBE smartpot/v1/{id}/commands
+  BROKER->>API: POST /internal/mqtt/authn (x-smartpot-broker-token)
+  API-->>BROKER: 200 OK (result: allow, acl: acotado al cultivo)
+  BROKER-->>SIM: CONNACK (Aceptado)
+
+  SIM->>BROKER: PUBLISH smartpot/v1/{id}/telemetry (QoS 1)
+  BROKER->>API: Entrega mensaje de telemetría
+  API->>DB: INSERT INTO readings (...) [Hipertabla]
+
+  SDET->>API: GET /api/v1/crops/{id}/insights
+  API->>AI: POST /v1/insights (Variables agronómicas)
+  AI-->>API: 200 OK (Índice Sugeno + Resumen en español)
+  API-->>SDET: 200 OK (Health score 0-100)
+
+  SDET->>API: POST /api/v1/crops/{id}/commands (FAN ACTIVATE)
+  API-->>SDET: 202 Accepted (Comando SENT)
+  SDET->>API: POST /api/v1/crops/{id}/commands (FAN DEACTIVATE)
+  API-->>SDET: 409 Conflict ("Orden en curso")
+
+  SDET->>API: DELETE /api/v1/crops/{id}
+  API->>SIM: DELETE /v1/pots/{id}
+  API->>DB: DELETE FROM crops WHERE id = ...
+  API-->>SDET: 204 No Content

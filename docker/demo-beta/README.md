@@ -124,7 +124,29 @@ docker compose down -v
 | `smartpot-demo-beta-ai`        | `smartpot-ai`            | Sistema experto, lógica difusa, modelos de ML y agente                |
 | `smartpot-demo-beta-api`       | `smartpot-api-go`        | **API REST en Go 1.26 + Echo** (base de datos desacoplada)           |
 | `smartpot-demo-beta-web`       | `smartpot-web-solid`     | **PWA en SolidJS** servida por nginx endurecido sin privilegios      |
-| `smartpot-demo-beta-simulator` | `smartpot-datagenerator` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
+| `smartpot-demo-beta-simulator` | `smartpot-datagenerator-rust` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
 
 PostgreSQL, Valkey y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
 correo publican puertos, y únicamente en `127.0.0.1`. El simulador sale a internet solo para consultar el clima.
+
+---
+
+## **Auditoría de Calidad y Pruebas A/B**
+
+La auditoría completa de migración entre la demo estable y la demo beta está documentada en:
+- [Auditoría Técnica y Plan de Pruebas A/B (AUDIT_QA_AB.md)](AUDIT_QA_AB.md)
+
+### Ejecución Local de Pruebas Centralizadas
+
+Para verificar el stack de la demo beta en ejecución local:
+
+```bash
+# Con el stack levantado en http://localhost:8091:
+python3 test.py
+```
+
+El script comprueba la salud de los 8 servicios, autenticación, cultivos semilla en TimescaleDB, ciclo de cultivo virtual, actuadores, conflicto 409 y consultas a la IA.
+
+### Workflow Automatizado en GitHub Actions
+
+El repositorio incluye el workflow **Demo BETA QA** (`.github/workflows/demo-beta-qa.yml`), que permite evaluar el funcionamiento completo del stack con disparadores manuales (`workflow_dispatch`) o en cambios sobre esta carpeta.

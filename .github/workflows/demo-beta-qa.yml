@@ -1,0 +1,67 @@
+name: Demo BETA QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Modo de ejecución de pruebas'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - e2e
+          - smoke
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'docker/demo-beta/**'
+      - '.github/workflows/demo-beta-qa.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'docker/demo-beta/**'
+      - '.github/workflows/demo-beta-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-beta:
+    name: Validate Demo BETA Stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Start Demo BETA Stack
+        run: |
+          docker compose -f docker/demo-beta/compose.yaml up -d --wait --wait-timeout 300
+
+      - name: Display Running Containers & Stats
+        run: |
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          docker stats --no-stream
+
+      - name: Run Centralized Test Suite
+        run: |
+          python3 docker/demo-beta/test.py
+
+      - name: Dump Container Logs on Failure
+        if: failure()
+        run: |
+          docker compose -f docker/demo-beta/compose.yaml logs --tail 200
+
+      - name: Stop Demo BETA Stack
+        if: always()
+        run: |
+          docker compose -f docker/demo-beta/compose.yaml down -v

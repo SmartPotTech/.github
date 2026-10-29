@@ -5,6 +5,7 @@
 | Documentación técnica de la plataforma | La plataforma tal como funciona hoy: arquitectura, contratos MQTT y REST, asistente de IA y aprendizaje continuo, Telegram, cultivos reales y virtuales, ilustración de cada cultivo, datos, PWA, firmware, seguridad, despliegue, calidad y operación | [Markdown](SmartPot_Technical_Documentation.md) · [DOCX](SmartPot_Technical_Documentation.docx) · [PDF](SmartPot_Technical_Documentation.pdf) |
 | Recorrido del proyecto                 | Requisito por requisito y diagrama por diagrama: qué se planeó en la fase de diseño, qué quedó construido y cómo se comprueba                                                                                                                          | [Markdown](SmartPot_Project_Journey.md) · [DOCX](SmartPot_Project_Journey.docx) · [PDF](SmartPot_Project_Journey.pdf)                         |
 | Ciclo de vida del software             | La lectura crítica de cada etapa: formulación y evaluación, gestión, análisis, diseño, construcción, pruebas y mejora continua, con todos los diagramas                                                                                                | [Markdown](SmartPot_Software_Lifecycle.md) · [DOCX](SmartPot_Software_Lifecycle.docx) · [PDF](SmartPot_Software_Lifecycle.pdf)                |
+| Auditoría de Calidad y Pruebas A/B     | Validación comparativa completa de la migración: paridad de contratos REST y MQTT, huella de recursos, resiliencia y Quality Gates de corte a producción                                                                                               | [Markdown](SmartPot_QA_Audit_AB.md) · [DOCX](SmartPot_QA_Audit_AB.docx) · [PDF](SmartPot_QA_Audit_AB.pdf)                                     |
 
 Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos salen los DOCX y los PDF con la identidad de
 SmartPot.
@@ -85,6 +86,9 @@ misma identidad, un diagrama general del componente y los específicos en `docs/
 | 43 Actividad original: datos históricos   | Actividad           | Ciclo de vida            |
 | 44 Actividad original: control automático | Actividad           | Ciclo de vida            |
 | 45 Cronograma de la investigación         | Gantt               | Ciclo de vida            |
+| 46 Comparación arquitectónica A/B         | Flujo               | Auditoría A/B            |
+| 47 Secuencia de validación A/B            | Secuencia           | Auditoría A/B            |
+| 48 Topología de seguridad AppSec          | Flujo               | Auditoría A/B            |
 
 ## Diagramas generales
 
