@@ -64,7 +64,7 @@ que ya está construida.
 | Caché             | `SmartPot-Cache` → `SmartPot-Cache-Valkey`                 | Redis 8                  | **Valkey 9.1** endurecido                      | **Migrada (código)**, en la demo beta    |
 | Broker MQTT       | `SmartPot-Broker` → `SmartPot-Broker-EMQX`                 | Mosquitto 2.1            | **EMQX 5.8** (Apache-2.0, auth HTTP en la API) | **Migrado (código)**, en la demo beta    |
 | Web (PWA)         | `SmartPot-Web` → `SmartPot-Web-Solid`                      | React 19 + Vite          | **SolidJS + TypeScript + Vite (SVG nativo)**   | **Migrada (código)**, en la demo beta    |
-| Firmware IoT      | `SmartPot-IoT` → `SmartPot-IoT-Rust`                       | MicroPython              | **Rust** (ESP32, tareas asíncronas, MQTT/TLS)  | En curso (repositorio creado, inicial)   |
+| Firmware IoT      | `SmartPot-IoT` → `SmartPot-IoT-Rust`                       | MicroPython              | **Rust 2024 no_std + Embassy** (ESP32 dual-core, MQTT v1/TLS) | **Migrado (código y validación)**, probado contra demo-beta |
 | Asistente de IA   | `SmartPot-AI`                                              | Python / FastAPI         | **Mejora con componentes en C++**              | Planeado                                 |
 | Simulador         | `SmartPot-DataGenerator` → `SmartPot-DataGenerator-Rust`   | Python 3.13 / FastAPI    | **Rust 1.85 + Tokio + Axum 0.8 + rumqttc**     | **Migrado (código)**, en la demo beta    |
 | Correo            | `SmartPot-Mail`                                            | Mailpit                  | Sin cambio en el plan                          | —                                        |
@@ -271,8 +271,7 @@ anterior queda deprecado solo después de que el nuevo lo reemplace en producci�
 Tras la API en Go, PostgreSQL + TimescaleDB, Valkey, EMQX y la PWA en SolidJS (`SmartPot-Web-Solid`), la hoja de ruta
 continúa (ver la [sección 2](#2-hoja-de-ruta-por-componente)):
 
-- **Firmware en Rust** (`SmartPot-IoT-Rust`): ya existe el repositorio, en etapa temprana, con arquitectura modular de
-  tareas asíncronas y MQTT sobre TLS para el ESP32. Convivirá con el firmware en MicroPython hasta reemplazarlo.
+- **Firmware en Rust** (`SmartPot-IoT-Rust`): firmware de alto rendimiento migrado y optimizado en Rust 2024 `no_std` con Embassy dual-core, canales libres de bloqueos, banco de actuadores temporizados y contrato MQTT v1 validado contra la pila `demo-beta` (EMQX, Go Echo API y TimescaleDB). Convive con el firmware en MicroPython hasta el corte definitivo.
 - **IA y simulador con componentes en C++**: cálculo numérico nativo detrás de la misma capa de servicio y los mismos
   contratos HTTP.
 
