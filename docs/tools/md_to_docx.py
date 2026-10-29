@@ -590,9 +590,11 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
             if landscape:
                 last_landscape = len(blocks) - 1
             i += 1
-            if i < len(lines) and lines[i].startswith("```"):
+            while i < len(lines) and not lines[i].strip():
                 i += 1
-                while i < len(lines) and not lines[i].startswith("```"):
+            if i < len(lines) and lines[i].strip().startswith("```"):
+                i += 1
+                while i < len(lines) and not lines[i].strip().startswith("```"):
                     i += 1
                 i += 1
             continue
@@ -605,7 +607,7 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
             language = stripped[3:].strip()
             i += 1
             code = []
-            while i < len(lines) and not lines[i].startswith("```"):
+            while i < len(lines) and not lines[i].strip().startswith("```"):
                 code.append(lines[i].rstrip())
                 i += 1
             i += 1
@@ -641,10 +643,22 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
             continue
         if re.match(r"^[-*]\s+", stripped) or re.match(r"^\d+\.\s+", stripped):
             numbered = bool(re.match(r"^\d+\.\s+", stripped))
-            while i < len(lines) and (re.match(r"^\s*[-*]\s+", lines[i]) or re.match(r"^\s*\d+\.\s+", lines[i])):
-                item = re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", lines[i])
-                blocks.append(bullet(doc, item, numbered))
-                i += 1
+            while i < len(lines):
+                item_line = lines[i]
+                if not item_line.strip():
+                    break
+                if re.match(r"^\s*[-*]\s+", item_line) or re.match(r"^\s*\d+\.\s+", item_line):
+                    numbered = bool(re.match(r"^\s*\d+\.\s+", item_line))
+                    item = re.sub(r"^\s*(?:[-*]|\d+\.)\s+", "", item_line)
+                    i += 1
+                    while (i < len(lines) and lines[i].strip()
+                           and not re.match(r"^(#|\||>|```|<!--|\s*[-*]\s|\s*\d+\.\s)", lines[i].strip())
+                           and (lines[i].startswith("  ") or lines[i].startswith("\t"))):
+                        item += " " + lines[i].strip()
+                        i += 1
+                    blocks.append(bullet(doc, item, numbered))
+                else:
+                    break
             blocks.append(spacer(40))
             continue
         text_lines = [stripped]
