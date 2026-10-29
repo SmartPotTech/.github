@@ -29,6 +29,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-db:latest
     container_name: smartpot-demo-db
+    cpus: "2.0"
+    mem_limit: 1024m
+    pids_limit: 256
     environment:
       MONGO_INITDB_ROOT_USERNAME: smartpot-root
       MONGO_INITDB_ROOT_PASSWORD: demo-root-password-123
@@ -45,6 +48,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-cache:latest
     container_name: smartpot-demo-cache
+    cpus: "1.0"
+    mem_limit: 256m
+    pids_limit: 128
     environment:
       REDIS_PASSWORD: *redis
     tmpfs:
@@ -56,6 +62,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-mail:latest
     container_name: smartpot-demo-mail
+    cpus: "0.5"
+    mem_limit: 128m
+    pids_limit: 64
     environment:
       MAIL_USERNAME: smartpot
       MAIL_PASSWORD: *mail
@@ -73,6 +82,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-broker:latest
     container_name: smartpot-demo-broker
+    cpus: "2.0"
+    mem_limit: 1024m
+    pids_limit: 512
     environment:
       MQTT_ADMIN_USERNAME: smartpot-api
       MQTT_ADMIN_PASSWORD: *mqtt-admin
@@ -91,6 +103,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-ai:latest
     container_name: smartpot-demo-ai
+    cpus: "2.0"
+    mem_limit: 768m
+    pids_limit: 128
     environment:
       SMARTPOT_AI_TOKEN: *ai-token
       # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar.
@@ -106,6 +121,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-api:latest
     container_name: smartpot-demo-api
+    cpus: "2.0"
+    mem_limit: 1024m
+    pids_limit: 256
     environment:
       WEB_BASE_URL: http://localhost:5173
       PUBLIC_API_URL: http://localhost:8091
@@ -153,6 +171,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-web:latest
     container_name: smartpot-demo-web
+    cpus: "1.0"
+    mem_limit: 128m
+    pids_limit: 128
     environment:
       API_URL: http://localhost:8091
     ports:
@@ -167,6 +188,9 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-datagenerator:latest
     container_name: smartpot-demo-simulator
+    cpus: "1.0"
+    mem_limit: 256m
+    pids_limit: 128
     environment:
       MQTT_HOST: broker-smartpot
       MQTT_PORT: "1883"

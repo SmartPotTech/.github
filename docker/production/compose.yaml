@@ -70,11 +70,11 @@ services:
       - mail
     environment:
       MAIL_USERNAME: ${MAIL_USERNAME:-smartpot}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
       MAILPIT_UI_USERNAME: ${MAILPIT_UI_USERNAME:-admin}
-      MAILPIT_UI_PASSWORD: ${MAILPIT_UI_PASSWORD:-}
+      MAILPIT_UI_PASSWORD: ${MAILPIT_UI_PASSWORD:?MAILPIT_UI_PASSWORD is required}
     ports:
-      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MAIL_UI_PORT:-8025}:8025"
+      - "127.0.0.1:8025:8025"
     tmpfs:
       - /tmp
     networks:
