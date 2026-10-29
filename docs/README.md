@@ -6,6 +6,7 @@
 | Recorrido del proyecto                 | Requisito por requisito y diagrama por diagrama: qué se planeó en la fase de diseño, qué quedó construido y cómo se comprueba                                                                                                                          | [Markdown](SmartPot_Project_Journey.md) · [DOCX](SmartPot_Project_Journey.docx) · [PDF](SmartPot_Project_Journey.pdf)                         |
 | Ciclo de vida del software             | La lectura crítica de cada etapa: formulación y evaluación, gestión, análisis, diseño, construcción, pruebas y mejora continua, con todos los diagramas                                                                                                | [Markdown](SmartPot_Software_Lifecycle.md) · [DOCX](SmartPot_Software_Lifecycle.docx) · [PDF](SmartPot_Software_Lifecycle.pdf)                |
 | Auditoría de Calidad y Pruebas A/B     | Validación comparativa completa de la migración: paridad de contratos REST y MQTT, huella de recursos, resiliencia y Quality Gates de corte a producción                                                                                               | [Markdown](SmartPot_QA_Audit_AB.md) · [DOCX](SmartPot_QA_Audit_AB.docx) · [PDF](SmartPot_QA_Audit_AB.pdf)                                     |
+| Auditoría de Seguridad A/B             | Auditoría exhaustiva de seguridad AppSec y DevSecOps: escaneo SCA con Snyk CLI, SAST, análisis de contenedores, evaluación OWASP Top 10 API, topología de aislamiento IoT y backlog priorizado                                                      | [Markdown](SmartPot_Security_Scan_AB.md) · [DOCX](SmartPot_Security_Scan_AB.docx) · [PDF](SmartPot_Security_Scan_AB.pdf)                     |
 
 Los Markdown son la fuente: GitHub los muestra con sus diagramas y de ellos salen los DOCX y los PDF con la identidad de
 SmartPot.
@@ -89,6 +90,7 @@ misma identidad, un diagrama general del componente y los específicos en `docs/
 | 46 Comparación arquitectónica A/B         | Flujo               | Auditoría A/B            |
 | 47 Secuencia de validación A/B            | Secuencia           | Auditoría A/B            |
 | 48 Topología de seguridad AppSec          | Flujo               | Auditoría A/B            |
+| 49 Comparación de seguridad A/B           | Flujo               | Auditoría Seguridad A/B  |
 
 ## Diagramas generales
 
