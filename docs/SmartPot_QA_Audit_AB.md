@@ -65,50 +65,53 @@ Se comparan dos entornos completos desplegados localmente sobre Docker en la dir
    - Asistente de IA: `smartpot-ai` (FastAPI + `scikit-learn` + lógica difusa Sugeno).
    - Servidor de correo: `smartpot-mail` (Mailpit con SMTP autenticado).
 
-<!-- diagrama: SmartPot_46_AB_Architecture_Comparison | titulo=Comparación arquitectónica entre la Demo Estable y la Demo BETA -->
+### 1.1. Topología Arquitectónica Comparada (Estable vs. BETA)
+
+<!-- diagrama: SmartPot_46_AB_Architecture_Comparison | titulo=Comparación arquitectónica entre la Demo Estable y la Demo BETA | lamina=H -->
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
   subgraph STACK_A["Entorno A — Demo Estable (Legacy Stack)"]
-    direction TB
-    A_WEB["smartpot-web<br/>React 19 · Vite · Nginx<br/>240 kB gzip"]
-    A_API["smartpot-api<br/>Spring Boot 4 · Java 21<br/>385 MB RAM en reposo"]
-    A_DB[("smartpot-db<br/>MongoDB 8<br/>Colecciones BSON")]
-    A_CACHE[("smartpot-cache<br/>Redis 8<br/>Límite y sesión")]
-    A_BROKER["smartpot-broker<br/>Mosquitto 2.1<br/>Dynamic Security Plugin"]
-    A_SIM["smartpot-datagenerator<br/>Python 3.13 · asyncio<br/>Simulador cultivos"]
-    
-    A_WEB -->|HTTP :8091| A_API
-    A_API -->|BSON :27017| A_DB
-    A_API -->|RESP :6379| A_CACHE
-    A_API <-->|MQTT :1883| A_BROKER
-    A_SIM <-->|MQTT :1883| A_BROKER
+    direction LR
+    A_WEB["PWA React 19<br/>smartpot-web · 240 kB gzip<br/>Port 5173:80"]
+    A_API["API REST Spring Boot 4<br/>smartpot-api · Java 21 · 385 MB RAM<br/>Port 8091:8091"]
+    A_DB[("MongoDB 8<br/>smartpot-db<br/>BSON :27017")]
+    A_CACHE[("Redis 8<br/>smartpot-cache<br/>RESP :6379")]
+    A_BROKER["Mosquitto 2.1<br/>smartpot-broker<br/>DynSec :1883"]
+    A_SIM["Simulador Python<br/>smartpot-datagenerator<br/>asyncio · 82 MB RAM"]
+
+    A_WEB -->|HTTP| A_API
+    A_API -->|BSON| A_DB
+    A_API -->|RESP| A_CACHE
+    A_API <-->|MQTT| A_BROKER
+    A_SIM <-->|MQTT| A_BROKER
   end
 
-  subgraph SHARED["Componentes Compartidos (Invariables)"]
-    direction TB
-    S_AI["smartpot-ai<br/>FastAPI · scikit-learn · Sugeno<br/>Diagnóstico y aprendizaje"]
-    S_MAIL["smartpot-mail<br/>Mailpit<br/>SMTP :1025 · Web UI :8025"]
+  subgraph SHARED["Componentes Compartidos (Invariables en ambos entornos)"]
+    direction LR
+    S_AI["Asistente de IA (smartpot-ai)<br/>FastAPI · scikit-learn · Lógica Difusa Sugeno<br/>Diagnóstico agronómico y aprendizaje continuo · Port 8000:8000"]
+    S_MAIL["Servidor de Correo (smartpot-mail)<br/>Mailpit SMTP autenticado & Web UI<br/>SMTP :1025 · Web UI :8025"]
   end
 
   subgraph STACK_B["Entorno B — Demo BETA (Next-Gen Stack)"]
-    direction TB
-    B_WEB["SmartPot-Web-Solid<br/>SolidJS 1.9 · Vite · Nginx<br/>71.5 kB gzip (-70.2%)"]
-    B_API["SmartPot-API-Go<br/>Go 1.26 · Echo v4 · Scratch<br/>18.2 MB RAM (-95.3%)"]
-    B_DB[("SmartPot-DB-Postgre<br/>PostgreSQL 17 + TimescaleDB<br/>Hipertabla readings")]
-    B_CACHE[("SmartPot-Cache-Valkey<br/>Valkey 9.1<br/>Reemplazo libre Redis")]
-    B_BROKER["SmartPot-Broker-EMQX<br/>EMQX 5.8<br/>Auth delegada HTTP"]
-    B_SIM["SmartPot-DataGenerator-Rust<br/>Rust 2.0 · Tokio · Axum<br/>14.8 MB RAM (-82%)"]
+    direction LR
+    B_WEB["PWA SolidJS 1.9<br/>SmartPot-Web-Solid · 71 kB gzip (-70%)<br/>Port 5173:8080"]
+    B_API["API REST Go 1.26<br/>SmartPot-API-Go · Scratch · 18 MB RAM (-95%)<br/>Port 8091:8091"]
+    B_DB[("TimescaleDB 2.17<br/>SmartPot-DB-Postgre<br/>SQL :5432")]
+    B_CACHE[("Valkey 9.1<br/>SmartPot-Cache-Valkey<br/>RESP :6379")]
+    B_BROKER["EMQX 5.8<br/>SmartPot-Broker-EMQX<br/>Auth HTTP :1883"]
+    B_SIM["Simulador Rust 2.0<br/>SmartPot-DataGenerator-Rust<br/>Tokio · 14.8 MB RAM (-82%)"]
 
-    B_WEB -->|HTTP :8091| B_API
-    B_API -->|pgx :5432| B_DB
-    B_API -->|RESP :6379| B_CACHE
-    B_API <-->|MQTT :1883| B_BROKER
-    B_SIM <-->|MQTT :1883| B_BROKER
+    B_WEB -->|HTTP| B_API
+    B_API -->|pgx| B_DB
+    B_API -->|RESP| B_CACHE
+    B_API <-->|MQTT| B_BROKER
+    B_SIM <-->|MQTT| B_BROKER
   end
 
-  A_API -.->|HTTP :8000| S_AI
-  B_API -.->|HTTP :8000| S_AI
+  A_API -.->|POST /v1/insights| S_AI
   A_API -.->|SMTP :1025| S_MAIL
+  B_API -.->|POST /v1/insights| S_AI
   B_API -.->|SMTP :1025| S_MAIL
 
   classDef core fill:#DDF5EA,stroke:#067A52,color:#17261F
@@ -157,8 +160,11 @@ En los primeros 15 segundos tras el arranque, el simulador de Rust en la Demo BE
 EMQX, y la API en Go la persiste inmediatamente en la hipertabla de TimescaleDB, quedando disponible para consulta vía
 `GET /api/v1/crops/66f5a1000000000000000101/readings/latest`.
 
-<!-- diagrama: SmartPot_47_AB_Testing_Sequence | titulo=Secuencia integral de validación E2E sobre la Demo BETA -->
+### 2.3. Secuencia Integral de Validación E2E sobre Demo BETA
+
+<!-- diagrama: SmartPot_47_AB_Testing_Sequence | titulo=Secuencia integral de validación E2E sobre la Demo BETA | lamina=H -->
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 sequenceDiagram
   autonumber
   participant SDET as SDET Harness (CI/CD)
@@ -224,15 +230,16 @@ produzcan estructuras JSON equivalentes y utilicen los mismos códigos de estado
 
 2. **Esquema de Error en Español:**
    Tanto Java (`ErrorResponse.java`) como Go (`apperr.Response`) serializan los errores bajo la misma estructura:
-   ```json
-   {
-     "status": 409,
-     "error": "Conflict",
-     "message": "No se solapan dos órdenes al mismo actuador",
-     "path": "/api/v1/crops/66f5a1000000000000000101/commands",
-     "timestamp": "2026-10-28T22:30:00.000Z"
-   }
-   ```
+
+```json
+{
+  "status": 409,
+  "error": "Conflict",
+  "message": "No se solapan dos órdenes al mismo actuador",
+  "path": "/api/v1/crops/66f5a1000000000000000101/commands",
+  "timestamp": "2026-10-28T22:30:00.000Z"
+}
+```
 
 3. **Marcas de Tiempo e Identificadores:**
    - Todos los timestamps viajan en formato ISO-8601 UTC (`Z`).
@@ -302,8 +309,11 @@ Endpoint evaluado: `GET /api/v1/overview/series?metric=ph&hours=24`
 - **Rust + EMQX (BETA):** Mantiene una ingestión fluida con 1,000 cultivos virtuales publicando simultáneamente, con un
   retraso extremo a extremo de **24 ms**, un consumo de CPU del simulador del 3.4% y **cero pérdida de paquetes**.
 
-<!-- diagrama: SmartPot_48_AppSec_Isolation_Topology | titulo=Topología de seguridad, redes y aislamiento multi-tenant -->
+### 4.4. Auditoría de Seguridad AppSec e IoT
+
+<!-- diagrama: SmartPot_48_AppSec_Isolation_Topology | titulo=Topología de seguridad, redes y aislamiento multi-tenant | lamina=H -->
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TD
   subgraph PUBLIC_ZONE["Zona Pública (Enlace Local 127.0.0.1)"]
     PWA["PWA (SmartPot-Web-Solid)<br/>Nginx unprivileged (uid 101)<br/>CSP estricta · CORP same-origin<br/>Port 5173:8080"]
@@ -352,8 +362,6 @@ flowchart TD
   class EMQX,DEV_A,DEV_B,BROKER_PORT,ACL_ENGINE device
   class DENY alert
 ```
-
-### 4.4. Auditoría de Seguridad AppSec e IoT
 
 1. **Aislamiento Multi-Tenant MQTT:** Si un dispositivo intenta publicar o suscribirse al tópico de otro cultivo
    (`smartpot/v1/{otroCultivoId}/*`), el broker EMQX rechaza el paquete debido a la regla de denegación total `#`.
