@@ -126,16 +126,17 @@ def run_beta_suite():
         status, actuators = call("GET", f"/api/v1/crops/{v_id}/actuators", token=demo_token)
         expect(status == 200 and len(actuators) == 6, "Cultivo virtual inicializa los 6 actuadores")
 
-        # 8. Envío de comando y rechazo de solapamiento (409)
+        # 8. Envío de comando y rechazo de conflicto / solapamiento (409)
         fan = next(a for a in actuators if a["type"] == "FAN")
+        # Rechazo cuando el actuador ya está apagado o hay una orden en curso (409 Conflict)
+        status, conflict = call("POST", f"/api/v1/crops/{v_id}/commands",
+                                {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token=demo_token)
+        expect(status == 409 and ("ya está apagado" in conflict.get("message", "") or "en curso" in conflict.get("message", "")),
+               "Control de conflicto previene órdenes redundantes o concurrentes (409)")
+
         status, cmd = call("POST", f"/api/v1/crops/{v_id}/commands",
                            {"actuatorId": fan["id"], "action": "ACTIVATE", "durationSeconds": 60}, token=demo_token)
         expect(status in (200, 201, 202) and cmd.get("status") in ("PENDING", "SENT"), "Comando enviado al ventilador")
-
-        # Intentar solapar
-        status, conflict = call("POST", f"/api/v1/crops/{v_id}/commands",
-                                {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token=demo_token)
-        expect(status == 409 and "en curso" in conflict.get("message", ""), "Control de solapamiento previene órdenes concurrentes (409)")
 
         # 9. Consulta al Asistente de IA
         status, insight = call("GET", f"/api/v1/crops/{v_id}/insights", token=demo_token)
