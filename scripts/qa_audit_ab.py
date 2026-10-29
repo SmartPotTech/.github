@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 class AIAuditHarness:
     def __init__(self, base_url: str, samples: int = 25):
-        self.base_url = base_url.rstrip("/")
+        self.base_url = base_url.rstrip("/").replace("localhost", "127.0.0.1")
         self.samples = samples
         self.report: Dict[str, Any] = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
