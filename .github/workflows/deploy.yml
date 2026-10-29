@@ -85,7 +85,7 @@ jobs:
 
     steps:
       - name: Checkout deployment configuration
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/.github
           ref: main
