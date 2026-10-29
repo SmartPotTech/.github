@@ -1,0 +1,379 @@
+name: Snyk Security Scan
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'docker/**'
+      - 'kubernetes/**'
+      - '.github/workflows/snyk-security.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'docker/**'
+      - 'kubernetes/**'
+      - '.github/workflows/snyk-security.yml'
+  schedule:
+    # Escaneo semanal programado: lunes a las 07:00 UTC (02:00 AM COT)
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Objetivo de análisis Snyk'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - beta
+          - stable
+          - iac
+          - shared
+      severity_threshold:
+        description: 'Umbral mínimo de severidad para alertar'
+        required: true
+        default: 'medium'
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  check-secrets:
+    name: Check Snyk Credentials
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      configured: ${{ steps.check.outputs.configured }}
+    steps:
+      - name: Verify SNYK_TOKEN availability
+        id: check
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -n "$SNYK_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::SNYK_TOKEN configurado correctamente. Procediendo con el escaneo de seguridad."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Falta el secret SNYK_TOKEN. Configúralo en Settings > Secrets and variables > Actions para habilitar los escaneos de Snyk."
+            exit 1
+          fi
+
+  snyk-iac:
+    name: Snyk IaC (Kubernetes & Compose)
+    needs: check-secrets
+    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'iac' || github.event_name != 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@v4
+
+      - name: Run Snyk IaC Test (Kubernetes & Docker Compose)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          snyk iac test kubernetes/ docker/ \
+            --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=snyk-iac.sarif || {
+            code=$?
+            if [ $code -eq 1 ]; then
+              echo "::warning::Snyk IaC encontró advertencias de configuración en manifiestos."
+            else
+              echo "::error::Fallo en la ejecución de Snyk IaC (código $code)."
+              exit $code
+            fi
+          }
+
+      - name: Upload IaC SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-iac.sarif
+          category: snyk-iac
+
+  snyk-beta-stack:
+    name: Snyk SCA (Demo BETA Stack)
+    needs: check-secrets
+    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'beta' || github.event_name != 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout SmartPot-API-Go
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-API-Go
+          path: services/SmartPot-API-Go
+          persist-credentials: false
+
+      - name: Checkout SmartPot-Web-Solid
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-Web-Solid
+          path: services/SmartPot-Web-Solid
+          persist-credentials: false
+
+      - name: Checkout SmartPot-DataGenerator-Rust
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-DataGenerator-Rust
+          path: services/SmartPot-DataGenerator-Rust
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'services/SmartPot-API-Go/go.mod'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: services/SmartPot-Web-Solid/pnpm-lock.yaml
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@v4
+
+      - name: Scan SmartPot-API-Go (Go 1.26)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-API-Go
+          snyk test --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-api-go.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-API-Go." || exit $code
+          }
+
+      - name: Scan SmartPot-Web-Solid (SolidJS)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-Web-Solid
+          snyk test --all-projects --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-web-solid.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-Web-Solid." || exit $code
+          }
+
+      - name: Scan SmartPot-DataGenerator-Rust (Rust)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-DataGenerator-Rust
+          snyk test --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-datagenerator-rust.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator-Rust." || exit $code
+          }
+
+      - name: Upload SmartPot-API-Go SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-api-go.sarif
+          category: snyk-api-go
+
+      - name: Upload SmartPot-Web-Solid SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-web-solid.sarif
+          category: snyk-web-solid
+
+      - name: Upload SmartPot-DataGenerator-Rust SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-datagenerator-rust.sarif
+          category: snyk-datagenerator-rust
+
+  snyk-stable-stack:
+    name: Snyk SCA (Demo Estable Stack)
+    needs: check-secrets
+    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'stable' || github.event_name != 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout SmartPot-API
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-API
+          path: services/SmartPot-API
+          persist-credentials: false
+
+      - name: Checkout SmartPot-Web
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-Web
+          path: services/SmartPot-Web
+          persist-credentials: false
+
+      - name: Checkout SmartPot-DataGenerator
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-DataGenerator
+          path: services/SmartPot-DataGenerator
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: services/SmartPot-Web/pnpm-lock.yaml
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@v4
+
+      - name: Scan SmartPot-API (Spring Boot)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-API
+          snyk test --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-api-java.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-API." || exit $code
+          }
+
+      - name: Scan SmartPot-Web (React)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-Web
+          snyk test --all-projects --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-web-react.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-Web." || exit $code
+          }
+
+      - name: Scan SmartPot-DataGenerator (Python)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-DataGenerator
+          uv export --no-dev --no-hashes -o requirements.txt
+          snyk test --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-datagenerator.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator." || exit $code
+          }
+
+      - name: Upload SmartPot-API SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-api-java.sarif
+          category: snyk-api-java
+
+      - name: Upload SmartPot-Web SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-web-react.sarif
+          category: snyk-web-react
+
+      - name: Upload SmartPot-DataGenerator SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-datagenerator.sarif
+          category: snyk-datagenerator
+
+  snyk-shared-iot:
+    name: Snyk SCA (Componentes Compartidos & IoT)
+    needs: check-secrets
+    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'shared' || github.event_name != 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout SmartPot-AI
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-AI
+          path: services/SmartPot-AI
+          persist-credentials: false
+
+      - name: Checkout SmartPot-IoT
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/SmartPot-IoT
+          path: services/SmartPot-IoT
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@v4
+
+      - name: Scan SmartPot-AI (FastAPI & ML)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-AI
+          uv export --no-dev --no-hashes -o requirements.txt
+          snyk test --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-ai.sarif || {
+            code=$?
+            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-AI." || exit $code
+          }
+
+      - name: Scan SmartPot-IoT (Firmware & Scripts)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          cd services/SmartPot-IoT
+          if [ -f pyproject.toml ]; then
+            uv export --no-dev --no-hashes -o requirements.txt || true
+            snyk test --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+              --sarif-file-output=../../snyk-iot.sarif || true
+          fi
+
+      - name: Upload SmartPot-AI SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-ai.sarif
+          category: snyk-ai
+
+      - name: Upload SmartPot-IoT SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk-iot.sarif
+          category: snyk-iot
