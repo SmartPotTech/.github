@@ -255,6 +255,11 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
       - name: Set up Snyk CLI
         uses: snyk/actions/setup@master
 
@@ -279,9 +284,16 @@ jobs:
       - name: Scan SmartPot-DataGenerator (Python)
         run: |
           cd services/SmartPot-DataGenerator
-          uv export --no-dev --no-hashes -o requirements.txt
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --skip-unresolved --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
-            --sarif-file-output=../../snyk-datagenerator.sarif || {
+          uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt
+          uv pip install --system -r requirements.txt
+          snyk test \
+            --org="${{ env.SNYK_CFG_ORG }}" \
+            --file=requirements.txt \
+            --package-manager=pip \
+            --command=python3 \
+            --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-datagenerator.sarif \
+            -- --allow-missing || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator." || exit $code
           }
@@ -331,15 +343,27 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
       - name: Set up Snyk CLI
         uses: snyk/actions/setup@master
 
       - name: Scan SmartPot-AI (FastAPI & ML)
         run: |
           cd services/SmartPot-AI
-          uv export --no-dev --no-hashes -o requirements.txt
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --skip-unresolved --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
-            --sarif-file-output=../../snyk-ai.sarif || {
+          uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt
+          uv pip install --system -r requirements.txt
+          snyk test \
+            --org="${{ env.SNYK_CFG_ORG }}" \
+            --file=requirements.txt \
+            --package-manager=pip \
+            --command=python3 \
+            --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            --sarif-file-output=../../snyk-ai.sarif \
+            -- --allow-missing || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-AI." || exit $code
           }
@@ -348,9 +372,16 @@ jobs:
         run: |
           cd services/SmartPot-IoT
           if [ -f pyproject.toml ]; then
-            uv export --no-dev --no-hashes -o requirements.txt || true
-            snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --skip-unresolved --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
-              --sarif-file-output=../../snyk-iot.sarif || true
+            uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt || true
+            uv pip install --system -r requirements.txt || true
+            snyk test \
+              --org="${{ env.SNYK_CFG_ORG }}" \
+              --file=requirements.txt \
+              --package-manager=pip \
+              --command=python3 \
+              --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+              --sarif-file-output=../../snyk-iot.sarif \
+              -- --allow-missing || true
           fi
 
       - name: Upload SmartPot-AI SARIF
