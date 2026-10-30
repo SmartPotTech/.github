@@ -45,6 +45,10 @@ permissions:
   security-events: write
   actions: read
 
+env:
+  SNYK_TOKEN: ${{ secrets.SNYK_PAT_ORG || secrets.SNYK_TOKEN }}
+  SNYK_CFG_ORG: ${{ vars.SNYK_CFG_ORG || vars.SNYK_SLUG_ORG || '9c3602e7-da44-48d5-a4d1-5c2f09f7eafe' }}
+
 jobs:
   check-secrets:
     name: Check Snyk Credentials
@@ -53,17 +57,15 @@ jobs:
     outputs:
       configured: ${{ steps.check.outputs.configured }}
     steps:
-      - name: Verify SNYK_TOKEN availability
+      - name: Verify Snyk credentials availability
         id: check
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           if [ -n "$SNYK_TOKEN" ]; then
             echo "configured=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::SNYK_TOKEN configurado correctamente. Procediendo con el escaneo de seguridad."
+            echo "::notice::Credenciales de Snyk (SNYK_PAT_ORG) y organización ($SNYK_CFG_ORG) verificadas. Procediendo con el escaneo de seguridad."
           else
             echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::error::Falta el secret SNYK_TOKEN. Configúralo en Settings > Secrets and variables > Actions para habilitar los escaneos de Snyk."
+            echo "::error::Falta el secret SNYK_PAT_ORG (o SNYK_TOKEN) a nivel de organización. Configúralo en Settings > Secrets and variables > Actions."
             exit 1
           fi
 
@@ -83,10 +85,9 @@ jobs:
         uses: snyk/actions/setup@v4
 
       - name: Run Snyk IaC Test (Kubernetes & Docker Compose)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           snyk iac test kubernetes/ docker/ \
+            --org="${{ env.SNYK_CFG_ORG }}" \
             --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=snyk-iac.sarif || {
             code=$?
@@ -155,33 +156,27 @@ jobs:
         uses: snyk/actions/setup@v4
 
       - name: Scan SmartPot-API-Go (Go 1.26)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-API-Go
-          snyk test --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-api-go.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-API-Go." || exit $code
           }
 
       - name: Scan SmartPot-Web-Solid (SolidJS)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-Web-Solid
-          snyk test --all-projects --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --all-projects --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-web-solid.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-Web-Solid." || exit $code
           }
 
       - name: Scan SmartPot-DataGenerator-Rust (Rust)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-DataGenerator-Rust
-          snyk test --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-datagenerator-rust.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator-Rust." || exit $code
@@ -260,34 +255,28 @@ jobs:
         uses: snyk/actions/setup@v4
 
       - name: Scan SmartPot-API (Spring Boot)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-API
-          snyk test --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-api-java.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-API." || exit $code
           }
 
       - name: Scan SmartPot-Web (React)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-Web
-          snyk test --all-projects --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --all-projects --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-web-react.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-Web." || exit $code
           }
 
       - name: Scan SmartPot-DataGenerator (Python)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-DataGenerator
           uv export --no-dev --no-hashes -o requirements.txt
-          snyk test --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-datagenerator.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator." || exit $code
@@ -342,25 +331,21 @@ jobs:
         uses: snyk/actions/setup@v4
 
       - name: Scan SmartPot-AI (FastAPI & ML)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-AI
           uv export --no-dev --no-hashes -o requirements.txt
-          snyk test --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-ai.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-AI." || exit $code
           }
 
       - name: Scan SmartPot-IoT (Firmware & Scripts)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
           cd services/SmartPot-IoT
           if [ -f pyproject.toml ]; then
             uv export --no-dev --no-hashes -o requirements.txt || true
-            snyk test --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
               --sarif-file-output=../../snyk-iot.sarif || true
           fi
 
