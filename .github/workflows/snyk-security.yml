@@ -142,14 +142,12 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 11.28.0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-          cache-dependency-path: services/SmartPot-Web-Solid/pnpm-lock.yaml
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -247,14 +245,12 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 11.28.0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: services/SmartPot-Web/pnpm-lock.yaml
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -377,15 +373,19 @@ jobs:
           cd services/SmartPot-IoT
           if [ -f pyproject.toml ]; then
             uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt || true
-            uv pip install --system -r requirements.txt || true
-            snyk test \
-              --org="${{ env.SNYK_CFG_ORG }}" \
-              --file=requirements.txt \
-              --package-manager=pip \
-              --command=python3 \
-              --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
-              --sarif-file-output=../../snyk-iot.sarif \
-              -- --allow-missing || true
+            if [ -s requirements.txt ]; then
+              uv pip install --system -r requirements.txt || true
+              snyk test \
+                --org="${{ env.SNYK_CFG_ORG }}" \
+                --file=requirements.txt \
+                --package-manager=pip \
+                --command=python3 \
+                --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+                --sarif-file-output=../../snyk-iot.sarif \
+                -- --allow-missing || true
+            else
+              echo "::notice::El repositorio no contiene dependencias de producción externas (firmware MicroPython puro); escaneo omitido."
+            fi
           fi
 
       - name: Upload SmartPot-AI SARIF
