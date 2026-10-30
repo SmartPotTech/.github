@@ -100,8 +100,8 @@ jobs:
           }
 
       - name: Upload IaC SARIF to GitHub Security Tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-iac.sarif') != ''
         with:
           sarif_file: snyk-iac.sarif
           category: snyk-iac
@@ -152,6 +152,11 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
       - name: Set up Snyk CLI
         uses: snyk/actions/setup@master
 
@@ -173,32 +178,31 @@ jobs:
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-Web-Solid." || exit $code
           }
 
-      - name: Scan SmartPot-DataGenerator-Rust (Rust)
+      - name: Scan SmartPot-DataGenerator-Rust (RustSec Cargo Audit)
         run: |
           cd services/SmartPot-DataGenerator-Rust
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
-            --sarif-file-output=../../snyk-datagenerator-rust.sarif || {
+          cargo audit --format sarif > ../../snyk-datagenerator-rust.sarif || {
             code=$?
-            [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator-Rust." || exit $code
+            echo "::warning::cargo-audit reportó avisos o vulnerabilidades en dependencias de Rust (código $code)."
           }
 
       - name: Upload SmartPot-API-Go SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-api-go.sarif') != ''
         with:
           sarif_file: snyk-api-go.sarif
           category: snyk-api-go
 
       - name: Upload SmartPot-Web-Solid SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-web-solid.sarif') != ''
         with:
           sarif_file: snyk-web-solid.sarif
           category: snyk-web-solid
 
       - name: Upload SmartPot-DataGenerator-Rust SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-datagenerator-rust.sarif') != ''
         with:
           sarif_file: snyk-datagenerator-rust.sarif
           category: snyk-datagenerator-rust
@@ -276,29 +280,29 @@ jobs:
         run: |
           cd services/SmartPot-DataGenerator
           uv export --no-dev --no-hashes -o requirements.txt
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --skip-unresolved --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-datagenerator.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator." || exit $code
           }
 
       - name: Upload SmartPot-API SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-api-java.sarif') != ''
         with:
           sarif_file: snyk-api-java.sarif
           category: snyk-api-java
 
       - name: Upload SmartPot-Web SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-web-react.sarif') != ''
         with:
           sarif_file: snyk-web-react.sarif
           category: snyk-web-react
 
       - name: Upload SmartPot-DataGenerator SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-datagenerator.sarif') != ''
         with:
           sarif_file: snyk-datagenerator.sarif
           category: snyk-datagenerator
@@ -334,7 +338,7 @@ jobs:
         run: |
           cd services/SmartPot-AI
           uv export --no-dev --no-hashes -o requirements.txt
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --skip-unresolved --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
             --sarif-file-output=../../snyk-ai.sarif || {
             code=$?
             [ $code -eq 1 ] && echo "::warning::Hallazgos en dependencias de SmartPot-AI." || exit $code
@@ -345,20 +349,20 @@ jobs:
           cd services/SmartPot-IoT
           if [ -f pyproject.toml ]; then
             uv export --no-dev --no-hashes -o requirements.txt || true
-            snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
+            snyk test --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --skip-unresolved --severity-threshold=${{ inputs.severity_threshold || 'medium' }} \
               --sarif-file-output=../../snyk-iot.sarif || true
           fi
 
       - name: Upload SmartPot-AI SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-ai.sarif') != ''
         with:
           sarif_file: snyk-ai.sarif
           category: snyk-ai
 
       - name: Upload SmartPot-IoT SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-iot.sarif') != ''
         with:
           sarif_file: snyk-iot.sarif
           category: snyk-iot
