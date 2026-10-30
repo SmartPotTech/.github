@@ -3,6 +3,7 @@ name: Request Deployment
 # Lo llaman los servicios cuando publican una imagen: dispara deploy.yml en este repositorio
 # y espera su resultado. deploy.yml corre de a uno (concurrency), así que varios pedidos
 # simultáneos se encolan y los intermedios se reemplazan por el más reciente.
+# Se omite el despliegue si el commit incluye [skip deploy] o #no-deploy.
 
 on:
   workflow_call:
@@ -16,6 +17,7 @@ permissions:
 jobs:
   request:
     name: Request Central Deployment
+    if: github.event_name == 'workflow_dispatch' || (!contains(github.event.workflow_run.head_commit.message, '[skip deploy]') && !contains(github.event.workflow_run.head_commit.message, '[skip-deploy]') && !contains(github.event.workflow_run.head_commit.message, '#no-deploy') && !contains(github.event.workflow_run.head_commit.message, '#nodeploy') && !contains(github.event.head_commit.message, '[skip deploy]') && !contains(github.event.head_commit.message, '[skip-deploy]') && !contains(github.event.head_commit.message, '#no-deploy') && !contains(github.event.head_commit.message, '#nodeploy'))
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -24,9 +26,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_DISPATCH_TOKEN }}
           SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          COMMIT_MSG: ${{ github.event.workflow_run.head_commit.message || github.event.head_commit.message }}
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "::notice::Despliegue omitido: falta el secret DEPLOY_DISPATCH_TOKEN."
+            exit 0
+          fi
+          if [ -n "$COMMIT_MSG" ] && echo "$COMMIT_MSG" | grep -qiE '\[skip deploy\]|\[skip-deploy\]|#no-deploy|#nodeploy'; then
+            echo "::notice::Despliegue omitido: el commit contiene marcador de exclusión ([skip deploy] / #no-deploy)."
             exit 0
           fi
           central=SmartPotTech/.github

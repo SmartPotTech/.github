@@ -36,6 +36,7 @@ concurrency:
 jobs:
   check:
     name: Check Deployment Secrets
+    if: github.event_name == 'workflow_dispatch' || (!contains(github.event.head_commit.message, '[skip deploy]') && !contains(github.event.head_commit.message, '[skip-deploy]') && !contains(github.event.head_commit.message, '#no-deploy') && !contains(github.event.head_commit.message, '#nodeploy'))
     runs-on: ubuntu-latest
     timeout-minutes: 2
     outputs:

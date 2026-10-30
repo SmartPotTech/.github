@@ -104,6 +104,8 @@ Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub como 
 descargando las imágenes de GHCR. Los detalles, los secrets necesarios y la configuración de nginx están en [
 `docker/production`](docker/production/README.md).
 
+Para evitar ejecuciones redundantes del despliegue en cambios que no lo requieran (documentación, pruebas, ajustes menores), cualquier commit que contenga `[skip deploy]` o `#no-deploy` en su mensaje omitirá automáticamente la llamada al despliegue central en `.github`. Si un cambio necesita desplegarse a producción, simplemente se omiten dichos marcadores (o se dispara manualmente con `workflow_dispatch`).
+
 ## Licencia
 
 Este proyecto está bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
