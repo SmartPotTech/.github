@@ -139,15 +139,10 @@ jobs:
         with:
           go-version-file: 'services/SmartPot-API-Go/go.mod'
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          version: 11.28.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+          bun-version: latest
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
