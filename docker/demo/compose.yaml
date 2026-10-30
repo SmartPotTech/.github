@@ -33,6 +33,7 @@ services:
     mem_limit: 1024m
     pids_limit: 256
     environment:
+      GLIBC_TUNABLES: glibc.pthread.rseq=0
       MONGO_INITDB_ROOT_USERNAME: smartpot-root
       MONGO_INITDB_ROOT_PASSWORD: demo-root-password-123
       SMARTPOT_DB_PASSWORD: *db-app
