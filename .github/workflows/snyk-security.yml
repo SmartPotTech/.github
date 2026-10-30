@@ -82,7 +82,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@v4
+        uses: snyk/actions/setup@master
 
       - name: Run Snyk IaC Test (Kubernetes & Docker Compose)
         run: |
@@ -153,7 +153,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@v4
+        uses: snyk/actions/setup@master
 
       - name: Scan SmartPot-API-Go (Go 1.26)
         run: |
@@ -252,7 +252,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@v4
+        uses: snyk/actions/setup@master
 
       - name: Scan SmartPot-API (Spring Boot)
         run: |
@@ -328,7 +328,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@v4
+        uses: snyk/actions/setup@master
 
       - name: Scan SmartPot-AI (FastAPI & ML)
         run: |
