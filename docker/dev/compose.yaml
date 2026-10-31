@@ -97,11 +97,35 @@ services:
     container_name: smartpot-dev-ai
     environment:
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      SMARTPOT_TRAINER_URL: http://trainer-smartpot:8001
+      DOCS_ENABLED: "true"
+      LOG_LEVEL: DEBUG
+      LEARNING_CHECK_SECONDS: "0"
+    ports:
+      - "127.0.0.1:${SMARTPOT_AI_PORT:-8000}:8000"
+    volumes:
+      - ai_data:/data
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  trainer-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Trainer
+    image: smartpot-trainer:dev
+    container_name: smartpot-dev-trainer
+    environment:
+      SMARTPOT_TRAINER_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      SMARTPOT_AI_URL: http://ai-smartpot:8000
       DOCS_ENABLED: "true"
       LOG_LEVEL: DEBUG
       LEARNING_CHECK_SECONDS: "60"
+      LEARNING_MIN_SAMPLES: "50"
+      LEARNING_RETRAIN_EVERY: "100"
     ports:
-      - "127.0.0.1:${SMARTPOT_AI_PORT:-8000}:8000"
+      - "127.0.0.1:${SMARTPOT_TRAINER_PORT:-8001}:8001"
     volumes:
       - ai_data:/data
     tmpfs:
