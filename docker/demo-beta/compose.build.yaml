@@ -34,3 +34,11 @@ services:
   simulator-smartpot:
     build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DataGenerator-Rust
     pull_policy: build
+
+  ai-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-AI
+    pull_policy: build
+
+  trainer-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Trainer
+    pull_policy: build
