@@ -28,6 +28,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 concurrency:
   group: smartpot-production
@@ -64,9 +65,69 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
+  security-gatekeeper:
+    name: Snyk Deployment Gatekeeper
+    needs: check
+    if: needs.check.outputs.configured == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_PAT_ORG || secrets.SNYK_TOKEN }}
+      SNYK_CFG_ORG: ${{ vars.SNYK_CFG_ORG || vars.SNYK_SLUG_ORG || '9c3602e7-da44-48d5-a4d1-5c2f09f7eafe' }}
+
+    steps:
+      - name: Checkout deployment configuration
+        uses: actions/checkout@v5
+        with:
+          repository: SmartPotTech/.github
+          ref: main
+          sparse-checkout: docker/production
+          persist-credentials: false
+
+      - name: Verify Snyk credentials availability
+        id: snyk-check
+        run: |
+          if [ -n "$SNYK_TOKEN" ]; then
+            echo "snyk_available=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Snyk Deployment Gatekeeper activo con credenciales corporativas."
+          else
+            echo "snyk_available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SNYK_TOKEN / SNYK_PAT_ORG no está configurado; el Gatekeeper de despliegue opera en modo observador."
+          fi
+
+      - name: Set up Snyk CLI
+        if: steps.snyk-check.outputs.snyk_available == 'true'
+        uses: snyk/actions/setup@master
+
+      - name: Run Snyk IaC Security Gate on Production Compose
+        if: steps.snyk-check.outputs.snyk_available == 'true'
+        run: |
+          echo "::notice::Evaluando políticas de seguridad en manifiestos de producción (docker/production)..."
+          snyk iac test docker/production/ \
+            --org="${{ env.SNYK_CFG_ORG }}" \
+            --severity-threshold=high \
+            --sarif-file-output=snyk-deploy-gate.sarif || {
+            code=$?
+            if [ $code -eq 1 ]; then
+              echo "::error::Snyk Deployment Gatekeeper BLOQUEÓ el despliegue a producción. Se detectaron vulnerabilidades o desconfiguraciones de severidad ALTA o CRÍTICA en docker/production/."
+              exit 1
+            else
+              echo "::error::Error de ejecución de Snyk CLI en el Gatekeeper (código $code)."
+              exit $code
+            fi
+          }
+          echo "::notice::Snyk Deployment Gatekeeper: docker/production/ APROBADO sin vulnerabilidades bloqueantes."
+
+      - name: Upload Gatekeeper SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-deploy-gate.sarif') != ''
+        with:
+          sarif_file: snyk-deploy-gate.sarif
+          category: snyk-deployment-gatekeeper
+
   deploy:
     name: Deploy to Server
-    needs: check
+    needs: [check, security-gatekeeper]
     if: needs.check.outputs.configured == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
