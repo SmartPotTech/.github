@@ -67,6 +67,8 @@ services:
       SMARTPOT_DB_USERNAME: smartpot
       SMARTPOT_DB_PASSWORD: *db-app
       SMARTPOT_SEED_DEMO: "true"
+      # Rol de solo lectura del entrenador (se crea solo en una base nueva: `down -v` si ya existía).
+      SMARTPOT_READER_PASSWORD: demo-reader-password-123
     volumes:
       - db_data:/var/lib/postgresql/data
     tmpfs:
@@ -178,7 +180,7 @@ services:
       SMARTPOT_AI_URL: http://ai-smartpot:8000
       AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
       VALKEY_SOCKET: /var/run/smartpot/valkey.sock
-      DATABASE_URL: postgresql://smartpot:demo-app-password-123@db-smartpot:5432/smartpot
+      DATABASE_URL: postgresql://smartpot_reader:demo-reader-password-123@db-smartpot:5432/smartpot
       # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar
       LEARNING_CHECK_SECONDS: "120"
       LEARNING_MIN_SAMPLES: "200"
@@ -280,6 +282,8 @@ services:
       MQTT_PORT: "1883"
       SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
       SIMULATOR_INTERVAL_SECONDS: "15"
+      # Telemetría en el paquete compacto v2 (27 bytes); la API también acepta el JSON del contrato v1.
+      SIMULATOR_PAYLOAD_FORMAT: binary
       SIMULATOR_TOKEN: *simulator-token
       RUST_LOG: info
     tmpfs:
