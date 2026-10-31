@@ -126,9 +126,9 @@ jobs:
           sarif_file: snyk-iac.sarif
           category: snyk-iac
 
-      # 3. Monitorear: snyk monitor continuo en rama principal o schedule
+      # 3. Monitorear: snyk monitor continuo en rama principal, schedule o dispatch
       - name: Snyk IaC Continuous Monitoring Snapshot
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           echo "::notice::Publicando snapshot de IaC a Snyk Platform para monitoreo continuo..."
           snyk iac test kubernetes/ docker/ \
@@ -262,9 +262,9 @@ jobs:
           sarif_file: snyk-datagenerator-rust.sarif
           category: snyk-datagenerator-rust
 
-      # 5. Monitorear: snyk monitor en rama principal o schedule
+      # 5. Monitorear: snyk monitor en rama principal, schedule o dispatch
       - name: Snyk Monitor Snapshots (BETA Stack)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           echo "::notice::Publicando snapshots a Snyk Platform para monitoreo continuo 24/7..."
           cd services/SmartPot-API-Go
@@ -418,9 +418,9 @@ jobs:
           sarif_file: snyk-datagenerator.sarif
           category: snyk-datagenerator
 
-      # 5. Monitorear: snyk monitor en rama principal o schedule
+      # 5. Monitorear: snyk monitor en rama principal, schedule o dispatch
       - name: Snyk Monitor Snapshots (Estable Stack)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           echo "::notice::Publicando snapshots a Snyk Platform para monitoreo continuo 24/7..."
           cd services/SmartPot-API
@@ -527,9 +527,9 @@ jobs:
           sarif_file: snyk-iot.sarif
           category: snyk-iot
 
-      # 4. Monitorear: snyk monitor en rama principal o schedule
+      # 4. Monitorear: snyk monitor en rama principal, schedule o dispatch
       - name: Snyk Monitor Snapshot (SmartPot-AI)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule'
+        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           echo "::notice::Publicando snapshot de SmartPot-AI a Snyk Platform para monitoreo continuo 24/7..."
           cd services/SmartPot-AI
