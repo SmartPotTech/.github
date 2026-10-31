@@ -175,6 +175,11 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install SmartPot-Web-Solid dependencies
+        run: |
+          cd services/SmartPot-Web-Solid
+          bun install --frozen-lockfile
+
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -211,7 +216,7 @@ jobs:
         run: |
           cd services/SmartPot-Web-Solid
           threshold="${{ inputs.severity_threshold || 'medium' }}"
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --all-projects --severity-threshold="$threshold" \
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold="$threshold" \
             --sarif-file-output=../../snyk-web-solid.sarif || {
             code=$?
             if [ $code -eq 1 ]; then
@@ -265,7 +270,7 @@ jobs:
           cd services/SmartPot-API-Go
           snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-API-Go" || true
           cd ../SmartPot-Web-Solid
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --all-projects --project-name="SmartPotTech/SmartPot-Web-Solid" || true
+          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-Web-Solid" || true
 
   snyk-stable-stack:
     name: Snyk SCA & Monitor (Demo Estable Stack)
@@ -421,7 +426,7 @@ jobs:
           cd services/SmartPot-API
           snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-API" || true
           cd ../SmartPot-Web
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --all-projects --project-name="SmartPotTech/SmartPot-Web" || true
+          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-Web" || true
           cd ../SmartPot-DataGenerator
           snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --package-manager=pip --project-name="SmartPotTech/SmartPot-DataGenerator" || true
 
