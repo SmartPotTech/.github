@@ -146,6 +146,17 @@ def run_beta_suite():
         status, series = call("GET", "/api/v1/overview/series?metric=temperature&hours=1", token=demo_token)
         expect(status == 200 and "series" in series, "Series temporales calculadas por TimescaleDB")
 
+        # 11. Verificación opcional de SmartPot-Trainer si el puerto está mapeado
+        trainer_url = os.environ.get("SMARTPOT_TRAINER_URL", "http://localhost:8001").rstrip("/")
+        try:
+            req = urllib.request.Request(f"{trainer_url}/health", method="GET")
+            with urllib.request.urlopen(req, timeout=3) as resp:
+                data = json.loads(resp.read().decode())
+                if resp.status == 200 and data.get("status") == "UP":
+                    print("  ✔ Microservicio SmartPot-Trainer reporta estado UP en /health")
+        except Exception:
+            pass
+
     finally:
         # Limpieza del cultivo virtual de prueba
         call("DELETE", f"/api/v1/crops/{v_id}", token=demo_token)

@@ -8,6 +8,7 @@ componentes migrados de nueva generación:
 - **EMQX 5.8** ([SmartPot-Broker-EMQX](https://github.com/SmartPotTech/SmartPot-Broker-EMQX)) en lugar de Mosquitto.
 - **PWA en SolidJS** ([SmartPot-Web-Solid](https://github.com/SmartPotTech/SmartPot-Web-Solid)) en lugar de React.
 - **Simulador en Rust** ([SmartPot-DataGenerator-Rust](https://github.com/SmartPotTech/SmartPot-DataGenerator-Rust)) en lugar de Python.
+- **Entrenador Desacoplado** ([SmartPot-Trainer](https://github.com/SmartPotTech/SmartPot-Trainer)) separando el aprendizaje continuo de la inferencia en caliente de SmartPot-AI.
 
 El resto de componentes (correo y asistente de IA) son **los mismos de siempre**: la migración es
 transparente y no cambia ningún contrato.
@@ -57,6 +58,7 @@ docker compose up -d --wait
 | Broker (EMQX)    | `ghcr.io/smartpottech/smartpot-broker-emqx`        |
 | PWA (SolidJS)    | `ghcr.io/smartpottech/smartpot-web-solid`          |
 | Simulador (Rust) | `ghcr.io/smartpottech/smartpot-datagenerator-rust` |
+| Entrenador (Trainer) | `ghcr.io/smartpottech/smartpot-trainer`       |
 
 Abre http://localhost:5173 e ingresa con la **misma cuenta de la demo** (el seed de PostgreSQL replica el de MongoDB):
 
