@@ -426,7 +426,7 @@ jobs:
           cd services/SmartPot-API
           snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-API" || true
           cd ../SmartPot-Web
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-Web" || true
+          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --all-projects || true
           cd ../SmartPot-DataGenerator
           snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --package-manager=pip --project-name="SmartPotTech/SmartPot-DataGenerator" || true
 
