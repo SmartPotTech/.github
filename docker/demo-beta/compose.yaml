@@ -85,6 +85,9 @@ services:
     environment:
       # Valkey, el reemplazo libre de Redis. Acepta REDIS_PASSWORD por compatibilidad; la API aún la envía con ese nombre.
       VALKEY_PASSWORD: *redis
+    volumes:
+      # Socket IPC compartido en tmpfs para latencia sub-microsegundo
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     networks:
@@ -152,6 +155,7 @@ services:
       LEARNING_CHECK_SECONDS: "0"
     volumes:
       - ai_data:/data
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     networks:
@@ -221,6 +225,9 @@ services:
       TELEGRAM_MODE: polling
     ports:
       - "127.0.0.1:8091:8091"
+    volumes:
+      # Sockets UNIX UDS para IPC con SmartPot-AI y SmartPot-Cache-Valkey
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     depends_on:
@@ -279,6 +286,13 @@ volumes:
   db_data:
   broker_data:
   ai_data:
+  # Volumen compartido tmpfs en memoria para sockets UDS de ultra-baja latencia (/var/run/smartpot/*.sock)
+  smartpot-ipc:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=64m,mode=1777"
 
 networks:
   internal:
