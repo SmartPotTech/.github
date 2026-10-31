@@ -81,10 +81,11 @@ services:
     container_name: smartpot-demo-beta-cache
     cpus: "1.0"
     mem_limit: 256m
-    pids_limit: 128
+    pids_limit: 256
     environment:
       # Valkey, el reemplazo libre de Redis. Acepta REDIS_PASSWORD por compatibilidad; la API aún la envía con ese nombre.
       VALKEY_PASSWORD: *redis
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     volumes:
       # Socket IPC compartido en tmpfs para latencia sub-microsegundo
       - smartpot-ipc:/var/run/smartpot
@@ -147,12 +148,15 @@ services:
     container_name: smartpot-demo-beta-ai
     cpus: "2.0"
     mem_limit: 512m
-    pids_limit: 128
+    pids_limit: 256
     environment:
       SMARTPOT_AI_TOKEN: *ai-token
       SMARTPOT_TRAINER_URL: http://trainer-smartpot:8001
       # Inferencia pura: el reentrenamiento vive desacoplado en trainer-smartpot
       LEARNING_CHECK_SECONDS: "0"
+      AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
+      GRPC_UDS_PATH: /var/run/smartpot/ai.sock
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     volumes:
       - ai_data:/data
       - smartpot-ipc:/var/run/smartpot
@@ -172,12 +176,16 @@ services:
       SMARTPOT_TRAINER_TOKEN: *ai-token
       SMARTPOT_AI_TOKEN: *ai-token
       SMARTPOT_AI_URL: http://ai-smartpot:8000
+      AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
+      DATABASE_URL: postgresql://smartpot:demo-app-password-123@db-smartpot:5432/smartpot
       # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar
       LEARNING_CHECK_SECONDS: "120"
       LEARNING_MIN_SAMPLES: "200"
       LEARNING_RETRAIN_EVERY: "300"
     volumes:
       - ai_data:/data
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     networks:
@@ -200,6 +208,7 @@ services:
       DATABASE_URL: postgres://smartpot:demo-app-password-123@db-smartpot:5432/smartpot?sslmode=disable
       CACHE_HOST: cache-smartpot
       CACHE_PASSWORD: *redis
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
       MAIL_HOST: mail-smartpot
       MAIL_USERNAME: smartpot
       MAIL_PASSWORD: *mail
@@ -214,6 +223,7 @@ services:
       MQTT_PUBLIC_PORT: "1883"
       MQTT_WEBSOCKET_URL: ws://localhost:9001
       AI_BASE_URL: http://ai-smartpot:8000
+      AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
       SMARTPOT_AI_TOKEN: *ai-token
       AI_EVALUATION_INTERVAL: PT1M
       AI_LEARNING_FLUSH_INTERVAL: PT15S
