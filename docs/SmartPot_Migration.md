@@ -282,3 +282,129 @@ continúa (ver la [sección 2](#2-hoja-de-ruta-por-componente)):
 
 Cada fase repetirá el mismo patrón: reescritura transparente, validación en la demo beta, corte con aprobación y
 depreciación del componente anterior.
+
+<!-- parte: PARTE V | Plan Maestro de Maximización y Endurecimiento Industrial del Stack B (demo-beta) -->
+
+## 15. Plan Maestro de Maximización y Endurecimiento Industrial del Stack B (demo-beta)
+
+### 15.1. Directiva Arquitectónica Central: Evolución In-Place sin Proliferación de Stacks
+
+> [!IMPORTANT]
+> **No existe un "Stack C" ni repositorios paralelos.** El **Stack B (`demo-beta`)** es el stack definitivo de producción de SmartPot. Cualquier modernización técnica, cambio de protocolo o reemplazo de runtime se ejecuta **in-place** dentro de los repositorios existentes de la organización (`SmartPot-AI`, `SmartPot-Trainer`, `SmartPot-API-Go`, `SmartPot-DB-Postgre`, `SmartPot-Cache-Valkey`, `SmartPot-Broker-EMQX`, `SmartPot-Web-Solid`, `SmartPot-IoT-Rust`, `SmartPot-DataGenerator-Rust` y `.github`).
+
+La evolución a escala industrial masiva resuelve las siguientes premisas críticas:
+1. **Transporte Dual Adaptativo**: Queda superado el acoplamiento rígido a Unix Domain Sockets (UDS). Los servicios implementan autodetección: UDS (`/var/run/smartpot/*.sock`) en despliegues mononodo de latencia ultra-baja (como `demo-beta`), con conmutación transparente a **gRPC sobre HTTP/2 (con soporte eBPF Socket Bypass / Cilium)** o **TCP/TLS 1.3** en entornos multi-nodo distribuidos.
+2. **Inferencia Segura Zero-Copy**: Erradicación total de `dlopen` de bibliotecas `.so` dinámicas (Treelite C) y deserialización `pickle`/`joblib` entre servicios. La inferencia en Rust opera exclusivamente con grafos estáticos **ONNX-ML (`tract-onnx`)** y tensores mapeados en memoria mediante **`rkyv`** (`memmap2`), con integridad verificada por hash **BLAKE3** y firma asimétrica **Ed25519**.
+3. **Cero SQLite en `SmartPot-Trainer`**: Eliminada la redundancia de almacenamiento y re-ingesta local. `SmartPot-Trainer` lee las series temporales directamente desde TimescaleDB mediante **ADBC (`adbc-driver-postgresql`)**, transfiriendo bloques binarios **Apache Arrow** directo a `Polars LazyFrame` con cero copias en memoria.
+4. **Separación Builder vs. Runner en Frontend**: **Bun 1.4** se confina a la fase de construcción y empaquetado (`builder`), generando activos estáticos pre-comprimidos con Zstandard (`.zst`, nivel 19) y Brotli (`.br`, nivel 11). El **runner** de producción en `SmartPot-Web-Solid` es un servidor estático ultraligero en **Caddy 2.9 (HTTP/3 QUIC + kTLS)** sin runtime de JavaScript en producción.
+
+### 15.2. Arquitectura Industrial Definitiva
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 ARQUITECTURA INDUSTRIAL DEFINITIVA - SMARTPOT STACK B                                  │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  [ SmartPot-IoT-Rust (ESP32) ] ──┐ (mTLS X.509 Ed25519 + MQTT v5 Topic Aliases + Payload Postcard/Protobuf 22 Bytes)
+  [ SmartPot-DataGenerator-Rust ] ┘ (Filtro Mediana + EKF Q16.16 en el borde / TLS Session Tickets < 15ms)
+                 │
+                 ▼
+  [ SmartPot-Broker-EMQX 5.8 (OTP 27) ]
+    • Autenticación mTLS en handshake (CN == device_id ACL criptográfico)
+    • Stream persistente bidireccional vía EMQX gRPC ExHook (Protobuf binario, cero webhooks HTTP)
+                 │
+                 ▼
+  [ SmartPot-API-Go (Go 1.26 + PGO + Distroless) ] ◄───(HTTP/3 QUIC + SSE Binary/SIMD Stream)───► [ SmartPot-Web-Solid ]
+    │ • Lock-Free Ring Buffer de Ingesta (Disruptor pattern)                                        • Builder: Bun 1.4 (.zst/.br)
+    │ • Caché L1 in-memory + L2 Valkey (Agronomic Deadband Filter)                                  • Runner: Caddy HTTP/3 QUIC
+    │ • Auth Stateless PASETO v4 / JWT EdDSA (Ed25519 en memoria < 15µs)                            • Web Workers + Signals 60FPS
+    │
+    ├───────────────────────────────┬─────────────────────────────────────────┐
+    │ (Dual: UDS / RESP3 Pipelined) │ (Dual: UDS / gRPC HTTP/2 Protobuf v3)   │ (pgx Binary COPY FROM STDIN cada 25ms/500 msgs)
+    ▼                               ▼                                         ▼
+[ SmartPot-Cache-Valkey 9.1 ]   [ SmartPot-AI (Migrado In-Place a Rust) ] [ SmartPot-DB-Postgre (PG 17 + TimescaleDB 2.18) ]
+  • io-threads 4 + Jemalloc purge • Axum 0.8 (REST) + Tonic (gRPC)          • Rol Ingesta: synchronous_commit = off (150k ins/s)
+  • Funciones Lua Deadband        • SIMD f64x4: Theil-Sen, VPD, EKF, Sugeno • Rol Transaccional: synchronous_commit = on + RLS
+  • Pub/Sub de Hot-Reload IA      • Sistema Experto en Bitsets (u64 < 200ns)• Chunks 1d + Compresión Columnar Zstd a las 12h
+                                  • Inferencia tract-onnx + rkyv mmap       • Continuous Aggregates: 1m, 15m, 1h (< 1.5ms query)
+                                  • Hot-Reload lock-free vía ArcSwap (<500ns)
+                                  • Verificación BLAKE3 + Firma Ed25519
+                                                ▲
+                                                │ (Exporta ONNX-ML + rkyv firmados con Ed25519 + Señal Valkey Pub/Sub)
+                                                │
+                                  [ SmartPot-Trainer (Python 3.13 + uv) ]
+                                    • Cero SQLite: Lectura directa Arrow vía ADBC Postgres desde TimescaleDB
+                                    • Procesamiento paralelo en Rust con Polars LazyFrame (IQR, Rolling, Lead/Shift)
+                                    • Ruta Rápida: Adaptadores NumPy LoRA (W = W0 + α·B·A) actualizados en < 1ms
+                                    • Ruta Profunda: Torneo Champion-Challenger Scikit-Learn exportado con skl2onnx
+```
+
+### 15.3. Comparativa de Protocolos y Estándar Builder/Runner
+
+| Capa / Flujo | Protocolo Anterior | Protocolo Definitivo Industrial | Ganancia Arquitectónica |
+| :--- | :--- | :--- | :--- |
+| **Borde IoT → Broker** | MQTT v3.1.1 JSON (~180 B) | **MQTT v5 Postcard (22 B) + Topic Aliases** | Reducción de ancho de banda del 88%, eliminación de parsing JSON en microcontrolador. |
+| **Broker → Gateway API** | Webhook HTTP POST JSON | **gRPC ExHook persistente (Protobuf binario)** | Eliminación de handshakes HTTP/1.1 por mensaje, multiplexación en un solo stream TCP. |
+| **Gateway → Persistencia** | Inserciones SQL micro-batching | **`pgx.CopyFrom` binario masivo STDIN** | Supera 150,000 inserciones/s sin saturar buffer pool ni bloquear fsync de disco. |
+| **Gateway → IA / Caché** | HTTP/1.1 REST JSON + TCP Redis | **Dual UDS (`.sock`) / gRPC HTTP/2 + RESP3** | Latencia sub-milisegundo (< 200 µs UDS) y bypass de pila TCP en mononodo. |
+| **Gateway → PWA Web** | Polling condicional ETag 304 | **HTTP/3 QUIC + SSE (Server-Sent Events)** | Cero latencia de sondeo, actualización reactiva empujada en tiempo real por el servidor. |
+
+| Componente | Builder / Entorno de Compilación | Runner / Imagen de Producción | Estrategia de Contención |
+| :--- | :--- | :--- | :--- |
+| **SmartPot-AI** | `rust:1.85-bookworm` (cargo-chef, target x86_64-unknown-linux-musl, `target-cpu=x86-64-v3`, LTO fat) | `gcr.io/distroless/static-debian12:nonroot` | Binario estático puro, 0 vulnerabilidades de SO, sin shell ni herramientas. |
+| **SmartPot-Trainer** | `ghcr.io/astral-sh/uv:python3.13-bookworm-slim` (`uv sync --frozen --compile-bytecode`) | `ghcr.io/astral-sh/uv:python3.13-bookworm-slim` (usuario sin privilegios UID 65532) | Ingesta analítica directa por ADBC Arrow, aislamiento de procesos, sin SQLite. |
+| **SmartPot-API-Go** | `golang:1.26-alpine` (`CGO_ENABLED=0`, `-pgo=default.pgo`, `-trimpath`, `-ldflags="-s -w"`) | `gcr.io/distroless/static-debian12:nonroot` | Imagen `scratch`/distroless, memoria < 15 MB, PGO habilitado. |
+| **SmartPot-Web-Solid** | `oven/bun:1.4-alpine` (`bun run build`, pre-compresión Zstandard y Brotli) | `caddy:2.9-alpine` (servidor nativo HTTP/3 QUIC + kTLS) | Cero runtime JavaScript en producción; servicio de activos estáticos desde caché kernel. |
+| **SmartPot-DataGenerator-Rust** | `rust:1.85-bookworm` (musl static builder) | `gcr.io/distroless/static-debian12:nonroot` | Simulador nativo en Rust con huella < 2 MB RAM. |
+
+### 15.4. Especificación Técnica por Componente
+
+#### A. SmartPot-AI (Migración In-Place a Rust 2024 Edition)
+* **Stack**: `axum 0.8` (compatibilidad REST v1 completa) + `tonic` (gRPC sobre `/var/run/smartpot/ai.sock` y TCP interno) + `tokio` multi-hilo con `mimalloc` como `#[global_allocator]`.
+* **Núcleo SIMD (`core::simd` / `wide`)**:
+  * Cálculo de **Déficit de Presión de Vapor (VPD) foliar psicrométrico** mediante la ecuación de Tetens/Buck con offset térmico radiativo:
+    $$e_s(T) = 0.61078 \exp\left(\frac{17.27 \cdot T}{T + 237.3}\right), \quad \text{VPD} = e_s(T_{\text{air}} - 1.5) - \left(e_s(T_{\text{air}}) \cdot \frac{\text{RH}}{100}\right)$$
+  * **Filtro de Kalman Extendido (EKF 1D)**: pre-filtrado de ruido electromagnético en lecturas de pH, conductividad (TDS/EC) y humedad de sustrato.
+  * **Regresión Robusta Theil-Sen $O(M)$** y **Lógica Difusa Sugeno Branchless** vectorizadas en registros `f64x4`.
+* **Sistema Experto en Bitsets `u64`**: Hechos agronómicos codificados como máscaras de bits individuales (`TempHigh`, `VpdCritical`, `PhAcidicDrift`, `MoistureDepleting`). Evaluación atómica bit a bit de las 21 reglas en $< 200\text{ ns}$.
+* **Motor ML Zero-Copy**: Inferencia de árboles con `tract-onnx` (`TreeEnsembleClassifier`) y tensores LoRA mapeados con `rkyv`/`memmap2`.
+* **Hot-Reload Atómico**: Sustitución de modelos mediante `arc_swap::ArcSwap<ModelBundle>` sin contención de cerrojos, verificando hash BLAKE3 y firma Ed25519 del artefacto.
+
+#### B. SmartPot-Trainer (Python 3.13 + uv + ADBC Arrow + Polars + ONNX)
+* **Ingesta Analítica Directa**: Cero SQLite. Conexión de alto rendimiento mediante `adbc-driver-postgresql` transfiriendo flujos binarios Arrow directo a `Polars LazyFrame`.
+* **Pipeline Vectorizado**: Filtrado IQR, métricas DQS, medias/desviaciones móviles y generación de etiquetas autosupervisadas en el motor multihilo de Polars.
+* **Entrenamiento en Dos Velocidades**:
+  * *Ruta Rápida (LoRA)*: Actualización analítica de matrices $B_s \in \mathbb{R}^{d \times r}$ y $A_s \in \mathbb{R}^{r \times k}$ ($r=2$) en $< 1\text{ ms}$.
+  * *Ruta Profunda*: Torneo Champion-Challenger con `TimeSeriesSplit(4)` sobre Scikit-Learn paralelizado con joblib en `/dev/shm`.
+* **Exportación y Firma**: Generación de `.onnx` (`skl2onnx`), firma criptográfica Ed25519 y notificación mediante Valkey Pub/Sub (`smartpot:ai:reload`).
+
+#### C. SmartPot-API-Go (Go 1.26 + PGO + Disruptor + CopyFrom + Deadband)
+* **Ingesta Masiva**: Cola Ring Buffer lock-free (Disruptor) con vaciado cada 25 ms o 500 registros ejecutando `pgxPoolIngest.CopyFrom` directo a PostgreSQL.
+* **Filtro de Banda Muerta Agronómico**: Caché L1 en memoria de Go respaldada por Valkey L2. Bypass de hasta el 80% de consultas a la IA si $|\Delta T| < 0.1^\circ\text{C}$, $|\Delta RH| < 0.4\%$, $|\Delta pH| < 0.03$ y $|\Delta EC| < 15\,\mu\text{S/cm}$ dentro del TTL de 60s.
+* **Transporte Dual**: Conexión adaptativa hacia IA y Valkey por socket UNIX o gRPC HTTP/2 / RESP3.
+* **Seguridad Stateless**: Verificación en memoria de tokens PASETO v4.public / JWT EdDSA (curva Ed25519) en $< 15\text{ µs}$.
+
+#### D. SmartPot-DB-Postgre (PostgreSQL 17 + TimescaleDB 2.18 Ultra-Tuned)
+* **Separación de Roles**:
+  * `smartpot_ingest`: `synchronous_commit = off` y `commit_delay = 10000`, optimizado para ingesta continua masiva (> 150k ins/s).
+  * `smartpot_app`: `synchronous_commit = on` con políticas RLS (`ENABLE ROW LEVEL SECURITY`) aisladas por `app.current_tenant_id`.
+* **Hipertablas y Vistas Continuas**: Fragmentos de 1 día, compresión columnar Zstandard a las 12 horas y continuous aggregates (`readings_1m`, `readings_15m`, `readings_1h`) para consultas históricas sub-milisegundo.
+
+#### E. SmartPot-Cache-Valkey (Valkey 9.1 Multi-IO + UDS + Lua)
+* Listener dual en puerto 6379 y `/var/run/smartpot/valkey.sock`.
+* `io-threads 4`, purga asíncrona de memoria Jemalloc (`lazyfree`, `activedefrag`).
+* Funciones Lua atómicas para evaluación de Deadband, deduplicación de paquetes MQTT y rate limiting GCRA.
+
+#### F. SmartPot-Broker-EMQX (EMQX 5.8 + MQTT v5 + mTLS X.509 + gRPC ExHook)
+* MQTT v5 con Topic Aliases (`topic_alias_maximum = 64`).
+* Autenticación mTLS en handshake (certificados cliente Ed25519 / P-256) con TLS Session Resumption y validación ACL `peer_cert_cn == clientid`.
+* Integración gRPC ExHook persistente hacia la API sin sobrecarga de webhooks HTTP.
+
+#### G. SmartPot-IoT-Rust y DataGenerator-Rust (Borde Ciberfísico)
+* Filtro de mediana de 5 muestras + EKF unidimensional en aritmética de punto fijo Q16.16 en el ESP32.
+* Serialización binaria Postcard/Protobuf en 22 bytes (`timestamp_delta`, `temp_centi`, `rh_centi`, `soil_moisture_centi`, `ph_milli`, `tds_ppm`, `light_lux`, `battery_mv`, `status_flags`, `crc8`).
+
+#### H. SmartPot-Web-Solid (Frontend Reactivo HTTP/3)
+* Builder con Bun 1.4 y pre-compresión dual Zstandard y Brotli.
+* Runner en Caddy 2.9 sobre HTTP/3 (QUIC) con kTLS.
+* Conexión reactiva continua vía Server-Sent Events (SSE) y procesamiento de telemetría en Web Worker con `Float64Array` transferibles (`SharedArrayBuffer`) a 60 FPS.
