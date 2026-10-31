@@ -105,12 +105,33 @@ services:
     image: ghcr.io/smartpottech/smartpot-ai:latest
     container_name: smartpot-demo-ai
     cpus: "2.0"
-    mem_limit: 768m
+    mem_limit: 512m
     pids_limit: 128
     environment:
       SMARTPOT_AI_TOKEN: *ai-token
-      # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar.
+      SMARTPOT_TRAINER_URL: http://trainer-smartpot:8001
+      LEARNING_CHECK_SECONDS: "0"
+    volumes:
+      - ai_data:/data
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+
+  trainer-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-trainer:latest
+    container_name: smartpot-demo-trainer
+    cpus: "2.0"
+    mem_limit: 1024m
+    pids_limit: 256
+    environment:
+      SMARTPOT_TRAINER_TOKEN: *ai-token
+      SMARTPOT_AI_TOKEN: *ai-token
+      SMARTPOT_AI_URL: http://ai-smartpot:8000
       LEARNING_CHECK_SECONDS: "120"
+      LEARNING_MIN_SAMPLES: "200"
+      LEARNING_RETRAIN_EVERY: "300"
     volumes:
       - ai_data:/data
     tmpfs:
