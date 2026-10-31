@@ -62,6 +62,8 @@ env:
 
 jobs:
   check-secrets:
+    # En los PRs de Dependabot no llega el token de Snyk; esos cambios los revisa el CI.
+    if: github.actor != 'dependabot[bot]'
     name: Check Snyk Credentials
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -83,7 +85,7 @@ jobs:
   snyk-iac:
     name: Snyk IaC & Gatekeeper (Kubernetes & Compose)
     needs: check-secrets
-    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'iac' || github.event_name != 'workflow_dispatch')
+    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'iac' || github.event_name != 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -93,7 +95,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
       # 1. Security Gate: Probar y Alertar / Detener
       - name: Run Snyk IaC Test (Security Gate)
@@ -140,7 +142,7 @@ jobs:
   snyk-beta-stack:
     name: Snyk SCA & Monitor (Demo BETA Stack)
     needs: check-secrets
-    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'beta' || github.event_name != 'workflow_dispatch')
+    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'beta' || github.event_name != 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -189,7 +191,7 @@ jobs:
           tool: cargo-audit
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
       # 1. Security Gate: SmartPot-API-Go
       - name: Scan & Gate SmartPot-API-Go (Go 1.26)
@@ -275,7 +277,7 @@ jobs:
   snyk-stable-stack:
     name: Snyk SCA & Monitor (Demo Estable Stack)
     needs: check-secrets
-    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'stable' || github.event_name != 'workflow_dispatch')
+    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'stable' || github.event_name != 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -326,7 +328,7 @@ jobs:
           python-version: "3.13"
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
       # 1. Security Gate: SmartPot-API (Spring Boot)
       - name: Scan & Gate SmartPot-API (Spring Boot)
@@ -433,7 +435,7 @@ jobs:
   snyk-shared-iot:
     name: Snyk SCA & Monitor (Componentes Compartidos & IoT)
     needs: check-secrets
-    if: needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'shared' || github.event_name != 'workflow_dispatch')
+    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'shared' || github.event_name != 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -460,7 +462,7 @@ jobs:
           python-version: "3.13"
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
       # 1. Security Gate: SmartPot-AI
       - name: Scan & Gate SmartPot-AI (FastAPI & ML)
@@ -538,7 +540,7 @@ jobs:
   snyk-remediation-pr:
     name: Snyk Automated Remediation PR
     needs: check-secrets
-    if: needs.check-secrets.outputs.configured == 'true' && (inputs.auto_remediate_pr == true || github.event_name == 'schedule')
+    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.auto_remediate_pr == true || github.event_name == 'schedule'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -546,7 +548,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Set up Snyk CLI
-        uses: snyk/actions/setup@master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
       - name: Check for Snyk Remediations & Auto-Fixes
         run: |

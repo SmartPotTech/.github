@@ -97,7 +97,7 @@ jobs:
 
       - name: Set up Snyk CLI
         if: steps.snyk-check.outputs.snyk_available == 'true'
-        uses: snyk/actions/setup@master
+        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
       - name: Run Snyk IaC Security Gate on Production Compose
         if: steps.snyk-check.outputs.snyk_available == 'true'
