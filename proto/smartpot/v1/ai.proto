@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package smartpot.v1;
+
+option go_package = "github.com/smartpottech/smartpot-api/internal/proto/v1;smartpotv1";
+
+message Measures {
+  double temperature = 1;
+  double humidity = 2;
+  double ph = 3;
+  double tds = 4;
+  double soil_moisture = 5;
+  double brightness = 6;
+  double atmosphere = 7;
+}
+
+message Placement {
+  string setting = 1;   // INDOOR, OUTDOOR
+  string exposure = 2;  // FULL_SUN, PARTIAL_SUN, SHADE
+}
+
+message Weather {
+  double temperature = 1;
+  double humidity = 2;
+  double radiation = 3;
+  double precipitation = 4;
+  bool is_day = 5;
+}
+
+message HistoryPoint {
+  int64 measured_at_unix_ms = 1;
+  Measures measures = 2;
+}
+
+message InsightRequest {
+  string crop_id = 1;
+  string crop_type = 2;
+  Measures measures = 3;
+  repeated HistoryPoint history = 4;
+  repeated string actuators = 5;
+  int32 local_hour = 6;
+  Placement placement = 7;
+  Weather weather = 8;
+}
+
+message HealthDetail {
+  int32 index = 1;
+  string level = 2;
+  string label = 3;
+  map<string, int32> by_parameter = 4;
+}
+
+message ForecastItem {
+  string parameter = 1;
+  string trend = 2;
+  double slope_per_hour = 3;
+  double hours_to_limit = 4;
+  string limit = 5;
+  string message = 6;
+}
+
+message SuggestedAction {
+  string actuator = 1;
+  string action = 2;
+  int32 duration_seconds = 3;
+  string reason = 4;
+}
+
+message InsightResponse {
+  HealthDetail health = 1;
+  repeated ForecastItem forecasts = 2;
+  string diagnosis = 3;
+  repeated string conclusions = 4;
+  map<string, double> predictions = 5;
+  string placement_advice = 6;
+  repeated SuggestedAction actions = 7;
+  string summary = 8;
+  uint64 evaluation_latency_nanos = 9;
+}
+
+message FleetCropItem {
+  string crop_id = 1;
+  string crop_type = 2;
+  Measures measures = 3;
+  int32 health_index = 4;
+}
+
+message FleetRequest {
+  repeated FleetCropItem crops = 1;
+}
+
+message FleetResponse {
+  int32 cluster_count = 1;
+  repeated string shared_issues = 2;
+  map<string, int32> cluster_labels = 3;
+  string fleet_summary = 4;
+}
+
+message ReloadRequest {
+  string crop_type = 1;
+  string model_path = 2;
+  bytes blake3_hash = 3;
+  bytes ed25519_signature = 4;
+}
+
+message ReloadResponse {
+  bool success = 1;
+  string message = 2;
+  uint64 reload_duration_nanos = 3;
+}
+
+// SmartPotAIService define el contrato de inferencia agronómica y gestión de modelos en caliente.
+service SmartPotAIService {
+  rpc EvaluateInsight (InsightRequest) returns (InsightResponse);
+  rpc AnalyzeFleet (FleetRequest) returns (FleetResponse);
+  rpc HotReloadModel (ReloadRequest) returns (ReloadResponse);
+}

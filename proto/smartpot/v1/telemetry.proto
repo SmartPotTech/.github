@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package smartpot.v1;
+
+option go_package = "github.com/smartpottech/smartpot-api/internal/proto/v1;smartpotv1";
+
+// CompactTelemetry representa el payload binario de 22 bytes empaquetado
+// en el firmware ESP32 y simulador Rust para transmisión MQTT v5 de ultra-bajo consumo.
+message CompactTelemetry {
+  uint32 timestamp_delta = 1;      // Delta temporal respecto al último tick (segundos)
+  int32 temp_centi = 2;            // Temperatura en centésimas de grado Celsius (°C * 100)
+  uint32 rh_centi = 3;             // Humedad relativa en centésimas (% * 100)
+  uint32 soil_moisture_centi = 4;  // Humedad del sustrato en centésimas (% * 100)
+  uint32 ph_milli = 5;             // pH en milésimas (pH * 1000)
+  uint32 tds_ppm = 6;              // Sólidos disueltos totales (ppm)
+  uint32 light_lux = 7;            // Intensidad lumínica (lux)
+  uint32 battery_mv = 8;           // Voltaje de batería (milivoltios)
+  uint32 status_flags = 9;         // Flags de diagnóstico físico y de sensores
+  uint32 crc8 = 10;                // Checksum CRC-8 para verificación de integridad de trama
+}
+
+// TelemetryReading representa una lectura agronómica normalizada para persistencia y streaming.
+message TelemetryReading {
+  string crop_id = 1;
+  int64 measured_at_unix_ms = 2;
+  double temperature = 3;
+  double humidity = 4;
+  double ph = 5;
+  double tds = 6;
+  double soil_moisture = 7;
+  double brightness = 8;
+  double atmosphere = 9;
+}
+
+// EmqxMessageHookRequest transporta el mensaje MQTT directamente desde el plugin EMQX ExHook.
+message EmqxMessageHookRequest {
+  string client_id = 1;
+  string username = 2;
+  string topic = 3;
+  bytes payload = 4;
+  uint32 qos = 5;
+  bool is_retained = 6;
+  int64 timestamp_ms = 7;
+}
+
+// EmqxHookResponse devuelve la confirmación de procesamiento del ExHook.
+message EmqxHookResponse {
+  bool allow = 1;
+  string error_message = 2;
+}
+
+message IngestionBatch {
+  repeated TelemetryReading readings = 1;
+}
+
+message IngestionSummary {
+  uint64 processed_count = 1;
+  uint64 error_count = 2;
+  uint64 duration_micros = 3;
+}
+
+// TelemetryService define el contrato de streaming de ingesta de alta velocidad.
+service TelemetryService {
+  rpc IngestStream (stream TelemetryReading) returns (IngestionSummary);
+  rpc OnEmqxMessagePublish (EmqxMessageHookRequest) returns (EmqxHookResponse);
+}
