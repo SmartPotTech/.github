@@ -118,10 +118,9 @@ services:
     container_name: smartpot-ai
     environment:
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      SMARTPOT_TRAINER_URL: http://trainer-smartpot:8001
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      LEARNING_MIN_SAMPLES: ${LEARNING_MIN_SAMPLES:-200}
-      LEARNING_RETRAIN_EVERY: ${LEARNING_RETRAIN_EVERY:-300}
-      LEARNING_RETENTION_DAYS: ${LEARNING_RETENTION_DAYS:-60}
+      LEARNING_CHECK_SECONDS: "0"
     # Lecturas reales (seudonimizadas) y modelos aprendidos.
     volumes:
       - ai_data:/data
@@ -133,10 +132,36 @@ services:
       resources:
         limits:
           cpus: "1.0"
-          # El reentrenamiento corre en un proceso aparte.
-          memory: 768M
+          memory: 512M
         reservations:
-          memory: 192M
+          memory: 128M
+
+  trainer-smartpot:
+    <<: *hardening
+    image: ghcr.io/smartpottech/smartpot-trainer:${SMARTPOT_TRAINER_TAG:-latest}
+    container_name: smartpot-trainer
+    environment:
+      SMARTPOT_TRAINER_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
+      SMARTPOT_AI_URL: http://ai-smartpot:8000
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LEARNING_MIN_SAMPLES: ${LEARNING_MIN_SAMPLES:-200}
+      LEARNING_RETRAIN_EVERY: ${LEARNING_RETRAIN_EVERY:-300}
+      LEARNING_RETENTION_DAYS: ${LEARNING_RETENTION_DAYS:-60}
+      LEARNING_CHECK_SECONDS: ${LEARNING_CHECK_SECONDS:-300}
+    volumes:
+      - ai_data:/data
+    tmpfs:
+      - /tmp
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          memory: 256M
 
   api-smartpot:
     <<: *hardening
