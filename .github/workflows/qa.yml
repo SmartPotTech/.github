@@ -87,6 +87,8 @@ jobs:
       - name: Lint and test
         run: |
           uv sync --frozen
+          # La IA trae un núcleo nativo en C++ que sus pruebas de paridad necesitan compilado.
+          if [ -f src/native/Makefile ]; then make -C src/native PYTHON="uv run --frozen python"; fi
           uv run --frozen ruff check .
           uv run --frozen pytest
 
