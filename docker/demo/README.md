@@ -23,10 +23,13 @@ lugar.
 
 Las imágenes se publican en dos registros con el mismo contenido. Elige uno:
 
-### GitHub Container Registry (recomendado)
+### GitHub Container Registry (recomendado, en un solo paso)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml -o compose.yaml
+# En un solo comando:
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose up -d --wait
+
+# O si ya te encuentras dentro de la carpeta:
 docker compose up -d --wait
 ```
 

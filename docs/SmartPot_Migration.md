@@ -217,14 +217,14 @@ dispositivo cifradas con la clave AES de demostración).
 
 ## 10. Cómo ejecutarla
 
-Dos formas, según de dónde salgan las imágenes nuevas:
+Todas las imágenes son públicas en GitHub Container Registry (GHCR) y se ejecutan en un único paso:
 
 ```bash
-# A. Construyendo la API y la base desde los repos locales (disponible hoy):
-cd .github/docker/demo-beta
-docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
+# En un solo comando desde cualquier ubicación:
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml -o compose.yaml && docker compose up -d --wait
 
-# B. Solo con imágenes de GHCR (cuando estén publicadas):
+# O desde la carpeta de la demo beta:
+cd .github/docker/demo-beta
 docker compose up -d --wait
 ```
 
@@ -250,7 +250,7 @@ http://localhost:8091/health. El [README de la demo beta](../docker/demo-beta/RE
 
 El código está listo; el corte a producción es operativo y requiere aprobación:
 
-1. **Publicar las imágenes nuevas en GHCR** (`smartpot-api-go` y `smartpot-db-postgre`), igual que el resto.
+1. **Verificar las imágenes públicas en GHCR** (`smartpot-api-go`, `smartpot-db-postgre`, etc.), publicadas y disponibles igual que el resto.
 2. **Actualizar el entorno de producción** de la organización para que use la imagen de la API en Go y la base
    PostgreSQL (con `DATABASE_URL` en vez de `MONGODB_URI`), tanto en Docker Compose como en Kubernetes y en el workflow
    central de despliegue.

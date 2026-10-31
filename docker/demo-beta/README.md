@@ -25,28 +25,21 @@ transparente y no cambia ningún contrato.
 
 * **Docker** con **Docker Compose v2.20 o superior**: [instrucciones](https://docs.docker.com/get-docker/)
 * Unos 2 GB de memoria libre.
-* Para construir localmente (ver abajo): los repositorios `SmartPot-API-Go`, `SmartPot-DB-Postgre`,
-  `SmartPot-Cache-Valkey`, `SmartPot-Broker-EMQX`, `SmartPot-Web-Solid` y `SmartPot-DataGenerator-Rust` clonados junto a `.github/`.
 
 ---
 
 ## **Ejecución Rápida**
 
-Hay dos formas, según de dónde salgan las imágenes nuevas (API en Go y base PostgreSQL):
-
-### A. Construir desde los repositorios locales (disponible hoy)
-
-Mientras las imágenes nuevas terminan de publicarse en GHCR, construye la API y la base desde los repos clonados junto a
-`.github/` (el resto se descarga de GHCR). Desde esta carpeta:
+Todas las imágenes son públicas en **GitHub Container Registry (GHCR)** (`ghcr.io/smartpottech/*`). Se levanta el stack completo en un único paso:
 
 ```bash
-docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
+# En un solo comando (sin necesidad de clonar el repositorio):
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml -o compose.yaml && docker compose up -d --wait
 ```
 
-### B. Solo con imágenes de GHCR (cuando estén publicadas)
+Si ya te encuentras dentro de esta carpeta (`.github/docker/demo-beta`):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml -o compose.yaml
 docker compose up -d --wait
 ```
 
@@ -101,16 +94,11 @@ las claves de dispositivo ya emitidos siguen siendo válidos.
 
 ## **Detener**
 
-Según cómo lo hayas levantado:
+Para detener el stack:
 
 ```bash
-# Si usaste el override de construcción local (A):
-docker compose -f compose.yaml -f compose.build.yaml down        # conserva los datos
-docker compose -f compose.yaml -f compose.build.yaml down -v     # borra también la base y el broker
-
-# Si usaste solo GHCR (B):
-docker compose down
-docker compose down -v
+docker compose down        # conserva los datos
+docker compose down -v     # borra también la base y el broker
 ```
 
 ---

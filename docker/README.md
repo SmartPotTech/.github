@@ -6,7 +6,7 @@ usuarios sin privilegios y healthchecks):
 | Carpeta                               | Entorno      | Imágenes                                      | Para qué sirve                                             |
 |---------------------------------------|--------------|-----------------------------------------------|------------------------------------------------------------|
 | [`demo/`](demo/README.md)             | Demostración | GHCR (principal) o Docker Hub, a elección     | Probar SmartPot completo con un comando y datos de ejemplo |
-| [`demo-beta/`](demo-beta/README.md)   | Demostración beta | GHCR o construidas localmente            | Vista previa del stack nuevo: API en Go y PostgreSQL + TimescaleDB |
+| [`demo-beta/`](demo-beta/README.md)   | Demostración beta | GHCR (públicas, un solo paso)                 | Vista previa del stack nuevo: API en Go y PostgreSQL + TimescaleDB |
 | [`dev/`](dev/README.md)               | Desarrollo   | Compiladas desde los repositorios locales     | Programar y probar cambios con toda la plataforma          |
 | [`production/`](production/README.md) | Producción   | Publicadas en GHCR, con etiqueta configurable | Servidor con Nginx, HTTPS y despliegue automático          |
 

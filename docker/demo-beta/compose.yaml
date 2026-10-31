@@ -1,8 +1,8 @@
 # Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go, PostgreSQL + TimescaleDB, Valkey, el broker
 # EMQX, la PWA en SolidJS y el simulador en Rust en lugar de Spring Boot, MongoDB, Redis, Mosquitto, React y Python. El resto
-# de componentes (correo e IA) no cambian. Las contraseñas son públicas: solo para uso local. Las imágenes nuevas se publican
-# en GHCR; mientras tanto, usa el override de construcción local (ver README):
-#   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
+# de componentes (correo e IA) no cambian. Las contraseñas son públicas: solo para uso local. Todas las imágenes son públicas
+# en GHCR (ghcr.io/smartpottech/*) y se levantan en un solo paso:
+#   docker compose up -d --wait
 name: smartpot-demo-beta
 
 x-hardening: &hardening
