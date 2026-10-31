@@ -65,7 +65,7 @@ que ya está construida.
 | Broker MQTT       | `SmartPot-Broker` → `SmartPot-Broker-EMQX`                 | Mosquitto 2.1            | **EMQX 5.8** (Apache-2.0, auth HTTP en la API) | **Migrado (código)**, en la demo beta    |
 | Web (PWA)         | `SmartPot-Web` → `SmartPot-Web-Solid`                      | React 19 + Vite          | **SolidJS + TypeScript + Vite (SVG nativo)**   | **Migrada (código)**, en la demo beta    |
 | Firmware IoT      | `SmartPot-IoT` → `SmartPot-IoT-Rust`                       | MicroPython              | **Rust 2024 no_std + Embassy** (ESP32 físico o en Wokwi)      | **Migrado (código y Wokwi)**, probado con EMQX y API Go  |
-| Asistente de IA   | `SmartPot-AI`                                              | Python / FastAPI         | **Mejora con componentes en C++**              | Planeado                                 |
+| Asistente de IA   | `SmartPot-AI`                                              | Python / FastAPI         | **Aceleración con motor nativo C++20** (Theil-Sen $O(M)$, Sugeno SIMD, IQR) | **Optimizado (código)**, integrado en main |
 | Simulador         | `SmartPot-DataGenerator` → `SmartPot-DataGenerator-Rust`   | Python 3.13 / FastAPI    | **Rust 1.85 + Tokio + Axum 0.8 + rumqttc**     | **Migrado (código)**, en la demo beta    |
 | Correo            | `SmartPot-Mail`                                            | Mailpit                  | Sin cambio en el plan                          | —                                        |
 
@@ -95,8 +95,11 @@ que ya está construida.
 - **Simulador en Rust (`SmartPot-DataGenerator-Rust`).** Reescritura completa en Rust 1.85 con el runtime Tokio,
   servidor HTTP Axum 0.8, cliente MQTT `rumqttc`, validación de tokens en tiempo constante (`subtle`), `#![deny(unsafe_code)]`
   y huella de memoria < 15 MB RAM, con healthcheck nativo embebido en el binario (`--healthcheck`).
-- **IA con C++.** Componentes nativos para el cálculo numérico pesado (modelos, lógica difusa), manteniendo la capa de
-  servicio y los contratos HTTP actuales.
+- **IA con C++.** Motor numérico nativo en C++20 (`src/native/`) con enlace C ABI directo (`ctypes`) para las
+  tareas intensivas: estimador de Theil-Sen lineal en $O(M)$ mediante `std::nth_element` (3.6x–50x de aceleración frente
+  a `np.triu_indices`), lógica difusa Sugeno branchless con constantes `constexpr`, control de calidad de datos (IQR) y
+  transformaciones vectoriales continuas, con fallback transparente a Python y telemetría en `/v1/engine`. Preserva
+  100% idéntica la capa de servicio FastAPI y los contratos HTTP.
 
 ## 3. Estrategia de migración
 
@@ -272,8 +275,8 @@ Tras la API en Go, PostgreSQL + TimescaleDB, Valkey, EMQX y la PWA en SolidJS (`
 continúa (ver la [sección 2](#2-hoja-de-ruta-por-componente)):
 
 - **Firmware en Rust** (`SmartPot-IoT-Rust`): firmware de alto rendimiento migrado y optimizado en Rust 2024 `no_std` con Embassy dual-core, canales libres de bloqueos, banco de actuadores temporizados y soporte para simulación completa en Wokwi (`diagram.json`, `wokwi.toml`, `start.py`) o placa física ESP32. No forma parte del despliegue Docker de `demo-beta` (los cultivos en el servidor los simula `SmartPot-DataGenerator-Rust`), pero su contrato MQTT v1 fue probado y validado de extremo a extremo contra EMQX y la API Go de `demo-beta`. Convive con el firmware en MicroPython hasta el corte definitivo.
-- **IA y simulador con componentes en C++**: cálculo numérico nativo detrás de la misma capa de servicio y los mismos
-  contratos HTTP.
+- **IA optimizada con motor nativo C++20** (`SmartPot-AI`): motor numérico de alto rendimiento en C++20 con estimador Theil-Sen lineal en $O(M)$, inferencia difusa Sugeno branchless, control de calidad IQR y normalización vectorial, integrado de forma transparente mediante C ABI directo sin alterar los contratos HTTP ni la capa de servicio FastAPI.
+- **Simulador en Rust** (`SmartPot-DataGenerator-Rust`): completamente migrado a Rust 2.0 / Axum 0.8 / Tokio / rumqttc con huella < 15 MB e integrado en demo beta.
 
 Cada fase repetirá el mismo patrón: reescritura transparente, validación en la demo beta, corte con aprobación y
 depreciación del componente anterior.
