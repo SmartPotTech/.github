@@ -1,8 +1,3 @@
-# Demo BETA de SmartPot: el mismo stack de la demo, pero con la API en Go, PostgreSQL + TimescaleDB, Valkey, el broker
-# EMQX, la PWA en SolidJS y el simulador en Rust en lugar de Spring Boot, MongoDB, Redis, Mosquitto, React y Python. El resto
-# de componentes (correo e IA) no cambian. Las contraseñas son públicas: solo para uso local. Todas las imágenes son públicas
-# en GHCR (ghcr.io/smartpottech/*) y se levantan en un solo paso:
-#   docker compose up -d --wait
 name: smartpot-demo-beta
 
 x-hardening: &hardening
@@ -19,27 +14,14 @@ x-hardening: &hardening
       max-size: "10m"
       max-file: "3"
 
-# PostgreSQL necesita unos pocos caps para preparar su directorio de datos y bajar al usuario postgres; los caps de
-# escalado (NET_ADMIN, SYS_ADMIN, etc.) siguen descartados.
 x-db-hardening: &db-hardening
-  restart: unless-stopped
-  read_only: true
-  security_opt:
-    - no-new-privileges:true
-  cap_drop:
-    - ALL
+  <<: *hardening
   cap_add:
     - CHOWN
     - DAC_OVERRIDE
     - FOWNER
     - SETGID
     - SETUID
-  pull_policy: always
-  logging:
-    driver: json-file
-    options:
-      max-size: "10m"
-      max-file: "3"
 
 x-demo-secrets:
   mqtt-admin: &mqtt-admin demo-mqtt-admin-password
@@ -66,9 +48,8 @@ services:
       POSTGRES_DB: smartpot
       SMARTPOT_DB_USERNAME: smartpot
       SMARTPOT_DB_PASSWORD: *db-app
-      SMARTPOT_SEED_DEMO: "true"
-      # Rol de solo lectura del entrenador (se crea solo en una base nueva: `down -v` si ya existía).
       SMARTPOT_READER_PASSWORD: demo-reader-password-123
+      SMARTPOT_SEED_DEMO: "true"
     volumes:
       - db_data:/var/lib/postgresql/data
     tmpfs:
@@ -85,11 +66,9 @@ services:
     mem_limit: 256m
     pids_limit: 256
     environment:
-      # Valkey, el reemplazo libre de Redis. Acepta REDIS_PASSWORD por compatibilidad; la API aún la envía con ese nombre.
       VALKEY_PASSWORD: *redis
       VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     volumes:
-      # Socket IPC compartido en tmpfs para latencia sub-microsegundo
       - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
@@ -118,10 +97,9 @@ services:
 
   broker-smartpot:
     <<: *hardening
-    # EMQX gestiona un directorio de datos mutable, así que este contenedor no puede ser de solo lectura.
-    read_only: false
     image: ghcr.io/smartpottech/smartpot-broker-emqx:latest
     container_name: smartpot-demo-beta-broker
+    read_only: false
     cpus: "2.0"
     mem_limit: 1024m
     pids_limit: 512
@@ -154,7 +132,6 @@ services:
     environment:
       SMARTPOT_AI_TOKEN: *ai-token
       SMARTPOT_TRAINER_URL: http://trainer-smartpot:8001
-      # Inferencia pura: el reentrenamiento vive desacoplado en trainer-smartpot
       LEARNING_CHECK_SECONDS: "0"
       AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
       GRPC_UDS_PATH: /var/run/smartpot/ai.sock
@@ -178,10 +155,9 @@ services:
       SMARTPOT_TRAINER_TOKEN: *ai-token
       SMARTPOT_AI_TOKEN: *ai-token
       SMARTPOT_AI_URL: http://ai-smartpot:8000
+      DATABASE_URL: postgresql://smartpot_reader:demo-reader-password-123@db-smartpot:5432/smartpot
       AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
       VALKEY_SOCKET: /var/run/smartpot/valkey.sock
-      DATABASE_URL: postgresql://smartpot_reader:demo-reader-password-123@db-smartpot:5432/smartpot
-      # La demo revisa cada 2 minutos si hay lecturas nuevas para reentrenar
       LEARNING_CHECK_SECONDS: "120"
       LEARNING_MIN_SAMPLES: "200"
       LEARNING_RETRAIN_EVERY: "300"
@@ -206,7 +182,6 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:5173
       SMARTPOT_JWT_SECRET: demo-jwt-secret-for-local-use-only-0123456789
       SMARTPOT_AES_KEY: ZGVtby1vbmx5LXNtYXJ0cG90LWFlcy1rZXktMzJieXQ=
-      # Única diferencia de conexión con la demo en Spring Boot: una URL de PostgreSQL en vez de MONGODB_URI.
       DATABASE_URL: postgres://smartpot:demo-app-password-123@db-smartpot:5432/smartpot?sslmode=disable
       CACHE_HOST: cache-smartpot
       CACHE_PASSWORD: *redis
@@ -231,14 +206,12 @@ services:
       AI_LEARNING_FLUSH_INTERVAL: PT15S
       SIMULATOR_BASE_URL: http://simulator-smartpot:8081
       SIMULATOR_TOKEN: *simulator-token
-      # Opcional: con tu propio bot de @BotFather las alertas llegan por Telegram (sondeo, sin dirección pública).
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
       TELEGRAM_MODE: polling
     ports:
       - "127.0.0.1:8091:8091"
     volumes:
-      # Sockets UNIX UDS para IPC con SmartPot-AI y SmartPot-Cache-Valkey
       - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
@@ -283,7 +256,6 @@ services:
       MQTT_PORT: "1883"
       SIMULATOR_DEVICES: 66f5a1000000000000000101:demo-lettuce-device-key-2026:LETTUCE,66f5a1000000000000000102:demo-tomato-device-key-2026:TOMATO
       SIMULATOR_INTERVAL_SECONDS: "15"
-      # Telemetría en el paquete compacto v2 (27 bytes); la API también acepta el JSON del contrato v1.
       SIMULATOR_PAYLOAD_FORMAT: binary
       SIMULATOR_TOKEN: *simulator-token
       RUST_LOG: info
@@ -292,20 +264,17 @@ services:
     depends_on:
       api-smartpot:
         condition: service_healthy
-    # La red pública solo da salida a internet para consultar el clima; no publica puertos.
     networks:
       - internal
       - public
 
   mcp-smartpot:
     <<: *hardening
-    pull_policy: missing
     image: ghcr.io/smartpottech/smartpot-mcp:latest
     container_name: smartpot-demo-beta-mcp
     cpus: "1.0"
     mem_limit: 256m
     pids_limit: 128
-    # Sin cuenta propia: cada cliente MCP envía el token de conexión que crea en la PWA (Perfil › Conexiones).
     environment:
       SMARTPOT_API_URL: http://api-smartpot:8091
       TRANSPORT: streamable-http
@@ -327,7 +296,6 @@ volumes:
   db_data:
   broker_data:
   ai_data:
-  # Volumen compartido tmpfs en memoria para sockets UDS de ultra-baja latencia (/var/run/smartpot/*.sock)
   smartpot-ipc:
     driver: local
     driver_opts:
