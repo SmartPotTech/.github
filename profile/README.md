@@ -4,7 +4,7 @@
 humedad del sustrato de tus cultivos, te dice qué necesitan y, si quieres, se encarga de regarlos, iluminarlos y
 ventilarlos.
 
-[smartpot.app](https://smartpot.app) · [Documentación](https://github.com/SmartPotTech/.github/tree/main/docs) · [Diagramas generales](#la-plataforma-en-diagramas) · [Probar la demo](https://github.com/SmartPotTech/.github/tree/main/docker/demo)
+[smartpot.app](https://smartpot.app) · [Documentación](https://github.com/SmartPotTech/.github/tree/main/docs) · [Diagramas generales](#la-plataforma-en-diagramas) · [Probar la demo](https://github.com/SmartPotTech/.github/tree/main/docker/demo) · [Demo beta](https://github.com/SmartPotTech/.github/tree/main/docker/demo-beta)
 
 ## Cómo funciona
 
@@ -56,10 +56,29 @@ Ocho diagramas generales muestran SmartPot completo. Cada uno se abre como SVG y
 | [SmartPot-DB](https://github.com/SmartPotTech/SmartPot-DB) · [SmartPot-Cache](https://github.com/SmartPotTech/SmartPot-Cache) · [SmartPot-Mail](https://github.com/SmartPotTech/SmartPot-Mail) | MongoDB, Redis y Mailpit endurecidos                                |
 | [.github](https://github.com/SmartPotTech/.github)                                                                                                                                             | Entornos, despliegue, QA y documentación                            |
 
+### Stack nuevo (vista previa)
+
+Los mismos contratos, con componentes nuevos. Se prueba completo, con el servidor MCP incluido, en la
+[demo beta](https://github.com/SmartPotTech/.github/tree/main/docker/demo-beta), que se levanta con un solo comando.
+
+| Repositorio                                                                                                                                                 | Qué hace                                                                     |
+|-------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| [SmartPot-Web-Solid](https://github.com/SmartPotTech/SmartPot-Web-Solid)                                                                                    | Aplicación web progresiva en SolidJS, con lecturas en vivo                   |
+| [SmartPot-API-Go](https://github.com/SmartPotTech/SmartPot-API-Go)                                                                                          | API REST y puente MQTT en Go, con conexiones para asistentes de IA           |
+| [SmartPot-MCP](https://github.com/SmartPotTech/SmartPot-MCP)                                                                                                | Servidor MCP: los asistentes de IA usan SmartPot con el token de cada cuenta |
+| [SmartPot-Trainer](https://github.com/SmartPotTech/SmartPot-Trainer)                                                                                        | Aprendizaje continuo de la IA, separado de la inferencia                     |
+| [SmartPot-Broker-EMQX](https://github.com/SmartPotTech/SmartPot-Broker-EMQX)                                                                                | Broker MQTT EMQX con la autenticación de cada cultivo delegada en la API     |
+| [SmartPot-DataGenerator-Rust](https://github.com/SmartPotTech/SmartPot-DataGenerator-Rust)                                                                  | Simulador de los cultivos en Rust                                            |
+| [SmartPot-IoT-Rust](https://github.com/SmartPotTech/SmartPot-IoT-Rust)                                                                                      | Firmware en Rust del dispositivo de un cultivo real (ESP32)                  |
+| [SmartPot-DB-Postgre](https://github.com/SmartPotTech/SmartPot-DB-Postgre) · [SmartPot-Cache-Valkey](https://github.com/SmartPotTech/SmartPot-Cache-Valkey) | PostgreSQL + TimescaleDB y Valkey endurecidos                                |
+
 ## Tecnologías
 
 React 19 · TypeScript · Tailwind CSS · Java 21 · Spring Boot 4 · Python 3.13 · FastAPI · scikit-learn · MicroPython ·
 Eclipse Mosquitto · MongoDB · Redis · Docker · Kubernetes · GitHub Actions
+
+Stack nuevo: Go · Echo · SolidJS · Bun · PostgreSQL · TimescaleDB · Valkey · EMQX · Rust · Embassy · Polars ·
+Model Context Protocol
 
 ## Contribuir
 
