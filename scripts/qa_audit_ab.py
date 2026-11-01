@@ -25,10 +25,12 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
+from local_target import loopback_base_url
+
 
 class AIAuditHarness:
     def __init__(self, base_url: str, samples: int = 25):
-        self.base_url = base_url.rstrip("/").replace("localhost", "127.0.0.1")
+        self.base_url = loopback_base_url(base_url)
         self.samples = samples
         self.report: Dict[str, Any] = {
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -159,7 +161,7 @@ class AIAuditHarness:
 
 def main():
     parser = argparse.ArgumentParser(description="AI QA/AppSec Audit Harness for SmartPot")
-    parser.add_argument("--target", default="http://localhost:8091", help="Target API endpoint")
+    parser.add_argument("--target", default="http://localhost:8091", help="API local a auditar (solo 127.0.0.1, localhost o ::1)")
     parser.add_argument("--samples", type=int, default=20, help="Latency measurement samples")
     parser.add_argument("--json", action="store_true", help="Output pure JSON for AI agents")
     args = parser.parse_args()
