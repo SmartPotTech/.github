@@ -90,7 +90,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -147,28 +147,28 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout SmartPot-API-Go
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-API-Go
           path: services/SmartPot-API-Go
           persist-credentials: false
 
       - name: Checkout SmartPot-Web-Solid
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-Web-Solid
           path: services/SmartPot-Web-Solid
           persist-credentials: false
 
       - name: Checkout SmartPot-DataGenerator-Rust
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-DataGenerator-Rust
           path: services/SmartPot-DataGenerator-Rust
           persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: 'services/SmartPot-API-Go/go.mod'
 
@@ -282,48 +282,48 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout SmartPot-API
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-API
           path: services/SmartPot-API
           persist-credentials: false
 
       - name: Checkout SmartPot-Web
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-Web
           path: services/SmartPot-Web
           persist-credentials: false
 
       - name: Checkout SmartPot-DataGenerator
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-DataGenerator
           path: services/SmartPot-DataGenerator
           persist-credentials: false
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 11.28.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -440,24 +440,24 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout SmartPot-AI
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-AI
           path: services/SmartPot-AI
           persist-credentials: false
 
       - name: Checkout SmartPot-IoT
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: SmartPotTech/SmartPot-IoT
           path: services/SmartPot-IoT
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -545,7 +545,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout central repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up Snyk CLI
         uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
