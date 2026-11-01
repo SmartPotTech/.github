@@ -20,11 +20,13 @@ on:
         description: Identificador de la solicitud
         required: false
         default: ""
+  # Solo cambios de la configuración de producción despliegan solos. Este archivo no se incluye: un cambio del propio
+  # workflow (por ejemplo, Dependabot subiendo una acción) no debe desplegar sin aprobación; para probarlo, usar
+  # workflow_dispatch.
   push:
     branches: [ "main" ]
     paths:
       - "docker/production/**"
-      - ".github/workflows/deploy.yml"
 
 permissions:
   contents: read
