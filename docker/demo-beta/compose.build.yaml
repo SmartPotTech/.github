@@ -42,3 +42,7 @@ services:
   trainer-smartpot:
     build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Trainer
     pull_policy: build
+
+  mcp-smartpot:
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-MCP
+    pull_policy: build

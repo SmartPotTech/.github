@@ -262,6 +262,7 @@ services:
     pids_limit: 128
     environment:
       API_URL: http://localhost:8091
+      MCP_URL: http://localhost:8002
     ports:
       - "127.0.0.1:5173:8080"
     tmpfs:
@@ -292,6 +293,32 @@ services:
       api-smartpot:
         condition: service_healthy
     # La red pública solo da salida a internet para consultar el clima; no publica puertos.
+    networks:
+      - internal
+      - public
+
+  mcp-smartpot:
+    <<: *hardening
+    pull_policy: missing
+    image: ghcr.io/smartpottech/smartpot-mcp:latest
+    container_name: smartpot-demo-beta-mcp
+    cpus: "1.0"
+    mem_limit: 256m
+    pids_limit: 128
+    # Sin cuenta propia: cada cliente MCP envía el token de conexión que crea en la PWA (Perfil › Conexiones).
+    environment:
+      SMARTPOT_API_URL: http://api-smartpot:8091
+      TRANSPORT: streamable-http
+      HOST: 0.0.0.0
+      PORT: "8002"
+      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*
+    ports:
+      - "127.0.0.1:8002:8002"
+    tmpfs:
+      - /tmp
+    depends_on:
+      api-smartpot:
+        condition: service_healthy
     networks:
       - internal
       - public
