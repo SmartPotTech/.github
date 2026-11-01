@@ -13,10 +13,13 @@ import json
 import math
 import random
 import statistics
+import sys
 import time
 import urllib.error
 import urllib.request
 from typing import List, Tuple
+
+from local_target import loopback_base_url
 
 
 def calculate_percentiles(latencies: List[float]) -> dict:
@@ -119,14 +122,15 @@ def get_demo_token(base_url: str) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Stress Test SmartPot Time-Series API")
-    parser.add_argument("--url", default="http://localhost:8091", help="URL API")
+    parser.add_argument("--url", default="http://localhost:8091", help="API local (solo 127.0.0.1, localhost o ::1)")
     parser.add_argument("--workers", type=int, default=25, help="Hilos concurrentes")
     parser.add_argument("--duration", type=int, default=15, help="Duración en segundos")
     args = parser.parse_args()
 
+    base_url = loopback_base_url(args.url)
     try:
-        tok = get_demo_token(args.url)
-        run_stress_test(args.url, tok, args.workers, args.duration)
+        tok = get_demo_token(base_url)
+        run_stress_test(base_url, tok, args.workers, args.duration)
     except Exception as e:
         print(f"[ERROR] No se pudo ejecutar el estrés: {e}")
         sys.exit(1)

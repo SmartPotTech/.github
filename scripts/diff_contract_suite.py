@@ -23,6 +23,8 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional, Tuple
 
+from local_target import loopback_base_url
+
 ISO_8601_REGEX = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$")
 OID_REGEX = re.compile(r"^[0-9a-fA-F]{24}$")
 
@@ -48,8 +50,8 @@ def normalize_json(obj: Any) -> Any:
 
 class DifferentialRunner:
     def __init__(self, url_a: str, url_b: Optional[str] = None):
-        self.url_a = url_a.rstrip("/")
-        self.url_b = url_b.rstrip("/") if url_b else None
+        self.url_a = loopback_base_url(url_a)
+        self.url_b = loopback_base_url(url_b) if url_b else None
         self.history_a: Dict[str, Tuple[int, Any, dict]] = {}
         self.history_b: Dict[str, Tuple[int, Any, dict]] = {}
 
@@ -113,6 +115,7 @@ def main():
     args = parser.parse_args()
 
     runner = DifferentialRunner(args.url_a, args.url_b)
+    args.url_a, args.url_b = runner.url_a, runner.url_b
     print("================================================================================")
     print("  SmartPot A/B Differential Contract Verification Suite")
     print(f"  Target A: {args.url_a}")
