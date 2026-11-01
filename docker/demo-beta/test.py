@@ -138,8 +138,14 @@ def run_beta_suite():
                            {"actuatorId": fan["id"], "action": "ACTIVATE", "durationSeconds": 60}, token=demo_token)
         expect(status in (200, 201, 202) and cmd.get("status") in ("PENDING", "SENT"), "Comando enviado al ventilador")
 
-        # 9. Consulta al Asistente de IA
-        status, insight = call("GET", f"/api/v1/crops/{v_id}/insights", token=demo_token)
+        # 9. Consulta al Asistente de IA. El simulador publica cada 15 s: mientras el cultivo
+        # nuevo no tenga su primera lectura, la API responde 404 y se reintenta.
+        deadline = time.monotonic() + 45
+        while True:
+            status, insight = call("GET", f"/api/v1/crops/{v_id}/insights", token=demo_token)
+            if status != 404 or time.monotonic() > deadline:
+                break
+            time.sleep(3)
         expect(status == 200 and 0 <= insight.get("health", {}).get("index", -1) <= 100, "Asistente SmartPot-AI responde diagnóstico válido")
 
         # 10. Agregación de Series Temporales (TimescaleDB time_bucket)
