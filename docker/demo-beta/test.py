@@ -50,6 +50,29 @@ def call(method: str, path: str, body: Optional[dict] = None, token: Optional[st
         return err.code, parsed
 
 
+def mcp_reachable(base: str) -> bool:
+    try:
+        with urllib.request.urlopen(f"{base}/health", timeout=3) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
+
+
+def mcp_call(base: str, token: Optional[str], tool: str, arguments: Optional[dict] = None) -> Tuple[int, Any]:
+    """Llama a una herramienta del servidor MCP por streamable HTTP (sin estado, respuesta JSON)."""
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": tool, "arguments": arguments or {}}}
+    req = urllib.request.Request(f"{base}/mcp", data=json.dumps(body).encode(), method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Accept", "application/json, text/event-stream")
+    if token:
+        req.add_header("Authorization", f"Bearer {token}")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return resp.status, json.loads(resp.read().decode() or "null")
+    except urllib.error.HTTPError as err:
+        return err.code, None
+
+
 def expect(condition: bool, message: str) -> None:
     if not condition:
         raise CheckFailed(message)
@@ -162,6 +185,35 @@ def run_beta_suite():
                     print("  ✔ Microservicio SmartPot-Trainer reporta estado UP en /health")
         except Exception:
             pass
+
+        # 12. Conexiones personales (tokens spt_) y servidor MCP: cada conexión actúa a nombre de su cuenta con su
+        # alcance, nunca administra la cuenta y deja de servir al revocarla.
+        status, created = call("POST", "/api/v1/connections", {"name": "Suite beta", "scope": "READ"}, token=demo_token)
+        expect(status == 201 and created.get("token", "").startswith("spt_"), "Conexión de solo lectura creada")
+        conn_token, conn_id = created["token"], created["connection"]["id"]
+        try:
+            status, conn_crops = call("GET", "/api/v1/crops", token=conn_token)
+            expect(status == 200 and len(conn_crops) >= 2, "La conexión ve los cultivos de su cuenta")
+            status, _ = call("POST", f"/api/v1/crops/{v_id}/commands",
+                             {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token=conn_token)
+            expect(status == 403, "Una conexión de solo lectura no acciona actuadores (403)")
+            status, _ = call("GET", "/api/v1/connections", token=conn_token)
+            expect(status == 403, "Una conexión no administra conexiones (403)")
+
+            mcp_url = os.environ.get("SMARTPOT_MCP_URL", "http://localhost:8002").rstrip("/")
+            if mcp_reachable(mcp_url):
+                status, _ = mcp_call(mcp_url, None, "list_crops")
+                expect(status == 401, "El servidor MCP exige un token de conexión (401)")
+                status, result = mcp_call(mcp_url, conn_token, "list_crops")
+                text = json.dumps(result, ensure_ascii=False)
+                expect(status == 200 and "Lechugas del balcón" in text, "El servidor MCP lista los cultivos de la cuenta")
+            else:
+                print(f"  ℹ Servidor SmartPot-MCP no disponible en {mcp_url}; se omiten sus comprobaciones")
+        finally:
+            status, _ = call("DELETE", f"/api/v1/connections/{conn_id}", token=demo_token)
+            expect(status == 204, "Conexión revocada")
+        status, _ = call("GET", "/api/v1/crops", token=conn_token)
+        expect(status == 401, "Una conexión revocada deja de servir (401)")
 
     finally:
         # Limpieza del cultivo virtual de prueba
