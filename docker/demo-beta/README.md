@@ -64,6 +64,7 @@ recomienda), alimentados por el simulador como si fueran su ESP32.
 | Estado de los servicios | http://localhost:8091/health                                        |
 | Bandeja de correo       | http://localhost:8025 (`admin` / `demo-mailpit-ui`)                 |
 | MQTT                    | `localhost:1883` · WebSocket `ws://localhost:9001`                  |
+| Servidor MCP            | http://localhost:8002/mcp (token de Perfil › Conexiones en la PWA)  |
 
 ---
 
@@ -111,6 +112,7 @@ docker compose -p smartpot-demo-beta down -v     # borra también la base y el b
 | `smartpot-demo-beta-web`       | `smartpot-web-solid`     | **PWA en SolidJS** servida por nginx endurecido sin privilegios      |
 | `smartpot-demo-beta-simulator` | `smartpot-datagenerator-rust` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
 | `smartpot-demo-beta-trainer`   | `smartpot-trainer`       | Aprendizaje continuo fuera del proceso de inferencia; lee la base con el rol de solo lectura |
+| `smartpot-demo-beta-mcp`       | `smartpot-mcp`           | Servidor MCP para asistentes de IA: sin cuenta propia, cada cliente usa su token de conexión |
 
 PostgreSQL, Valkey y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
 correo publican puertos, y únicamente en `127.0.0.1`. El simulador sale a internet solo para consultar el clima.
