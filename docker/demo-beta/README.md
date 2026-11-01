@@ -33,15 +33,10 @@ transparente y no cambia ningún contrato.
 Todas las imágenes son públicas en **GitHub Container Registry (GHCR)** (`ghcr.io/smartpottech/*`). Se levanta el stack completo en un único paso:
 
 ```bash
-# En un solo comando (sin necesidad de clonar el repositorio):
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml -o compose.yaml && docker compose up -d --wait
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml | docker compose -f - up -d --wait
 ```
 
-Si ya te encuentras dentro de esta carpeta (`.github/docker/demo-beta`):
-
-```bash
-docker compose up -d --wait
-```
+No hace falta descargar nada más: el `compose.yaml` llega por la tubería y Docker baja las imágenes.
 
 | Componente nuevo | Imagen en GHCR                                     |
 |------------------|----------------------------------------------------|
@@ -94,11 +89,11 @@ las claves de dispositivo ya emitidos siguen siendo válidos.
 
 ## **Detener**
 
-Para detener el stack:
+Desde cualquier carpeta, por el nombre del proyecto:
 
 ```bash
-docker compose down        # conserva los datos
-docker compose down -v     # borra también la base y el broker
+docker compose -p smartpot-demo-beta down        # conserva los datos
+docker compose -p smartpot-demo-beta down -v     # borra también la base y el broker
 ```
 
 ---
@@ -115,6 +110,7 @@ docker compose down -v     # borra también la base y el broker
 | `smartpot-demo-beta-api`       | `smartpot-api-go`        | **API REST en Go 1.26 + Echo** (base de datos desacoplada)           |
 | `smartpot-demo-beta-web`       | `smartpot-web-solid`     | **PWA en SolidJS** servida por nginx endurecido sin privilegios      |
 | `smartpot-demo-beta-simulator` | `smartpot-datagenerator-rust` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
+| `smartpot-demo-beta-trainer`   | `smartpot-trainer`       | Aprendizaje continuo fuera del proceso de inferencia; lee la base con el rol de solo lectura |
 
 PostgreSQL, Valkey y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
 correo publican puertos, y únicamente en `127.0.0.1`. El simulador sale a internet solo para consultar el clima.
@@ -132,10 +128,10 @@ Para verificar el stack de la demo beta en ejecución local:
 
 ```bash
 # Con el stack levantado en http://localhost:8091:
-python3 test.py
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/test.py | python3 -
 ```
 
-El script comprueba la salud de los 8 servicios, autenticación, cultivos semilla en TimescaleDB, ciclo de cultivo virtual, actuadores, conflicto 409 y consultas a la IA.
+El script comprueba la salud de los servicios, autenticación, cultivos semilla en TimescaleDB, ciclo de cultivo virtual, actuadores, conflicto 409 y consultas a la IA.
 
 ### Workflow Automatizado en GitHub Actions
 

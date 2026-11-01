@@ -217,16 +217,14 @@ dispositivo cifradas con la clave AES de demostración).
 
 ## 10. Cómo ejecutarla
 
-Todas las imágenes son públicas en GitHub Container Registry (GHCR) y se ejecutan en un único paso:
+Todas las imágenes son públicas en GitHub Container Registry (GHCR) y la demo beta se levanta con un solo comando,
+sin descargar el código:
 
 ```bash
-# En un solo comando desde cualquier ubicación:
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml -o compose.yaml && docker compose up -d --wait
-
-# O desde la carpeta de la demo beta:
-cd .github/docker/demo-beta
-docker compose up -d --wait
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo-beta/compose.yaml | docker compose -f - up -d --wait
 ```
+
+Se detiene con `docker compose -p smartpot-demo-beta down` (con `-v` borra también los datos).
 
 Luego abre http://localhost:5173 (cuenta `demo@smartpot.app` / `SmartPot2026`) y revisa el estado en
 http://localhost:8091/health. El [README de la demo beta](../docker/demo-beta/README.md) tiene el detalle.
