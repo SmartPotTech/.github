@@ -21,32 +21,18 @@ lugar.
 
 ## **Ejecución Rápida**
 
-Las imágenes se publican en dos registros con el mismo contenido. Elige uno:
-
-### GitHub Container Registry (recomendado, en un solo paso)
+Todas las imágenes son públicas en GitHub Container Registry (`ghcr.io/smartpottech/smartpot-<componente>`):
 
 ```bash
-# En un solo comando:
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml -o compose.yaml && docker compose up -d --wait
-
-# O si ya te encuentras dentro de la carpeta:
-docker compose up -d --wait
+curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml | docker compose -f - up -d --wait
 ```
 
-### Docker Hub
+No hace falta descargar nada más: el `compose.yaml` llega por la tubería y Docker baja las imágenes.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml -o compose.yaml
-curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.dockerhub.yaml -o compose.dockerhub.yaml
-docker compose -f compose.yaml -f compose.dockerhub.yaml up -d --wait
-```
-
-| Registro   | Imágenes                                          |
-|------------|---------------------------------------------------|
-| GHCR       | `ghcr.io/smartpottech/smartpot-<componente>`      |
-| Docker Hub | `docker.io/sebastian190030/<componente>-smartpot` |
-
-Con Docker Hub, los comandos de detener también llevan `-f compose.yaml -f compose.dockerhub.yaml`.
+> [!NOTE]
+> La réplica en Docker Hub (`docker.io/sebastian190030/<componente>-smartpot`, con
+> [`compose.dockerhub.yaml`](compose.dockerhub.yaml)) todavía no tiene las imágenes de la IA, el broker ni el simulador;
+> mientras tanto usa GHCR.
 
 Abre http://localhost:5173 e ingresa con:
 
@@ -77,7 +63,7 @@ Los correos de recuperación de contraseña llegan a la bandeja de Mailpit.
 | **Cultivo virtual** con el clima real: crea uno virtual, elige su forma y una ciudad, y mira la escena (sol, nubes, lluvia o noche) y las lecturas                                                                                      | Mis cultivos › Nuevo cultivo › Virtual |
 | **Medidores manuales**: baja la humedad del sustrato y observa al asistente regar con el modo automático                                                                                                                                | Cultivo virtual › Simulación › Manual  |
 | **Aprendizaje**: lecturas reales por especie, calidad de datos y comparación de modelos (el primer entrenamiento llega tras unas 200 lecturas de la especie, cerca de una hora)                                                         | Aprendizaje                            |
-| **Telegram** (opcional): crea un bot con [@BotFather](https://t.me/BotFather) y levanta la demo con `TELEGRAM_BOT_TOKEN=<token> TELEGRAM_BOT_USERNAME=<bot> docker compose up -d --wait`; luego vincúlalo desde Perfil › Notificaciones | Perfil                                 |
+| **Telegram** (opcional): crea un bot con [@BotFather](https://t.me/BotFather) y levanta la demo con `curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/demo/compose.yaml \| TELEGRAM_BOT_TOKEN=<token> TELEGRAM_BOT_USERNAME=<bot> docker compose -f - up -d --wait`; luego vincúlalo desde Perfil › Notificaciones | Perfil                                 |
 
 ---
 
@@ -103,9 +89,11 @@ docker run --rm --network smartpot-demo_internal \
 
 ## **Detener**
 
+Desde cualquier carpeta, por el nombre del proyecto:
+
 ```bash
-docker compose down        # conserva los datos
-docker compose down -v     # borra también la base de datos y el broker
+docker compose -p smartpot-demo down        # conserva los datos
+docker compose -p smartpot-demo down -v     # borra también la base de datos y el broker
 ```
 
 ---
