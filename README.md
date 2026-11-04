@@ -1,5 +1,107 @@
-# SmartPot · Entornos, Despliegue y Documentación
+# SmartPot · Environments, Deployment, and Documentation
 
+[English](#english) | [Español](#español)
+
+<a id="english"></a>
+## Overview
+
+[![QA](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml)
+[![Deploy to Production](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml)
+
+Central repository of **SmartPot**, the hydroponic crop monitoring and automation platform published at [smartpot.app](https://smartpot.app). It brings together cross-service infrastructure: Docker and Kubernetes environments, production deployment workflows, QA suites, technical platform documentation, and organization community guidelines.
+
+## Repository Contents
+
+```text
+.github/
+├── .github/
+│   ├── workflows/
+│   │   ├── deploy.yml          # Production deployment workflow (concurrency control)
+│   │   ├── request-deploy.yml  # Invoked by services to request deployments and await results
+│   │   └── qa.yml              # CI tests across all repositories and E2E validation suite
+│   ├── ISSUE_TEMPLATE/         # Organization issue templates
+│   ├── dependabot.yml
+│   └── PULL_REQUEST_TEMPLATE.md
+├── docker/
+│   ├── demo/                   # Complete SmartPot stack in a single command with seed data
+│   ├── dev/                    # Build each service from local workspace repositories
+│   └── production/             # Production Compose, environment templates, nginx, and backups
+├── kubernetes/                 # Manifests for local Kubernetes clusters
+├── docs/                       # Technical platform docs, project journey, lifecycle, and architecture diagrams
+├── scripts/e2e.py              # End-to-end automated verification suite against demo stack
+├── profile/README.md           # Public GitHub organization profile
+├── CONTRIBUTING.md
+├── SECURITY.md
+└── CODE_OF_CONDUCT.md
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+  M[Real crop: ESP32 or Wokwi<br>SmartPot-IoT] -->|MQTT TLS 8883| B[Broker<br>SmartPot-Broker]
+  S[Virtual crops<br>SmartPot-DataGenerator] -->|MQTT with crop account| B
+  S -->|real weather| O[Open-Meteo]
+  U[PWA<br>SmartPot-Web] -->|HTTPS REST| A[API<br>SmartPot-API]
+  A <-->|MQTT| B
+  A -->|HTTP + token<br>simulation & weather| S
+  A --> D[(Database<br>PostgreSQL/TimescaleDB)]
+  A --> C[(Cache<br>Valkey)]
+  A -->|SMTP| E[Mailpit<br>SmartPot-Mail]
+  A -->|HTTP + token<br>evaluation & learning| I[AI Assistant<br>SmartPot-AI]
+  A <-->|crop alerts<br>digests & webhook| T[Telegram]
+  classDef platform fill:#DDF5EA,stroke:#067A52,color:#17261F
+  classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
+  classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
+  classDef external fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
+  class A core
+  class B,U,I,E,S platform
+  class M device
+  class D,C store
+  class O,T external
+```
+
+Each crop is **real** or **virtual**, selected permanently upon creation. Real crops publish telemetry to `smartpot/v1/{cropId}/telemetry` from an ESP32 microcontroller running MicroPython or C++, physically or simulated in Wokwi; virtual crops are continuously simulated by SmartPot, replicating local weather, manual overrides, and species diurnal rhythms. Both appear in live interactive diagrams reflecting form (pot, NFT pipes, tower, or raft), placement (indoor or outdoor with real ambient weather), and actuator switches. The API stores telemetry, consults the AI assistant for diagnoses (expert system, fuzzy logic, machine learning models, and reactive agent), provides placement advice, and under autonomous mode dispatches commands via `smartpot/v1/{cropId}/commands`. The assistant continuously learns from pseudonymized real crop readings across each species to predict upcoming irrigation and heat requirements. Notifications are dispatched to the PWA and to **Telegram** according to user preferences.
+
+Detailed operational sequences and subsystem internals are documented in the [global diagrams](docs/README.md#global-diagrams).
+
+## Getting Started
+
+| Objective                                  | Guide                                                    |
+|--------------------------------------------|----------------------------------------------------------|
+| Run SmartPot locally in one command        | [`docker/demo`](docker/README.md)                        |
+| Develop locally on a service               | [`docker/dev`](docker/dev/README.md)                     |
+| Deploy to a production server              | [`docker/production`](docker/production/README.md)       |
+| Test on Kubernetes                         | [`kubernetes`](kubernetes/README.md)                     |
+| Understand architecture & contracts        | [`docs`](docs/README.md)                                 |
+| View complete platform architecture        | [Global diagrams](docs/README.md#global-diagrams)        |
+
+## Quality Assurance (QA)
+
+The [`qa.yml`](.github/workflows/qa.yml) workflow triggers on changes, weekly on schedules, and via manual execution:
+
+| Pipeline Job                        | Scope of Validation                                                                                                                                                                                                                                                                  |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| API                                 | Unit, integration, and controller tests                                                                                                                                                                                                                                              |
+| Web                                 | ESLint, TypeScript verification, Vitest suite, and production bundle build                                                                                                                                                                                                           |
+| SmartPot-AI, -DataGenerator, -IoT   | Ruff linting, pytest suites, and engine parity checks                                                                                                                                                                                                                                |
+| SmartPot-Broker, -DB, -Cache, -Mail | Hardened container images and smoke tests (authentication, per-crop ACL, TLS, database schemas)                                                                                                                                                                                      |
+| End-to-End Suite                    | Builds container images, spins up demo stack, and validates 46 end-to-end assertions: registration, real crop, MQTT telemetry, command ACK, actuator conflict guards (409), AI diagnosis, placement advice, dashboard series, bulk actions, virtual crop simulation, and cleanup. |
+
+## Deployment
+
+Each service publishes its container image to `ghcr.io/smartpottech` (with Docker Hub replica) and requests deployment via [`deploy.yml`](.github/workflows/deploy.yml), updating server compose environments over SSH. Configuration parameters and nginx setups are documented in [`docker/production`](docker/production/README.md).
+
+To prevent redundant deployments during documentation, testing, or minor configuration adjustments, commits containing `[skip deploy]` or `#no-deploy` in their message bypass deployment pipelines.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+<a id="español"></a>
 [![QA](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml)
 [![Deploy to Production](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml)
 
