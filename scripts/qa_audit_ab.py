@@ -178,18 +178,18 @@ def main():
             icon = "✔" if c["passed"] else "✖"
             print(f"  {icon} [{c['category']}] {c['name']} ({c['latency_ms']} ms): {c['details']}")
 
-        print("\n--- Métricas de Latencia ---")
+        print("\n--- Latency Metrics ---")
         for k, v in harness.report["metrics"].items():
             print(f"  {k}: {v}")
 
-        print("\n--- Quality Gates Evaluados ---")
+        print("\n--- Evaluated Quality Gates ---")
         for g in harness.report["quality_gates"]:
             icon = "✔" if g["passed"] else "✖"
             extra = f" ({g.get('value')})" if "value" in g else ""
             print(f"  {icon} [{g['gate']}] {g['name']}{extra}: {'APROBADO' if g['passed'] else 'RECHAZADO'}")
 
         print("\n--------------------------------------------------------------------------------")
-        print(f"  VEREDICTO FINAL: {harness.report['overall_status']}")
+        print(f"  FINAL VERDICT: {harness.report['overall_status']}")
         print("--------------------------------------------------------------------------------\n")
 
     sys.exit(0 if success else 1)

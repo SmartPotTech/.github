@@ -90,10 +90,10 @@ class DifferentialRunner:
 
         passed = status_match and body_match
         icon = "✔" if passed else "✖"
-        print(f"  {icon} {label} -> A: {code_a} | B: {code_b} | Paridad: {'OK' if passed else 'DIVERGENCIA'}")
+        print(f"  {icon} {label} -> A: {code_a} | B: {code_b} | Parity: {'OK' if passed else 'DIVERGENCE'}")
 
         if not passed:
-            print("     [-] Divergencia detectada:")
+            print("     [-] Divergence detected:")
             diff = difflib.unified_diff(
                 json.dumps(norm_a, indent=2, ensure_ascii=False).splitlines(),
                 json.dumps(norm_b, indent=2, ensure_ascii=False).splitlines(),
@@ -167,7 +167,7 @@ def main():
         if args.url_b and tok_b:
             runner.execute_request(args.url_b, "DELETE", "/api/v1/users/me", token=tok_b)
 
-    print("\n[OK] Verificación diferencial de contratos finalizada.")
+    print("\n[OK] Differential contract verification completed.")
 
 
 if __name__ == "__main__":

@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
-"""Convierte un Markdown de `docs/` en un DOCX con la identidad de SmartPot y, opcionalmente, en PDF.
-
-    python docs/tools/md_to_docx.py docs/SmartPot_Technical_Documentation.md --pdf
-
-Sirve también para la documentación de cada repositorio: los diagramas se toman de la carpeta
-`diagrams/` que está junto al Markdown (o de `--diagrams`) y la identidad, de `docs/assets` de aquí.
-
-    python ../.github/docs/tools/md_to_docx.py docs/SmartPot_API_Documentation.md --pdf
-
-El DOCX se arma desde cero (estilos, portada, encabezado, pie y piezas de marca de
-`docs/assets`), sin plantillas externas. Del Markdown entiende el subconjunto que usa la
-documentación de SmartPot:
-
-* `<!-- portada ... -->` con `clave: valor` para la portada.
-* `<!-- parte: PARTE I | Título -->` para los separadores de parte, que abren página nueva.
-* `## 1. Título` (sección con franja "SECCIÓN 01"), `###` y `####`.
-* Párrafos con **negrita**, *itálica*, `código` y [enlaces](url); listas con `-` o `1.`.
-* Tablas, bloques de código y recuadros `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]`.
-* `<!-- diagrama: NOMBRE | titulo=... -->` seguido del bloque mermaid: se inserta
-  `diagrams/NOMBRE.png` (ver `render_diagrams.py`).
-
-El PDF se genera con LibreOffice.
-"""
+# Convierte un Markdown de `docs/` en un DOCX con la identidad de SmartPot y, opcionalmente, en PDF.
+#
+#     python docs/tools/md_to_docx.py docs/SmartPot_Technical_Documentation.md --pdf
+#
+# Sirve también para la documentación de cada repositorio: los diagramas se toman de la carpeta
+# `diagrams/` que está junto al Markdown (o de `--diagrams`) y la identidad, de `docs/assets` de aquí.
+#
+#     python ../.github/docs/tools/md_to_docx.py docs/SmartPot_API_Documentation.md --pdf
+#
+# El DOCX se arma desde cero (estilos, portada, encabezado, pie y piezas de marca de
+# `docs/assets`), sin plantillas externas. Del Markdown entiende el subconjunto que usa la
+# documentación de SmartPot:
+#
+# * `<!-- portada ... -->` con `clave: valor` para la portada.
+# * `<!-- parte: PARTE I | Título -->` para los separadores de parte, que abren página nueva.
+# * `## 1. Título` (sección con franja "SECTION 01 / SECCIÓN 01"), `###` y `####`.
+# * Párrafos con **negrita**, *itálica*, `código` y [enlaces](url); listas con `-` o `1.`.
+# * Tablas, bloques de código y recuadros `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]`.
+# * `<!-- diagrama: NOMBRE | titulo=... -->` seguido del bloque mermaid: se inserta
+#   `diagrams/NOMBRE.png` (ver `render_diagrams.py`).
+#
+# El PDF se genera con LibreOffice.
+"""Convert SmartPot Markdown documentation into branded DOCX and PDF files."""
 
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ import shutil
 import struct
 import subprocess
 import sys
+import tempfile
 import zipfile
 
 DOCS = pathlib.Path(__file__).resolve().parent.parent
@@ -56,11 +57,11 @@ DANGER_600, DANGER_100 = "B83232", "FBE4E4"
 INK, MUTED, LINE, SURFACE, PAGE = "17261F", "5B6B63", "D5E3DC", "F2F7F4", "F7FAF8"
 
 CALLOUTS = {
-    "NOTE": (WATER_100, WATER_700, WATER_700, "Nota"),
-    "TIP": (LEAF_50, LEAF_500, LEAF_700, "Buena práctica"),
-    "IMPORTANT": (SUN_100, SUN_500, CLAY_600, "Importante"),
-    "WARNING": (SUN_100, SUN_500, CLAY_600, "Atención"),
-    "CAUTION": (DANGER_100, DANGER_600, DANGER_600, "Precaución"),
+    "NOTE": (WATER_100, WATER_700, WATER_700, "Note / Nota"),
+    "TIP": (LEAF_50, LEAF_500, LEAF_700, "Best Practice / Buena práctica"),
+    "IMPORTANT": (SUN_100, SUN_500, CLAY_600, "Important / Importante"),
+    "WARNING": (SUN_100, SUN_500, CLAY_600, "Warning / Atención"),
+    "CAUTION": (DANGER_100, DANGER_600, DANGER_600, "Caution / Precaución"),
 }
 
 # Carta: 12240 × 15840 twips con márgenes de 1".
@@ -100,7 +101,8 @@ def png_size(path: pathlib.Path) -> tuple[int, int]:
 
 
 class Document:
-    """Acumula el cuerpo, las relaciones y los medios del DOCX."""
+    # Acumula el cuerpo, las relaciones y los medios del DOCX.
+    """Accumulates DOCX body elements, relationships, and media assets."""
 
     def __init__(self) -> None:
         self.body: list[str] = []
@@ -245,7 +247,8 @@ def no_borders() -> str:
 
 def box(width: int, fill: str, content: str, *, left_bar: str | None = None, margins=(140, 220, 140, 220),
         top_rule: str | None = None, height: int | None = None, v_align: str = "top", indent: int = 0) -> str:
-    """Tabla de una sola celda: recuadros, banners y franjas."""
+    # Tabla de una sola celda: recuadros, banners y franjas.
+    """Render a single-cell table for callout boxes, banners, and strips."""
     top, right, bottom, left = margins
     borders = ""
     if left_bar or top_rule:
@@ -304,7 +307,7 @@ def cover(doc: Document, meta: dict[str, str]) -> str:
     )
     hero = box(PAGE_W, LEAF_900, content, margins=(1500, 1180, 0, 1180), height=13300)
 
-    labels = ["DOCUMENTO", "VERSIÓN", "EQUIPO", "PROYECTO"]
+    labels = ["DOCUMENT / DOCUMENTO", "VERSION / VERSIÓN", "TEAM / EQUIPO", "PROJECT / PROYECTO"]
     values = [meta.get("documento", ""), meta.get("version", ""), meta.get("equipo", ""), meta.get("proyecto", "")]
     tabs = '<w:tabs><w:tab w:val="left" w:pos="2700"/><w:tab w:val="left" w:pos="5000"/><w:tab w:val="left" w:pos="7300"/></w:tabs>'
     label_runs = "".join((run("\t", size=15) if i else "") + run(l, size=15, color=LEAF_300, bold=True, spacing=30)
@@ -326,7 +329,8 @@ def cover(doc: Document, meta: dict[str, str]) -> str:
 
 
 def section_properties(doc: Document, landscape: bool) -> str:
-    """Página del cuerpo: carta vertical u horizontal, con encabezado y pie."""
+    # Página del cuerpo: carta vertical u horizontal, con encabezado y pie.
+    """Build body page section properties (letter portrait or landscape with header and footer)."""
     width, height = (PAGE_H, PAGE_W) if landscape else (PAGE_W, PAGE_H)
     orient = ' w:orient="landscape"' if landscape else ""
     # La numeración arranca en 2 en la primera sección del cuerpo: la portada es la página 1.
@@ -363,7 +367,7 @@ def heading(doc: Document, level: int, text: str) -> str:
     body = ""
     if level == 1:
         doc.bookmarks.append((1, name, text))
-        eyebrow = f"SECCIÓN {int(match.group(1)):02d}" if match else "DOCUMENTO"
+        eyebrow = f"SECTION {int(match.group(1)):02d}" if match else "DOCUMENT"
         body += paragraph(run(eyebrow, size=16, color=LEAF_600, bold=True, spacing=60), before=360, after=40,
                           keep_next=True)
         title = match.group(2) if match else text
@@ -380,7 +384,8 @@ def heading(doc: Document, level: int, text: str) -> str:
 
 
 def column_widths(rows: list[list[str]]) -> list[int]:
-    """Anchos en twips: ninguna columna parte una palabra y el resto se reparte según el contenido."""
+    # Anchos en twips: ninguna columna parte una palabra y el resto se reparte según el contenido.
+    """Compute column widths in twips so words do not wrap mid-word."""
     padding, char, mono_char, header_char = 240, 92, 102, 120
     minimums, naturals = [], []
     for c in range(len(rows[0])):
@@ -474,7 +479,7 @@ def callout(doc: Document, kind: str, lines: list[str]) -> str:
 
 
 def code_block(language: str, lines: list[str]) -> str:
-    label = (language or "texto").upper()
+    label = (language or "text").upper()
     bar = box(BODY_W, LEAF_900, paragraph(run(label, size=14, color=LEAF_300, bold=True, spacing=40), after=0,
                                           line=240), margins=(60, 200, 60, 200))
     body_lines = "".join(paragraph(run(line or " ", size=16, color=INK, font=MONO), after=0, line=252)
@@ -487,7 +492,7 @@ def figure(doc: Document, name: str, title: str, landscape: bool = False, lead: 
            continued: bool = False) -> str:
     path = DIAGRAMS / f"{name}.png"
     if not path.exists():
-        print(f"  Falta la imagen {path.name}: ejecuta render_diagrams.py")
+        print(f"  Missing image {path.name}: run render_diagrams.py")
         return ""
     doc.figures += 1
     width, height = png_size(path)
@@ -500,7 +505,7 @@ def figure(doc: Document, name: str, title: str, landscape: bool = False, lead: 
         cy = max_h * EMU
         cx = int(cy * width / height)
     image = f"<w:r>{drawing(doc.image(path), cx, cy, doc.next_id(), name)}</w:r>"
-    caption = (run(f"Figura {doc.figures}", size=16, color=LEAF_700, bold=True)
+    caption = (run(f"Figure / Figura {doc.figures}", size=16, color=LEAF_700, bold=True)
                + run(f"  ·  {title}", size=16, color=MUTED, italic=True))
     if not landscape:
         return (paragraph(image, before=120, after=60, align="center", keep_next=True)
@@ -521,8 +526,8 @@ def bullet(doc: Document, text: str, numbered: bool) -> str:
 
 
 def toc(doc: Document) -> str:
-    items = [paragraph(run("CONTENIDO", size=16, color=LEAF_600, bold=True, spacing=60), before=360, after=40),
-             f'<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>{run("Contenido", size=34, color=LEAF_900, bold=True)}</w:p>']
+    items = [paragraph(run("CONTENTS · CONTENIDO", size=16, color=LEAF_600, bold=True, spacing=60), before=360, after=40),
+             f'<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>{run("Contents / Contenido", size=34, color=LEAF_900, bold=True)}</w:p>']
     for level, name, text in doc.bookmarks:
         if not re.match(r"^\d+(\.\d+)*\.?\s", text):
             continue
@@ -569,7 +574,7 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
-        if not stripped:
+        if not stripped or stripped == "---" or "[English](#english)" in stripped:
             i += 1
             continue
         if part := PART.match(stripped):
@@ -614,7 +619,8 @@ def convert(doc: Document, text: str) -> tuple[list[str], str]:
             blocks.append(code_block(language, code))
             continue
         if stripped.startswith("# "):
-            title = stripped[2:].strip()
+            if title == "SmartPot":
+                title = stripped[2:].strip()
             i += 1
             continue
         if heading_match := re.match(r"^(#{2,4})\s+(.*)$", stripped):
@@ -726,9 +732,9 @@ def header_xml(doc: Document, descriptor: str) -> str:
     icon = ASSETS / "icon.png"
     rid = doc.image(icon, header=True)
     size = 180000
-    left = (f"<w:r>{drawing(rid, size, size, doc.next_id(), 'Icono')}</w:r>"
+    left = (f"<w:r>{drawing(rid, size, size, doc.next_id(), 'Icon')}</w:r>"
             + run("  SMARTPOT", size=15, color=LEAF_900, bold=True, spacing=40)
-            + run("  ·  PLATAFORMA", size=15, color=LEAF_600, bold=True, spacing=40))
+            + run("  ·  PLATFORM", size=15, color=LEAF_600, bold=True, spacing=40))
     right = run(descriptor.upper(), size=14, color=MUTED, bold=True, spacing=30)
     cells = "".join(
         f'<w:tc><w:tcPr><w:tcW w:w="{BODY_W // 2}" w:type="dxa"/>'
@@ -746,7 +752,7 @@ def header_xml(doc: Document, descriptor: str) -> str:
 def footer_xml() -> str:
     tabs = f'<w:tabs><w:tab w:val="right" w:pos="{BODY_W}"/></w:tabs>'
     content = (run("SmartPotTech · smartpot.app", size=15, color=MUTED)
-               + run("\tPágina ", size=15, color=MUTED)
+               + run("\tPage / Página ", size=15, color=MUTED)
                + '<w:fldSimple w:instr=" PAGE "><w:r><w:rPr><w:b/><w:color w:val="'
                + LEAF_700 + '"/><w:sz w:val="15"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>')
     border = f'<w:pBdr><w:top w:val="single" w:sz="4" w:space="6" w:color="{LINE}"/></w:pBdr>'
@@ -856,27 +862,42 @@ def build(markdown: pathlib.Path, output: pathlib.Path) -> None:
         package.writestr("word/_rels/header1.xml.rels", rels_xml(doc.header_rels))
         for name, path in doc.media.items():
             package.write(path, f"word/media/{name}")
-    print(f"DOCX: {output} · {doc.figures} figuras · {len(doc.bookmarks)} títulos en el índice")
+    print(f"DOCX: {output} · {doc.figures} figures · {len(doc.bookmarks)} TOC headings")
 
 
 def to_pdf(docx: pathlib.Path, soffice: str | None) -> None:
     executable = next((c for c in (soffice, *SOFFICE_CANDIDATES, shutil.which("soffice")) if c and
                        pathlib.Path(c).exists()), None)
     if not executable:
-        sys.exit("No se encontró LibreOffice: indícalo con --soffice")
-    subprocess.run([executable, "--headless", "--convert-to", "pdf", "--outdir", str(docx.parent), str(docx)],
-                   check=True, capture_output=True)
+        sys.exit("LibreOffice not found: specify it with --soffice")
+    # Perfil temporal para que LibreOffice funcione en entornos sin directorio de usuario o en contenedores.
+    with tempfile.TemporaryDirectory() as profile_dir:
+        profile_uri = pathlib.Path(profile_dir).resolve().as_uri()
+        subprocess.run(
+            [
+                executable,
+                f"-env:UserInstallation={profile_uri}",
+                "--headless",
+                "--convert-to",
+                "pdf",
+                "--outdir",
+                str(docx.parent),
+                str(docx),
+            ],
+            check=True,
+            capture_output=True,
+        )
     print(f"PDF:  {docx.with_suffix('.pdf')}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Convierte la documentación de SmartPot a DOCX y PDF.")
+    parser = argparse.ArgumentParser(description="Convert SmartPot Markdown documentation to DOCX and PDF.")
     parser.add_argument("markdown", type=pathlib.Path)
-    parser.add_argument("-o", "--output", type=pathlib.Path, help="DOCX de salida (por defecto, junto al .md)")
-    parser.add_argument("--pdf", action="store_true", help="Genera también el PDF con LibreOffice")
-    parser.add_argument("--soffice", help="Ejecutable de LibreOffice")
+    parser.add_argument("-o", "--output", type=pathlib.Path, help="Output DOCX file path (defaults to next to .md)")
+    parser.add_argument("--pdf", action="store_true", help="Also generate PDF using LibreOffice")
+    parser.add_argument("--soffice", help="LibreOffice executable path")
     parser.add_argument("--diagrams", type=pathlib.Path,
-                        help="Carpeta con los PNG de los diagramas (por defecto, diagrams/ junto al .md)")
+                        help="Folder containing diagram PNG files (defaults to diagrams/ next to .md)")
     args = parser.parse_args()
 
     global DIAGRAMS

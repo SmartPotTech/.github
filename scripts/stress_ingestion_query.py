@@ -68,8 +68,8 @@ def run_stress_test(base_url: str, token: str, workers: int, duration_sec: int):
     print("================================================================================")
     print("  SmartPot Time-Series Query & API Stress Harness")
     print(f"  Target: {base_url}")
-    print(f"  Concurrencia: {workers} workers simultáneos")
-    print(f"  Duración: {duration_sec} segundos")
+    print(f"  Concurrency: {workers} concurrent workers")
+    print(f"  Duration: {duration_sec} seconds")
     print("================================================================================\n")
 
     start_total = time.perf_counter()
@@ -90,21 +90,21 @@ def run_stress_test(base_url: str, token: str, workers: int, duration_sec: int):
 
     stats = calculate_percentiles(all_latencies)
 
-    print("--- Resultados del Benchmark ---")
-    print(f"Peticiones Totales: {total_reqs}")
-    print(f"Throughput Real:    {rps:.2f} req/s")
-    print(f"Latencia Promedio:  {stats['avg']:.2f} ms")
-    print(f"Latencia p50:       {stats['p50']:.2f} ms")
-    print(f"Latencia p90:       {stats['p90']:.2f} ms")
-    print(f"Latencia p95:       {stats['p95']:.2f} ms")
-    print(f"Latencia p99:       {stats['p99']:.2f} ms")
-    print("\nCódigos de Estado HTTP:")
+    print("--- Benchmark Results ---")
+    print(f"Total Requests:      {total_reqs}")
+    print(f"Throughput:          {rps:.2f} req/s")
+    print(f"Average Latency:     {stats['avg']:.2f} ms")
+    print(f"Latency p50:         {stats['p50']:.2f} ms")
+    print(f"Latency p90:         {stats['p90']:.2f} ms")
+    print(f"Latency p95:         {stats['p95']:.2f} ms")
+    print(f"Latency p99:         {stats['p99']:.2f} ms")
+    print("\nHTTP Status Codes:")
     for code, count in sorted(status_counts.items()):
         pct = (count / total_reqs) * 100 if total_reqs > 0 else 0
         print(f"  Status {code}: {count} ({pct:.1f}%)")
 
     success_rate = (status_counts.get(200, 0) / total_reqs) * 100 if total_reqs > 0 else 0
-    print(f"\nTasa de Éxito:      {success_rate:.2f}%")
+    print(f"\nSuccess Rate:        {success_rate:.2f}%")
 
 
 def get_demo_token(base_url: str) -> str:
@@ -128,5 +128,5 @@ if __name__ == "__main__":
         tok = get_demo_token(args.url)
         run_stress_test(args.url, tok, args.workers, args.duration)
     except Exception as e:
-        print(f"[ERROR] No se pudo ejecutar el estrés: {e}")
+        print(f"[ERROR] Could not execute stress test: {e}")
         sys.exit(1)

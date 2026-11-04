@@ -96,7 +96,7 @@ def wait_for(description: str, probe, timeout: float = 30.0):
         if result:
             return result
         time.sleep(1)
-    raise CheckFailed(f"Tiempo agotado esperando: {description}")
+    raise CheckFailed(f"Timed out waiting for: {description}")
 
 
 def publish(username: str, password: str, topic: str, payload: dict) -> bool:
@@ -127,15 +127,15 @@ def publish(username: str, password: str, topic: str, payload: dict) -> bool:
 
 
 def main() -> None:
-    print(f"SmartPot E2E contra {API}")
+    print(f"SmartPot E2E against {API}")
 
     status, health = call("GET", "/health")
-    expect(status == 200 and health["status"] == "UP", "la API y sus dependencias están arriba")
+    expect(status == 200 and health["status"] == "UP", "API and its dependencies are UP")
     expect(all(health[key] == "UP" for key in ("database", "broker", "cache", "ai", "simulator")),
            "base de datos, broker, caché, IA y simulador responden")
 
     status, body = call("GET", "/api/v1/crops")
-    expect(status == 401 and "message" in body, "las rutas privadas exigen sesión")
+    expect(status == 401 and "message" in body, "private routes require active session")
 
     email = f"qa-{secrets.token_hex(4)}@smartpot.test"
     password = f"Qa{secrets.token_hex(6)}9z"
@@ -144,32 +144,32 @@ def main() -> None:
                         {"name": "Prueba", "lastName": "Automática", "email": email, "password": password},
                         reg_session)
     expect(status == 201 and "token" not in (body or {}) and reg_session.has_http_only_session(),
-           "registro de un usuario nuevo con cookie HttpOnly sin exponer el JWT en JSON")
+           "registration of new user with HttpOnly cookie without exposing JWT in JSON")
 
     token = WebSession()
     status, body = call("POST", "/api/v1/auth/login", {"email": email, "password": password}, token)
     expect(status == 200 and "token" not in (body or {}) and token.has_http_only_session() and bool(token.csrf),
-           "ingreso con las credenciales nuevas mediante cookie HttpOnly y token CSRF")
+           "login with new credentials via HttpOnly cookie and CSRF token")
 
     status_csrf, _ = call("POST", "/api/v1/crops",
                           {"name": "Sin CSRF", "type": "LETTUCE", "kind": "REAL", "form": "NFT"},
                           token, include_csrf=False)
-    expect(status_csrf == 403, "las escrituras con cookie sin cabecera X-CSRF-Token se rechazan (403)")
+    expect(status_csrf == 403, "mutations without X-CSRF-Token are rejected (403)")
 
     try:
         run_flow(token)
     finally:
         status, _ = call("DELETE", "/api/v1/users/me", token=token)
-        expect(status == 204, "borrado de la cuenta de prueba")
+        expect(status == 204, "test account deletion")
 
-    print("E2E completado.")
+    print("E2E completed successfully.")
 
 
 def run_flow(token: WebSession | str) -> None:
     status, body = call("POST", "/api/v1/crops",
                         {"name": "Lechuga de prueba", "type": "LETTUCE", "kind": "REAL", "form": "NFT"}, token)
-    expect(status == 201 and body["device"]["key"], "creación del cultivo real con las credenciales del dispositivo")
-    expect(body["crop"]["kind"] == "REAL" and body["crop"]["form"] == "NFT", "el cultivo guarda su tipo y su forma")
+    expect(status == 201 and body["device"]["key"], "real crop creation with device credentials")
+    expect(body["crop"]["kind"] == "REAL" and body["crop"]["form"] == "NFT", "crop preserves kind and form")
     crop, device = body["crop"], body["device"]
     crop_id, username, key, topics = crop["id"], device["username"], device["key"], device["topics"]
 
@@ -177,25 +177,25 @@ def run_flow(token: WebSession | str) -> None:
                "atmosphere": 1012, "soilMoisture": 71}
     wait_for("que el broker acepte la clave del dispositivo",
              lambda: publish(username, key, topics["telemetry"], reading))
-    expect(True, "el dispositivo publica telemetría con su clave")
+    expect(True, "device publishes telemetry with key")
     expect(not publish(username, "clave-incorrecta", topics["telemetry"], reading),
-           "el broker rechaza una clave incorrecta")
+           "broker rejects incorrect key")
 
     latest = wait_for("la lectura en la API",
                       lambda: (lambda r: r[1] if r[0] == 200 else None)(
                           call("GET", f"/api/v1/crops/{crop_id}/readings/latest", token=token)))
-    expect(latest["measures"]["ph"] == 6.0, "la API guarda la lectura recibida por MQTT")
+    expect(latest["measures"]["ph"] == 6.0, "API persists reading received via MQTT")
 
     status, actuators = call("GET", f"/api/v1/crops/{crop_id}/actuators", token=token)
     pump = next(a for a in actuators if a["type"] == "WATER_PUMP")
     fan = next(a for a in actuators if a["type"] == "FAN")
     status, command = call("POST", f"/api/v1/crops/{crop_id}/commands",
                            {"actuatorId": pump["id"], "action": "ACTIVATE", "durationSeconds": 60}, token)
-    expect(status in (200, 201, 202) and command["status"] in ("PENDING", "SENT"), "envío de un comando a la bomba")
+    expect(status in (200, 201, 202) and command["status"] in ("PENDING", "SENT"), "command dispatch to pump")
 
     status, body = call("POST", f"/api/v1/crops/{crop_id}/commands",
                         {"actuatorId": pump["id"], "action": "DEACTIVATE"}, token)
-    expect(status == 409 and "en curso" in body["message"], "no se solapan dos órdenes al mismo actuador")
+    expect(status == 409 and any(m in body["message"].lower() for m in ("in progress", "en curso")), "no overlapping orders to same actuator")
 
     publish(username, key, topics["commandAck"], {"id": command["id"], "status": "EXECUTED", "message": "E2E"})
 
@@ -204,49 +204,49 @@ def run_flow(token: WebSession | str) -> None:
         return any(c["id"] == command["id"] and c["status"] == "EXECUTED" for c in commands or [])
 
     wait_for("la confirmación del comando", executed)
-    expect(True, "la confirmación del dispositivo marca el comando como ejecutado")
+    expect(True, "device ACK marks command as executed")
 
     status, actuators = call("GET", f"/api/v1/crops/{crop_id}/actuators", token=token)
     pump = next(a for a in actuators if a["type"] == "WATER_PUMP")
     expect(pump["running"] and not pump["active"] and pump.get("runningUntil"),
-           "el switch de la bomba queda encendido hasta que vence su tiempo")
+           "pump switch remains on until duration expires")
 
     status, body = call("POST", f"/api/v1/crops/{crop_id}/commands",
                         {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token)
-    expect(status == 409 and body["message"] == "El ventilador ya está apagado",
-           "una orden que no cambia nada se rechaza")
+    expect(status == 409 and any(m in body["message"].lower() for m in ("already off", "ya está apagado")),
+           "redundant order is rejected (409)")
 
     status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
-    expect(status == 200 and 0 <= insight["health"]["index"] <= 100, "el asistente evalúa el cultivo")
-    expect(bool(insight["summary"]), "el asistente entrega un resumen en español")
-    expect(insight.get("learning", {}).get("source") in ("BASE", "LEARNED"), "la evaluación informa lo aprendido")
-    expect(insight["placement"]["level"] == "UNKNOWN", "sin lugar, el asistente pregunta dónde está el cultivo")
+    expect(status == 200 and 0 <= insight["health"]["index"] <= 100, "assistant evaluates crop")
+    expect(bool(insight["summary"]), "assistant provides diagnostic summary")
+    expect(insight.get("learning", {}).get("source") in ("BASE", "LEARNED"), "evaluation reports continual learning state")
+    expect(insight["placement"]["level"] == "UNKNOWN", "without location, assistant queries crop placement")
 
     check_placement(token, crop_id)
 
     status, overview = call("GET", "/api/v1/overview", token=token)
-    expect(status == 200 and overview["totals"]["crops"] == 1, "el panel general resume la cuenta")
+    expect(status == 200 and overview["totals"]["crops"] == 1, "overview summarizes account")
 
     status, series = call("GET", "/api/v1/overview/series?metric=ph&hours=1", token=token)
     points = series["series"][0]["points"] if status == 200 and series["series"] else []
-    expect(len(points) >= 1 and points[0]["value"] == 6.0, "la serie comparativa agrega las lecturas del cultivo")
+    expect(len(points) >= 1 and points[0]["value"] == 6.0, "comparative series aggregates crop readings")
 
     status, fleet = call("GET", "/api/v1/overview/fleet", token=token)
-    expect(status == 200 and fleet["crops"][0]["id"] == crop_id, "el asistente analiza todos los cultivos")
+    expect(status == 200 and fleet["crops"][0]["id"] == crop_id, "assistant evaluates all crops in fleet")
 
     status, bulk = call("POST", "/api/v1/commands/bulk", {"actuatorType": "FAN", "action": "DEACTIVATE"}, token)
-    expect(status == 202 and bulk["skipped"] == 1 and "ya está apagado" in bulk["results"][0]["message"],
-           "la orden en bloque omite los cultivos donde no cambiaría nada")
+    expect(status == 202 and bulk["skipped"] == 1 and any(m in bulk["results"][0]["message"].lower() for m in ("already off", "ya está apagado")),
+           "redundant bulk command is skipped (409)")
 
     status, bulk = call("POST", "/api/v1/commands/bulk",
                         {"actuatorType": "FAN", "action": "ACTIVATE", "durationSeconds": 60}, token)
-    expect(status == 202 and bulk["sent"] == 1, "orden en bloque a todos los cultivos")
+    expect(status == 202 and bulk["sent"] == 1, "bulk command to all crops")
 
     status, history = call("GET", "/api/v1/commands?limit=10", token=token)
-    expect(status == 200 and len(history) == 2, "el historial reúne los comandos de todos los cultivos")
+    expect(status == 200 and len(history) == 2, "command history gathers all crop commands")
 
     status, crops = call("PUT", "/api/v1/crops/automation", {"enabled": True}, token)
-    expect(status == 200 and crops[0]["automationEnabled"], "modo automático en bloque")
+    expect(status == 200 and crops[0]["automationEnabled"], "bulk automation mode")
 
     check_kinds(token, crop_id)
     check_virtual_crop(token)
@@ -255,72 +255,72 @@ def run_flow(token: WebSession | str) -> None:
     check_channels(token, crop_id)
 
     status, _ = call("DELETE", f"/api/v1/crops/{crop_id}", token=token)
-    expect(status == 204, "borrado del cultivo")
+    expect(status == 204, "crop deletion")
 
 
 def check_placement(token: str, crop_id: str) -> None:
     status, _ = call("GET", f"/api/v1/crops/{crop_id}/weather", token=token)
-    expect(status == 204, "sin ubicación no hay clima que mostrar")
+    expect(status == 204, "without location no weather is available")
 
     placement = {"setting": "OUTDOOR", "exposure": "PARTIAL_SUN",
                  "location": {"name": "Medellín, Antioquia", "latitude": 6.25, "longitude": -75.56}}
     status, crop = call("PUT", f"/api/v1/crops/{crop_id}",
                         {"name": "Lechuga de prueba", "type": "LETTUCE", "placement": placement}, token)
     expect(status == 200 and crop["placement"]["setting"] == "OUTDOOR"
-           and crop["placement"]["location"]["name"] == "Medellín, Antioquia", "el cultivo guarda su lugar")
+           and crop["placement"]["location"]["name"] == "Medellín, Antioquia", "crop preserves placement")
 
     status, weather = call("GET", f"/api/v1/crops/{crop_id}/weather", token=token)
     expect(status == 204 or (status == 200 and "temperature" in weather),
-           "el clima del lugar llega o se informa que no está disponible")
+           "location weather returned or reported unavailable")
 
     status, insight = call("GET", f"/api/v1/crops/{crop_id}/insights", token=token)
     advice = insight["placement"]
     expect(advice["level"] == "OK" and advice["idealExposure"] == "PARTIAL_SUN",
-           "el asistente aprueba la media sombra para la lechuga")
+           "assistant approves partial sun for lettuce")
 
 
 def check_channels(token: str, crop_id: str) -> None:
     status, channels = call("GET", "/api/v1/channels", token=token)
     telegram = next(channel for channel in channels if channel["type"] == "TELEGRAM")
     expect(status == 200 and not telegram["available"] and "TELEGRAM_BOT_TOKEN" in telegram["requirements"],
-           "sin bot, Telegram aparece no disponible con lo que le falta al servidor")
+           "without bot, Telegram appears unavailable reporting requirements")
 
     status, settings = call("GET", f"/api/v1/crops/{crop_id}/channels", token=token)
     telegram = next(channel for channel in settings if channel["type"] == "TELEGRAM")
     expect(status == 200 and not telegram["available"] and not telegram["linked"],
-           "los avisos del cultivo informan si su canal está disponible y vinculado")
+           "crop alerts report if channel is available and linked")
 
     status, body = call("PUT", f"/api/v1/crops/{crop_id}/channels/TELEGRAM", {"delivery": "DIGEST"}, token)
-    expect(status == 503 and "no está configurado" in body["message"],
-           "sin el canal en el servidor no se guardan avisos por cultivo")
+    expect(status == 503 and any(m in body["message"].lower() for m in ("not configured", "no está configurado")),
+           "unconfigured channel returns 503")
 
 
 def check_kinds(token: str, crop_id: str) -> None:
     status, _ = call("PUT", f"/api/v1/crops/{crop_id}/virtual-device", {"mode": "AUTO"}, token)
-    expect(status == 400, "un cultivo real no se simula")
+    expect(status == 400, "real crop cannot be simulated")
     status, _ = call("PUT", f"/api/v1/crops/{crop_id}",
                      {"name": "Lechuga de prueba", "type": "LETTUCE", "kind": "VIRTUAL"}, token)
-    expect(status == 400, "un cultivo real no pasa a virtual")
+    expect(status == 400, "real crop cannot transition to virtual")
 
 
 def check_virtual_crop(token: str) -> None:
     status, _ = call("POST", "/api/v1/crops", {"name": "Clima sin lugar", "type": "BASIL", "kind": "VIRTUAL",
                                                "virtual": {"mode": "WEATHER"}}, token)
-    expect(status == 400, "el modo clima exige una ubicación")
+    expect(status == 400, "weather mode requires location")
 
     status, body = call("POST", "/api/v1/crops", {
         "name": "Lechuga virtual", "type": "LETTUCE", "kind": "VIRTUAL", "form": "TOWER",
         "virtual": {"mode": "MANUAL", "intervalSeconds": 10,
                     "manual": {"soilMoisture": 42, "ph": 6.8, "temperature": 21}}}, token)
     expect(status == 201 and body["crop"]["kind"] == "VIRTUAL" and not body.get("device"),
-           "creación de un cultivo virtual sin credenciales que configurar")
+           "virtual crop created without device credentials")
     crop_id = body["crop"]["id"]
     path = f"/api/v1/crops/{crop_id}/virtual-device"
 
     status, actuators = call("GET", f"/api/v1/crops/{crop_id}/actuators", token=token)
-    expect(status == 200 and len(actuators) == 6, "el cultivo virtual nace con los seis actuadores")
+    expect(status == 200 and len(actuators) == 6, "virtual crop initializes all six actuators")
     status, _ = call("GET", f"/api/v1/crops/{crop_id}/device", token=token)
-    expect(status == 400, "un cultivo virtual no entrega clave de dispositivo")
+    expect(status == 400, "virtual crop does not return device key")
 
     def virtual_reading():
         _, latest = call("GET", f"/api/v1/crops/{crop_id}/readings/latest", token=token)
@@ -328,18 +328,18 @@ def check_virtual_crop(token: str) -> None:
         return soil is not None and abs(soil - 42) <= 4
 
     wait_for("la lectura del cultivo virtual", virtual_reading, timeout=60)
-    expect(True, "la simulación publica por MQTT con la cuenta del cultivo virtual")
+    expect(True, "simulation publishes via MQTT with virtual crop credentials")
 
     status, body = call("GET", path, token=token)
     expect(status == 200 and body["active"] and body["connected"] and body["mode"] == "MANUAL",
-           "la simulación informa su estado en vivo")
+           "simulation reports live state")
 
     status, _ = call("DELETE", path, token=token)
     status_after, body = call("GET", path, token=token)
-    expect(status == 204 and status_after == 200 and not body["active"], "pausa de la simulación")
+    expect(status == 204 and status_after == 200 and not body["active"], "simulation paused")
 
     status, _ = call("DELETE", f"/api/v1/crops/{crop_id}", token=token)
-    expect(status == 204, "borrado del cultivo virtual")
+    expect(status == 204, "virtual crop deleted")
 
 
 def check_learning(token: str) -> None:
@@ -349,7 +349,7 @@ def check_learning(token: str) -> None:
 
     body = wait_for("que la IA reciba lecturas para aprender", learned, timeout=90)
     expect(any(item["cropType"] == "LETTUCE" for item in body["cropTypes"]),
-           "la IA guarda las lecturas reales para el aprendizaje continuo")
+           "AI stores real readings for continual learning")
 
 
 if __name__ == "__main__":

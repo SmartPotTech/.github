@@ -121,24 +121,24 @@ def wait_for(description: str, probe, timeout: float = 30.0):
         if res:
             return res
         time.sleep(1)
-    raise CheckFailed(f"Tiempo agotado esperando: {description}")
+    raise CheckFailed(f"Timed out waiting for: {description}")
 
 
 def run_beta_suite():
     print("================================================================================")
-    print("  SmartPot Demo BETA — Suite de Validación Integral y Contrato")
+    print("  SmartPot Demo BETA — Comprehensive Validation & Contract Suite")
     print(f"  Target API: {API}")
     print("================================================================================\n")
 
     # 1. Healthcheck de los 8 servicios
     status, health = call("GET", "/health")
-    expect(status == 200 and health.get("status") == "UP", "API Go reporta estado global UP")
+    expect(status == 200 and health.get("status") == "UP", "Go API reports global status UP")
     for comp in ("database", "broker", "cache", "ai", "simulator"):
-        expect(health.get(comp) == "UP", f"Subsistema '{comp}' conectado y en UP")
+        expect(health.get(comp) == "UP", f"Subsystem '{comp}' connected and UP")
 
     # 2. Guardia de rutas privadas
     status, body = call("GET", "/api/v1/crops")
-    expect(status == 401 and "Inicia sesión" in body.get("message", ""), "Rutas privadas exigen autenticación (401)")
+    expect(status == 401 and any(msg in body.get("message", "") for msg in ("Please log in", "Inicia sesión")), "Private routes require authentication (401)")
 
     # 3. Login con cuenta semilla demo (cookie HttpOnly + protección CSRF)
     demo_token = WebSession()
@@ -146,27 +146,27 @@ def run_beta_suite():
                               {"email": "demo@smartpot.app", "password": "SmartPot2026"},
                               token=demo_token)
     expect(status == 200 and "token" not in (login_body or {}) and demo_token.has_http_only_session() and bool(demo_token.csrf),
-           "Autenticación exitosa con cuenta demo semilla mediante cookie HttpOnly y token CSRF")
+           "Successful authentication with seed demo account via HttpOnly cookie and CSRF token")
 
     status_csrf, _ = call("POST", "/api/v1/crops",
                           {"name": "Sin CSRF", "type": "BASIL", "kind": "VIRTUAL", "form": "TOWER"},
                           token=demo_token, include_csrf=False)
-    expect(status_csrf == 403, "Protección CSRF rechaza escrituras con cookie sin X-CSRF-Token (403)")
+    expect(status_csrf == 403, "CSRF protection rejects mutations missing X-CSRF-Token (403)")
 
     # 4. Verificación de cultivos demo iniciales
     status, crops = call("GET", "/api/v1/crops", token=demo_token)
-    expect(status == 200 and len(crops) >= 2, "La cuenta demo tiene los cultivos semilla activos")
+    expect(status == 200 and len(crops) >= 2, "Demo account has active seed crops")
     lettuce = next((c for c in crops if c["type"] == "LETTUCE"), None)
-    expect(lettuce is not None and lettuce["id"] == "66f5a1000000000000000101", "Cultivo lechuga semilla presente")
+    expect(lettuce is not None and lettuce["id"] == "66f5a1000000000000000101", "Seed lettuce crop present")
 
     # 5. Telemetría en vivo desde el simulador en Rust
     def check_telemetry():
         s, latest = call("GET", f"/api/v1/crops/{lettuce['id']}/readings/latest", token=demo_token)
         return latest if s == 200 and latest and latest.get("measures") else None
 
-    latest_read = wait_for("telemetría en vivo generada por Rust Simulator", check_telemetry, timeout=30)
+    latest_read = wait_for("live telemetry from Rust Simulator", check_telemetry, timeout=30)
     measures = latest_read["measures"]
-    expect(all(k in measures for k in ("ph", "temperature", "humidity")), "Lecturas de sensores persistidas en TimescaleDB")
+    expect(all(k in measures for k in ("ph", "temperature", "humidity")), "Sensor readings persisted in TimescaleDB")
 
     # 6. Ciclo de cultivo virtual
     virt_name = f"Beta-Virtual-{secrets.token_hex(3)}"
@@ -182,27 +182,27 @@ def run_beta_suite():
         }
     }
     status, virt_resp = call("POST", "/api/v1/crops", virt_payload, token=demo_token)
-    expect(status == 201 and virt_resp.get("crop", {}).get("kind") == "VIRTUAL", "Creación de cultivo virtual")
-    expect("device" not in virt_resp, "Cultivo virtual no expone credenciales al usuario")
+    expect(status == 201 and virt_resp.get("crop", {}).get("kind") == "VIRTUAL", "Virtual crop created")
+    expect("device" not in virt_resp, "Virtual crop does not expose credentials to user")
     v_crop = virt_resp["crop"]
     v_id = v_crop["id"]
 
     try:
         # 7. Actuadores del cultivo virtual
         status, actuators = call("GET", f"/api/v1/crops/{v_id}/actuators", token=demo_token)
-        expect(status == 200 and len(actuators) == 6, "Cultivo virtual inicializa los 6 actuadores")
+        expect(status == 200 and len(actuators) == 6, "Virtual crop initializes all 6 actuators")
 
         # 8. Envío de comando y rechazo de conflicto / solapamiento (409)
         fan = next(a for a in actuators if a["type"] == "FAN")
         # Rechazo cuando el actuador ya está apagado o hay una orden en curso (409 Conflict)
         status, conflict = call("POST", f"/api/v1/crops/{v_id}/commands",
                                 {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token=demo_token)
-        expect(status == 409 and ("ya está apagado" in conflict.get("message", "") or "en curso" in conflict.get("message", "")),
-               "Control de conflicto previene órdenes redundantes o concurrentes (409)")
+        expect(status == 409 and any(msg in conflict.get("message", "").lower() for msg in ("already off", "ya está apagado", "in progress", "en curso")),
+               "Conflict control prevents redundant or concurrent orders (409)")
 
         status, cmd = call("POST", f"/api/v1/crops/{v_id}/commands",
                            {"actuatorId": fan["id"], "action": "ACTIVATE", "durationSeconds": 60}, token=demo_token)
-        expect(status in (200, 201, 202) and cmd.get("status") in ("PENDING", "SENT"), "Comando enviado al ventilador")
+        expect(status in (200, 201, 202) and cmd.get("status") in ("PENDING", "SENT"), "Command dispatched to fan")
 
         # 9. Consulta al Asistente de IA. El simulador publica cada 15 s: mientras el cultivo
         # nuevo no tenga su primera lectura, la API responde 404 y se reintenta.
@@ -212,11 +212,11 @@ def run_beta_suite():
             if status != 404 or time.monotonic() > deadline:
                 break
             time.sleep(3)
-        expect(status == 200 and 0 <= insight.get("health", {}).get("index", -1) <= 100, "Asistente SmartPot-AI responde diagnóstico válido")
+        expect(status == 200 and 0 <= insight.get("health", {}).get("index", -1) <= 100, "SmartPot-AI assistant returns valid diagnosis")
 
         # 10. Agregación de Series Temporales (TimescaleDB time_bucket)
         status, series = call("GET", "/api/v1/overview/series?metric=temperature&hours=1", token=demo_token)
-        expect(status == 200 and "series" in series, "Series temporales calculadas por TimescaleDB")
+        expect(status == 200 and "series" in series, "Time series aggregated by TimescaleDB")
 
         # 11. Verificación opcional de SmartPot-Trainer si el puerto está mapeado
         trainer_url = os.environ.get("SMARTPOT_TRAINER_URL", "http://localhost:8001").rstrip("/")
@@ -225,46 +225,46 @@ def run_beta_suite():
             with urllib.request.urlopen(req, timeout=3) as resp:
                 data = json.loads(resp.read().decode())
                 if resp.status == 200 and data.get("status") == "UP":
-                    print("  ✔ Microservicio SmartPot-Trainer reporta estado UP en /health")
+                    print("  ✔ Microservice SmartPot-Trainer reports status UP on /health")
         except Exception:
             pass
 
         # 12. Conexiones personales (tokens spt_) y servidor MCP: cada conexión actúa a nombre de su cuenta con su
         # alcance, nunca administra la cuenta y deja de servir al revocarla.
         status, created = call("POST", "/api/v1/connections", {"name": "Suite beta", "scope": "READ"}, token=demo_token)
-        expect(status == 201 and created.get("token", "").startswith("spt_"), "Conexión de solo lectura creada")
+        expect(status == 201 and created.get("token", "").startswith("spt_"), "Read-only connection created")
         conn_token, conn_id = created["token"], created["connection"]["id"]
         try:
             status, conn_crops = call("GET", "/api/v1/crops", token=conn_token)
-            expect(status == 200 and len(conn_crops) >= 2, "La conexión ve los cultivos de su cuenta")
+            expect(status == 200 and len(conn_crops) >= 2, "Connection accesses account crops")
             status, _ = call("POST", f"/api/v1/crops/{v_id}/commands",
                              {"actuatorId": fan["id"], "action": "DEACTIVATE"}, token=conn_token)
-            expect(status == 403, "Una conexión de solo lectura no acciona actuadores (403)")
+            expect(status == 403, "Read-only connection cannot trigger actuators (403)")
             status, _ = call("GET", "/api/v1/connections", token=conn_token)
-            expect(status == 403, "Una conexión no administra conexiones (403)")
+            expect(status == 403, "Connection cannot manage connections (403)")
 
             mcp_url = os.environ.get("SMARTPOT_MCP_URL", "http://localhost:8002").rstrip("/")
             if mcp_reachable(mcp_url):
                 status, _ = mcp_call(mcp_url, None, "list_crops")
-                expect(status == 401, "El servidor MCP exige un token de conexión (401)")
+                expect(status == 401, "MCP server requires connection token (401)")
                 status, result = mcp_call(mcp_url, conn_token, "list_crops")
                 text = json.dumps(result, ensure_ascii=False)
-                expect(status == 200 and "Lechugas del balcón" in text, "El servidor MCP lista los cultivos de la cuenta")
+                expect(status == 200 and any(name in text for name in ("Lechugas del balcón", "Balcony Lettuce")), "MCP server lists account crops")
             else:
-                print(f"  ℹ Servidor SmartPot-MCP no disponible en {mcp_url}; se omiten sus comprobaciones")
+                print(f"  ℹ SmartPot-MCP server unavailable at {mcp_url}; skipping checks")
         finally:
             status, _ = call("DELETE", f"/api/v1/connections/{conn_id}", token=demo_token)
-            expect(status == 204, "Conexión revocada")
+            expect(status == 204, "Connection revoked")
         status, _ = call("GET", "/api/v1/crops", token=conn_token)
-        expect(status == 401, "Una conexión revocada deja de servir (401)")
+        expect(status == 401, "Revoked connection is immediately rejected (401)")
 
     finally:
         # Limpieza del cultivo virtual de prueba
         call("DELETE", f"/api/v1/crops/{v_id}", token=demo_token)
-        print("  ✔ Limpieza del cultivo virtual completada")
+        print("  ✔ Virtual crop cleanup completed")
 
     print("\n================================================================================")
-    print("  RESULTADO: DEMO BETA 100% OPERATIVA Y EN PARIDAD DE CONTRATO")
+    print("  RESULT: DEMO BETA 100% OPERATIONAL AND CONTRACT COMPLIANT")
     print("================================================================================\n")
 
 
@@ -272,8 +272,8 @@ if __name__ == "__main__":
     try:
         run_beta_suite()
     except CheckFailed as e:
-        print(f"\n[FALLO] Comprobación no superada: {e}")
+        print(f"\n[FAILURE] Assertion failed: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"\n[ERROR] Excepción imprevista: {e}")
+        print(f"\n[ERROR] Unexpected exception: {e}")
         sys.exit(1)

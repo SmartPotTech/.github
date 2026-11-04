@@ -59,7 +59,7 @@ def collect_docker_stats() -> List[Dict[str, str]]:
                 stats.append(json.loads(line))
         return stats
     except Exception as e:
-        print(f"[WARN] No se pudo invocar docker stats directamente ({e}). Utilizando perfil calibrado.")
+        print(f"[WARN] Could not invoke docker stats directly ({e}). Using calibrated profile.")
         return []
 
 
@@ -107,7 +107,7 @@ def main():
 
     table = generate_comparative_table([], [])
     print(table)
-    print("\nEvaluación de Quality Gates para el Corte a Producción:\n")
+    print("\nProduction Cutover Quality Gates Assessment:\n")
 
     gates = evaluate_quality_gates()
     all_ok = True
@@ -118,7 +118,7 @@ def main():
             all_ok = False
 
     print("\n--------------------------------------------------------------------------------")
-    print(f"  Veredicto Final del Comité de Arquitectura QA: {'APROBADO PARA CORTE A PRODUCCION' if all_ok else 'RECHAZADO'}")
+    print(f"  Final QA Architecture Committee Verdict: {'APPROVED FOR PRODUCTION CUTOVER' if all_ok else 'REJECTED'}")
     print("--------------------------------------------------------------------------------\n")
 
 

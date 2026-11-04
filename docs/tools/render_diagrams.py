@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
-"""Renderiza los diagramas Mermaid de `docs/diagrams/` a PNG y SVG y los sincroniza con el Markdown.
-
-Cada `.mmd` trae la paleta de SmartPot en su directiva `%%{init}%%`: el render no decide
-colores, solo mide el ancho natural del diagrama y elige la escala del PNG. La fuente y sus dos
-imágenes viven juntas en la misma carpeta.
-
-    python docs/tools/render_diagrams.py                              # todos
-    python docs/tools/render_diagrams.py SmartPot_02_Reading_Sequence
-    python docs/tools/render_diagrams.py --global                     # solo los generales
-    python docs/tools/render_diagrams.py --dir ../SmartPot-API/docs/diagrams
-    python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Technical_Documentation.md
-
-Los diagramas generales (`SmartPot_Global_*`) muestran la plataforma completa en una sola imagen:
-pueden ser tan grandes como haga falta, así que se renderizan sin el límite de texto ni de aristas
-que mermaid aplica por defecto y el PNG sale a su tamaño natural.
-
-`--dir` renderiza la carpeta de diagramas de otro repositorio con las mismas reglas.
-
-`--sync-md` reemplaza, en el Markdown, el bloque ```mermaid que sigue a cada
-`<!-- diagrama: NOMBRE | titulo=... -->` por el contenido de `NOMBRE.mmd`, así el Markdown (que
-GitHub dibuja) y las imágenes del DOCX salen de la misma fuente.
-
-Requiere Node.js (usa `npx @mermaid-js/mermaid-cli`) y Google Chrome.
-"""
+# Renderiza los diagramas Mermaid de `docs/diagrams/` a PNG y SVG y los sincroniza con el Markdown.
+#
+# Cada `.mmd` trae la paleta de SmartPot en su directiva `%%{init}%%`: el render no decide
+# colores, solo mide el ancho natural del diagrama y elige la escala del PNG. La fuente y sus dos
+# imágenes viven juntas en la misma carpeta.
+#
+#     python docs/tools/render_diagrams.py                              # todos
+#     python docs/tools/render_diagrams.py SmartPot_02_Reading_Sequence
+#     python docs/tools/render_diagrams.py --global                     # solo los generales
+#     python docs/tools/render_diagrams.py --dir ../SmartPot-API/docs/diagrams
+#     python docs/tools/render_diagrams.py --sync-md docs/SmartPot_Technical_Documentation.md
+#
+# Los diagramas generales (`SmartPot_Global_*`) muestran la plataforma completa en una sola imagen:
+# pueden ser tan grandes como haga falta, así que se renderizan sin el límite de texto ni de aristas
+# que mermaid aplica por defecto y el PNG sale a su tamaño natural.
+#
+# `--dir` renderiza la carpeta de diagramas de otro repositorio con las mismas reglas.
+#
+# `--sync-md` reemplaza, en el Markdown, el bloque ```mermaid que sigue a cada
+# `<!-- diagrama: NOMBRE | titulo=... -->` por el contenido de `NOMBRE.mmd`, así el Markdown (que
+# GitHub dibuja) y las imágenes del DOCX salen de la misma fuente.
+#
+# Requiere Node.js (usa `npx @mermaid-js/mermaid-cli`) y Google Chrome.
+"""Render Mermaid diagrams in docs/diagrams/ to PNG and SVG and sync them into Markdown."""
 
 from __future__ import annotations
 
@@ -60,7 +60,7 @@ def find_chrome(explicit: str | None) -> str:
     for candidate in (explicit, *CHROME_CANDIDATES, shutil.which("chrome"), shutil.which("chromium")):
         if candidate and pathlib.Path(candidate).exists():
             return candidate.replace("\\", "/")
-    sys.exit("No se encontró Chrome: indícalo con --chrome")
+    sys.exit("Chrome not found: specify it with --chrome")
 
 
 def mmdc(source: pathlib.Path, target: pathlib.Path, puppeteer: pathlib.Path, extra: str) -> list[str]:
@@ -68,7 +68,7 @@ def mmdc(source: pathlib.Path, target: pathlib.Path, puppeteer: pathlib.Path, ex
     result = subprocess.run(command, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
     lines = (result.stdout + result.stderr).splitlines()
     errors = [line for line in lines if "rror" in line or "Parse" in line or "Expecting" in line]
-    return errors + ([] if result.returncode == 0 else [f"mmdc terminó con código {result.returncode}"])
+    return errors + ([] if result.returncode == 0 else [f"mmdc exited with code {result.returncode}"])
 
 
 def size_of(svg: pathlib.Path) -> tuple[float, float] | None:
@@ -89,7 +89,7 @@ def render(source: pathlib.Path, workdir: pathlib.Path, puppeteer: pathlib.Path)
     errors += mmdc(source, source.with_suffix(".png"), puppeteer, f"-w {canvas} -s {scale:.2f}")
     errors += mmdc(source, source.with_suffix(".svg"), puppeteer, f"-w {canvas}")
     status = "ERROR" if errors else "OK"
-    print(f"{status:5} {source.stem} · ancho {width:.0f} px · escala {scale:.2f}", *errors[:6], sep="\n      ")
+    print(f"{status:5} {source.stem} · width {width:.0f} px · scale {scale:.2f}", *errors[:6], sep="\n      ")
     return not errors
 
 
@@ -111,25 +111,25 @@ def sync_markdown(markdown: pathlib.Path, folder: pathlib.Path) -> None:
     def replace(match: re.Match) -> str:
         source = folder / f"{match.group(1)}.mmd"
         if not source.exists():
-            print(f"      sin fuente para {match.group(1)}: el bloque queda igual")
+            print(f"      no source found for {match.group(1)}: block left unchanged")
             return match.group(0)
         header = match.group(0).split("```mermaid", 1)[0]
         return f"{header}```mermaid\n{source.read_text(encoding='utf-8').strip()}\n```"
 
     updated, count = MARKER.subn(replace, text)
     markdown.write_bytes(updated.encode("utf-8"))
-    print(f"Markdown sincronizado: {markdown.name} · {count} diagramas")
+    print(f"Synchronized Markdown: {markdown.name} · {count} diagrams")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Renderiza los diagramas de SmartPot.")
-    parser.add_argument("names", nargs="*", help="Nombres de .mmd sin extensión; sin nombres, todos")
-    parser.add_argument("--global", dest="only_global", action="store_true", help="Solo los diagramas generales")
-    parser.add_argument("--dir", type=pathlib.Path, default=DIAGRAMS, help="Carpeta de diagramas (por defecto docs/diagrams)")
+    parser = argparse.ArgumentParser(description="Render SmartPot Mermaid diagrams.")
+    parser.add_argument("names", nargs="*", help=".mmd file names without extension; defaults to all")
+    parser.add_argument("--global", dest="only_global", action="store_true", help="Only render global diagrams")
+    parser.add_argument("--dir", type=pathlib.Path, default=DIAGRAMS, help="Diagrams folder (defaults to docs/diagrams)")
     parser.add_argument("--sync-md", nargs="*", type=pathlib.Path, default=[],
-                        help="Markdown cuyos bloques mermaid se reemplazan por los .mmd")
-    parser.add_argument("--no-render", action="store_true", help="Solo sincroniza el Markdown")
-    parser.add_argument("--chrome", help="Ejecutable de Chrome para puppeteer")
+                        help="Markdown files whose mermaid blocks are replaced with .mmd sources")
+    parser.add_argument("--no-render", action="store_true", help="Only synchronize Markdown files")
+    parser.add_argument("--chrome", help="Chrome executable path for Puppeteer")
     args = parser.parse_args()
 
     folder = args.dir.resolve()
@@ -140,7 +140,7 @@ def main() -> None:
             sources = [s for s in sources if s.stem.startswith(GLOBAL_PREFIX)]
         missing = [s.name for s in sources if not s.exists()]
         if missing:
-            sys.exit("No existen: " + ", ".join(missing))
+            sys.exit("Missing files: " + ", ".join(missing))
         with tempfile.TemporaryDirectory() as tmp:
             workdir = pathlib.Path(tmp)
             puppeteer = workdir / "puppeteer.json"
