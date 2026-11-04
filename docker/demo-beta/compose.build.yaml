@@ -1,10 +1,10 @@
-# Override para construir los servicios migrados (API en Go, PostgreSQL + TimescaleDB, EMQX, Valkey, PWA en SolidJS
-# y el simulador en Rust) desde los repositorios locales clonados junto a .github/ (igual que el entorno de desarrollo).
+# Override para construir los servicios migrados (API en Go, PostgreSQL + TimescaleDB, EMQX, Valkey, PWA en SolidJS,
+# simulador en Rust e IA en Rust) desde los repositorios locales clonados junto a .github/ (igual que el entorno de desarrollo).
 # El resto de componentes se siguen descargando de GHCR.
 #   SmartPot/
 #   ├── .github/docker/demo-beta/compose.yaml + compose.build.yaml   (este archivo)
-#   ├── SmartPot-API-Go/  SmartPot-DB-Postgre/  SmartPot-Broker-EMQX/  SmartPot-Cache-Valkey/  SmartPot-Web-Solid/
-#   └── SmartPot-DataGenerator-Rust/
+#   ├── SmartPot-API/  SmartPot-DB/  SmartPot-Broker/  SmartPot-Cache/  SmartPot-Web/
+#   └── SmartPot-DataGenerator/  SmartPot-AI/  SmartPot-Trainer/  SmartPot-MCP/
 #
 # Uso:
 #   docker compose -f compose.yaml -f compose.build.yaml up -d --wait --build
@@ -12,27 +12,27 @@ name: smartpot-demo-beta
 
 services:
   db-smartpot:
-    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DB-Postgre
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DB
     pull_policy: build
 
   api-smartpot:
-    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-API-Go
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-API
     pull_policy: build
 
   broker-smartpot:
-    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Broker-EMQX
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Broker
     pull_policy: build
 
   cache-smartpot:
-    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Cache-Valkey
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Cache
     pull_policy: build
 
   web-smartpot:
-    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Web-Solid
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Web
     pull_policy: build
 
   simulator-smartpot:
-    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DataGenerator-Rust
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DataGenerator
     pull_policy: build
 
   ai-smartpot:

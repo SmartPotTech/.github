@@ -11,6 +11,7 @@ Solo usa la biblioteca estándar; publica por MQTT con mosquitto_pub dentro del 
     SMARTPOT_API_URL=http://localhost:8091 SMARTPOT_BROKER_CONTAINER=smartpot-demo-broker python3 scripts/e2e.py
 """
 
+import http.cookiejar
 import json
 import os
 import secrets
@@ -33,14 +34,48 @@ class CheckFailed(Exception):
     pass
 
 
-def call(method: str, path: str, body: dict | None = None, token: str | None = None) -> tuple[int, dict | list | None]:
+class WebSession:
+    """Sesión web que conserva las cookies (smartpot_session HttpOnly y smartpot_csrf) y el token CSRF."""
+
+    def __init__(self) -> None:
+        self.cookies = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
+        self.csrf: str | None = None
+        self.last_set_cookies: list[str] = []
+
+    def has_http_only_session(self) -> bool:
+        has_cookie = any(c.name == "smartpot_session" and bool(c.value) for c in self.cookies)
+        has_flag = any(
+            header.startswith("smartpot_session=") and "httponly" in header.lower()
+            for header in self.last_set_cookies
+        )
+        return has_cookie and has_flag
+
+
+def call(
+    method: str,
+    path: str,
+    body: dict | None = None,
+    token: WebSession | str | None = None,
+    include_csrf: bool = True,
+) -> tuple[int, dict | list | None]:
     data = json.dumps(body).encode() if body is not None else None
     request = urllib.request.Request(f"{API}{path}", data=data, method=method)
     request.add_header("Content-Type", "application/json")
-    if token:
+    opener_fn = urllib.request.urlopen
+    if isinstance(token, WebSession):
+        opener_fn = token.opener.open
+        if include_csrf and token.csrf and method not in ("GET", "HEAD", "OPTIONS"):
+            request.add_header("X-CSRF-Token", token.csrf)
+    elif isinstance(token, str) and token:
         request.add_header("Authorization", f"Bearer {token}")
     try:
-        with urllib.request.urlopen(request, timeout=20) as response:
+        with opener_fn(request, timeout=20) as response:
+            if isinstance(token, WebSession):
+                token.last_set_cookies = response.headers.get_all("Set-Cookie") or []
+                csrf_hdr = response.headers.get("X-CSRF-Token")
+                if csrf_hdr:
+                    token.csrf = csrf_hdr
             raw = response.read()
             return response.status, json.loads(raw) if raw else None
     except urllib.error.HTTPError as error:
@@ -104,13 +139,22 @@ def main() -> None:
 
     email = f"qa-{secrets.token_hex(4)}@smartpot.test"
     password = f"Qa{secrets.token_hex(6)}9z"
+    reg_session = WebSession()
     status, body = call("POST", "/api/v1/auth/register",
-                        {"name": "Prueba", "lastName": "Automática", "email": email, "password": password})
-    expect(status == 201, "registro de un usuario nuevo")
+                        {"name": "Prueba", "lastName": "Automática", "email": email, "password": password},
+                        reg_session)
+    expect(status == 201 and "token" not in (body or {}) and reg_session.has_http_only_session(),
+           "registro de un usuario nuevo con cookie HttpOnly sin exponer el JWT en JSON")
 
-    status, body = call("POST", "/api/v1/auth/login", {"email": email, "password": password})
-    expect(status == 200 and body.get("token"), "ingreso con las credenciales nuevas")
-    token = body["token"]
+    token = WebSession()
+    status, body = call("POST", "/api/v1/auth/login", {"email": email, "password": password}, token)
+    expect(status == 200 and "token" not in (body or {}) and token.has_http_only_session() and bool(token.csrf),
+           "ingreso con las credenciales nuevas mediante cookie HttpOnly y token CSRF")
+
+    status_csrf, _ = call("POST", "/api/v1/crops",
+                          {"name": "Sin CSRF", "type": "LETTUCE", "kind": "REAL", "form": "NFT"},
+                          token, include_csrf=False)
+    expect(status_csrf == 403, "las escrituras con cookie sin cabecera X-CSRF-Token se rechazan (403)")
 
     try:
         run_flow(token)
@@ -121,7 +165,7 @@ def main() -> None:
     print("E2E completado.")
 
 
-def run_flow(token: str) -> None:
+def run_flow(token: WebSession | str) -> None:
     status, body = call("POST", "/api/v1/crops",
                         {"name": "Lechuga de prueba", "type": "LETTUCE", "kind": "REAL", "form": "NFT"}, token)
     expect(status == 201 and body["device"]["key"], "creación del cultivo real con las credenciales del dispositivo")

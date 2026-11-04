@@ -14,6 +14,7 @@ Uso:
     SMARTPOT_API_URL=http://localhost:8091 python3 test.py
 """
 
+import http.cookiejar
 import json
 import os
 import secrets
@@ -21,7 +22,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 API = os.environ.get("SMARTPOT_API_URL", "http://localhost:8091").rstrip("/")
 
@@ -30,15 +31,49 @@ class CheckFailed(Exception):
     pass
 
 
-def call(method: str, path: str, body: Optional[dict] = None, token: Optional[str] = None) -> Tuple[int, Any]:
+class WebSession:
+    """Sesión web que conserva las cookies (smartpot_session HttpOnly y smartpot_csrf) y el token CSRF."""
+
+    def __init__(self) -> None:
+        self.cookies = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.cookies))
+        self.csrf: Optional[str] = None
+        self.last_set_cookies: list[str] = []
+
+    def has_http_only_session(self) -> bool:
+        has_cookie = any(c.name == "smartpot_session" and bool(c.value) for c in self.cookies)
+        has_flag = any(
+            header.startswith("smartpot_session=") and "httponly" in header.lower()
+            for header in self.last_set_cookies
+        )
+        return has_cookie and has_flag
+
+
+def call(
+    method: str,
+    path: str,
+    body: Optional[dict] = None,
+    token: Optional[Union[WebSession, str]] = None,
+    include_csrf: bool = True,
+) -> Tuple[int, Any]:
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(f"{API}{path}", data=data, method=method)
     req.add_header("Content-Type", "application/json")
     req.add_header("Accept", "application/json")
-    if token:
+    opener_fn = urllib.request.urlopen
+    if isinstance(token, WebSession):
+        opener_fn = token.opener.open
+        if include_csrf and token.csrf and method not in ("GET", "HEAD", "OPTIONS"):
+            req.add_header("X-CSRF-Token", token.csrf)
+    elif isinstance(token, str) and token:
         req.add_header("Authorization", f"Bearer {token}")
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with opener_fn(req, timeout=20) as resp:
+            if isinstance(token, WebSession):
+                token.last_set_cookies = resp.headers.get_all("Set-Cookie") or []
+                csrf_hdr = resp.headers.get("X-CSRF-Token")
+                if csrf_hdr:
+                    token.csrf = csrf_hdr
             raw = resp.read()
             return resp.status, (json.loads(raw) if raw else None)
     except urllib.error.HTTPError as err:
@@ -105,10 +140,18 @@ def run_beta_suite():
     status, body = call("GET", "/api/v1/crops")
     expect(status == 401 and "Inicia sesión" in body.get("message", ""), "Rutas privadas exigen autenticación (401)")
 
-    # 3. Login con cuenta semilla demo
-    status, login_body = call("POST", "/api/v1/auth/login", {"email": "demo@smartpot.app", "password": "SmartPot2026"})
-    expect(status == 200 and login_body.get("token"), "Autenticación exitosa con cuenta demo semilla")
-    demo_token = login_body["token"]
+    # 3. Login con cuenta semilla demo (cookie HttpOnly + protección CSRF)
+    demo_token = WebSession()
+    status, login_body = call("POST", "/api/v1/auth/login",
+                              {"email": "demo@smartpot.app", "password": "SmartPot2026"},
+                              token=demo_token)
+    expect(status == 200 and "token" not in (login_body or {}) and demo_token.has_http_only_session() and bool(demo_token.csrf),
+           "Autenticación exitosa con cuenta demo semilla mediante cookie HttpOnly y token CSRF")
+
+    status_csrf, _ = call("POST", "/api/v1/crops",
+                          {"name": "Sin CSRF", "type": "BASIL", "kind": "VIRTUAL", "form": "TOWER"},
+                          token=demo_token, include_csrf=False)
+    expect(status_csrf == 403, "Protección CSRF rechaza escrituras con cookie sin X-CSRF-Token (403)")
 
     # 4. Verificación de cultivos demo iniciales
     status, crops = call("GET", "/api/v1/crops", token=demo_token)
