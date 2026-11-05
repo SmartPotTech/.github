@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   api:
-    name: API (Spring Boot)
+    name: API (Go Echo)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -24,18 +24,19 @@ jobs:
           repository: SmartPotTech/SmartPot-API
           persist-credentials: false
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
+          go-version: '1.26.x'
+          cache: true
 
       - name: Run tests
-        run: mvn -B verify -f pom.xml
+        run: |
+          go vet ./...
+          go test -v ./...
 
   web:
-    name: Web (React)
+    name: Web (SolidJS)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -45,24 +46,43 @@ jobs:
           repository: SmartPotTech/SmartPot-Web
           persist-credentials: false
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24.x
-          cache: pnpm
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Lint, type check, test and build
         run: |
-          pnpm lint
-          pnpm typecheck
-          pnpm test
-          pnpm build
+          bun run lint
+          bun run typecheck
+          bun run test
+          bun run build
+
+  rust:
+    name: ${{ matrix.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        repository: [ SmartPot-AI, SmartPot-DataGenerator ]
+    steps:
+      - name: Checkout ${{ matrix.repository }}
+        uses: actions/checkout@v7
+        with:
+          repository: SmartPotTech/${{ matrix.repository }}
+          persist-credentials: false
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Test and check
+        run: |
+          cargo test --all-targets
+          cargo clippy -- -D warnings
 
   python:
     name: ${{ matrix.repository }}
@@ -71,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repository: [ SmartPot-AI, SmartPot-DataGenerator, SmartPot-IoT ]
+        repository: [ SmartPot-Trainer, SmartPot-MCP ]
     steps:
       - name: Checkout ${{ matrix.repository }}
         uses: actions/checkout@v7
@@ -80,15 +100,13 @@ jobs:
           persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
       - name: Lint and test
         run: |
           uv sync --frozen
-          # La IA trae un núcleo nativo en C++ que sus pruebas de paridad necesitan compilado.
-          if [ -f src/native/Makefile ]; then make -C src/native PYTHON="uv run --frozen python"; fi
           uv run --frozen ruff check .
           uv run --frozen pytest
 
@@ -123,7 +141,7 @@ jobs:
 
   e2e:
     name: End-to-End
-    needs: [ api, web, python, containers ]
+    needs: [ api, web, rust, python, containers ]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -134,13 +152,13 @@ jobs:
 
       - name: Checkout services
         run: |
-          for repo in DB Cache Mail Broker AI API Web DataGenerator; do
+          for repo in DB Cache Mail Broker AI API Web DataGenerator Trainer MCP; do
             git clone --depth 1 "https://github.com/SmartPotTech/SmartPot-$repo.git" "services/SmartPot-$repo"
           done
 
       - name: Build images
         run: |
-          for repo in DB Cache Mail Broker AI API Web DataGenerator; do
+          for repo in DB Cache Mail Broker AI API Web DataGenerator Trainer MCP; do
             name="$(echo "$repo" | tr '[:upper:]' '[:lower:]')"
             docker build -q -t "ghcr.io/smartpottech/smartpot-$name:latest" "services/SmartPot-$repo"
           done
