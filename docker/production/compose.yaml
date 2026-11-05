@@ -62,6 +62,7 @@ services:
     container_name: smartpot-cache
     environment:
       VALKEY_PASSWORD: ${VALKEY_PASSWORD:?Falta VALKEY_PASSWORD en el .env}
+      REDIS_PASSWORD: ${VALKEY_PASSWORD:?Falta VALKEY_PASSWORD en el .env}
       VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     volumes:
       - smartpot-ipc:/var/run/smartpot

@@ -67,6 +67,7 @@ services:
     pids_limit: 256
     environment:
       VALKEY_PASSWORD: *redis
+      REDIS_PASSWORD: *redis
       VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     volumes:
       - smartpot-ipc:/var/run/smartpot
