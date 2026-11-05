@@ -281,18 +281,20 @@ services:
     <<: *hardening
     image: ghcr.io/smartpottech/smartpot-datagenerator:${SMARTPOT_SIMULATOR_TAG:-latest}
     container_name: smartpot-simulator
-    profiles:
-      - simulator
     environment:
       MQTT_HOST: broker-smartpot
       MQTT_PORT: "1883"
       SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
       SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-60}
+      SIMULATOR_UTC_OFFSET: ${SIMULATOR_UTC_OFFSET:--5}
       SIMULATOR_PAYLOAD_FORMAT: binary
       SIMULATOR_TOKEN: ${SIMULATOR_TOKEN:-}
+      RUST_LOG: ${LOG_LEVEL:-info}
     tmpfs:
       - /tmp
     depends_on:
+      broker-smartpot:
+        condition: service_healthy
       api-smartpot:
         condition: service_healthy
     networks:
