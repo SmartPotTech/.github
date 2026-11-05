@@ -42,7 +42,7 @@ services:
       SMARTPOT_READER_PASSWORD: ${SMARTPOT_READER_PASSWORD:-}
       SMARTPOT_SEED_DEMO: ${SMARTPOT_SEED_DEMO:-false}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
     tmpfs:
       - /tmp
       - /run/postgresql
@@ -118,7 +118,7 @@ services:
       - "${SMARTPOT_MQTT_TLS_BIND:-0.0.0.0}:${SMARTPOT_MQTT_TLS_PORT:-8883}:8883"
       - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MQTT_WS_PORT:-9001}:9001"
     volumes:
-      - broker_data:/opt/emqx/data
+      - emqx_data:/opt/emqx/data
       - ${SMARTPOT_CERTS_DIR:-/opt/emqx/etc/certs}:/opt/emqx/etc/certs:ro
     tmpfs:
       - /tmp
@@ -330,8 +330,8 @@ services:
           memory: 256M
 
 volumes:
-  db_data:
-  broker_data:
+  pg_data:
+  emqx_data:
   ai_data:
   smartpot-ipc:
     driver: local
