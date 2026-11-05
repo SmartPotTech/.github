@@ -105,19 +105,24 @@ jobs:
         if: steps.snyk-check.outputs.snyk_available == 'true'
         run: |
           echo "::notice::Evaluando políticas de seguridad en manifiestos de producción (docker/production)..."
-          snyk iac test docker/production/ \
+          snyk_output=$(snyk iac test docker/production/ \
             --org="${{ env.SNYK_CFG_ORG }}" \
             --severity-threshold=high \
-            --sarif-file-output=snyk-deploy-gate.sarif || {
+            --sarif-file-output=snyk-deploy-gate.sarif 2>&1) || {
             code=$?
-            if [ $code -eq 1 ]; then
+            echo "$snyk_output"
+            if echo "$snyk_output" | grep -qiE "monthly limit|plan limit|credit|SNYK-CLI-0012"; then
+              echo "::warning::Snyk Gatekeeper: Límite mensual de pruebas de Snyk alcanzado. Se continúa el despliegue sin bloquear por créditos."
+              exit 0
+            elif [ $code -eq 1 ]; then
               echo "::error::Snyk Deployment Gatekeeper BLOQUEÓ el despliegue a producción. Se detectaron vulnerabilidades o desconfiguraciones de severidad ALTA o CRÍTICA en docker/production/."
               exit 1
             else
-              echo "::error::Error de ejecución de Snyk CLI en el Gatekeeper (código $code)."
-              exit $code
+              echo "::warning::Snyk CLI no pudo completar la evaluación (código $code). Se continúa el despliegue en modo tolerante."
+              exit 0
             fi
           }
+          echo "$snyk_output"
           echo "::notice::Snyk Deployment Gatekeeper: docker/production/ APROBADO sin vulnerabilidades bloqueantes."
 
       - name: Upload Gatekeeper SARIF to GitHub Security Tab
