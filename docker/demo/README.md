@@ -29,10 +29,6 @@ curl -fsSL https://raw.githubusercontent.com/SmartPotTech/.github/main/docker/de
 
 No hace falta descargar nada más: el `compose.yaml` llega por la tubería y Docker baja las imágenes.
 
-> [!NOTE]
-> La réplica en Docker Hub (`docker.io/sebastian190030/<componente>-smartpot`, con
-> [`compose.dockerhub.yaml`](compose.dockerhub.yaml)) todavía no tiene las imágenes de la IA, el broker ni el simulador;
-> mientras tanto usa GHCR.
 
 Abre http://localhost:5173 e ingresa con:
 
@@ -102,14 +98,16 @@ docker compose -p smartpot-demo down -v     # borra también la base de datos y 
 
 | Contenedor                | Imagen                   | Función                                                               |
 |---------------------------|--------------------------|-----------------------------------------------------------------------|
-| `smartpot-demo-db`        | `smartpot-db`            | MongoDB 8 con validadores y datos demo                                |
-| `smartpot-demo-cache`     | `smartpot-cache`         | Redis 8 para el límite de peticiones y la caché de la IA              |
-| `smartpot-demo-mail`      | `smartpot-mail`          | Mailpit con SMTP autenticado                                          |
-| `smartpot-demo-broker`    | `smartpot-broker`        | Mosquitto 2.1 con una cuenta MQTT por cultivo                         |
-| `smartpot-demo-ai`        | `smartpot-ai`            | Sistema experto, lógica difusa, modelos de ML y agente                |
-| `smartpot-demo-api`       | `smartpot-api`           | API REST en Spring Boot 4                                             |
-| `smartpot-demo-web`       | `smartpot-web`           | PWA en React servida por nginx                                        |
-| `smartpot-demo-simulator` | `smartpot-datagenerator` | Los dos cultivos demo y los cultivos virtuales que crees desde la PWA |
+| `smartpot-demo-db`        | `smartpot-db`            | PostgreSQL 17 + TimescaleDB con hipertabla y datos demo               |
+| `smartpot-demo-cache`     | `smartpot-cache`         | Valkey 9 para límite de tasa y caché compartida                       |
+| `smartpot-demo-mail`      | `smartpot-mail`          | Mailpit con SMTP autenticado y bandeja web                            |
+| `smartpot-demo-broker`    | `smartpot-broker`        | EMQX 5.8 con autenticación delegada por HTTP a la API                  |
+| `smartpot-demo-ai`        | `smartpot-ai`            | Inferencia de IA en Rust (Sugeno, modelos nativos, REST y gRPC)       |
+| `smartpot-demo-trainer`   | `smartpot-trainer`       | Aprendizaje continuo en Python fuera de la inferencia                 |
+| `smartpot-demo-api`       | `smartpot-api`           | API REST en Go (Echo) con arquitectura hexagonal                      |
+| `smartpot-demo-web`       | `smartpot-web`           | PWA en SolidJS servida por nginx sin privilegios                      |
+| `smartpot-demo-simulator` | `smartpot-datagenerator` | Simulador en Rust con soporte JSON y paquete binario compacto v2      |
+| `smartpot-demo-mcp`       | `smartpot-mcp`           | Servidor FastMCP para asistentes de IA                                |
 
 MongoDB, Redis y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
 correo publican puertos, y únicamente en `127.0.0.1`. El simulador sale a internet solo para consultar el clima y no
