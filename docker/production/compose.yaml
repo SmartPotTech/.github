@@ -315,7 +315,8 @@ services:
       TRANSPORT: streamable-http
       HOST: 0.0.0.0
       PORT: "8002"
-      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*,mcp.smartpot.app:*
+      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*,mcp.smartpot.app,mcp.smartpot.app:*
+      MCP_ALLOWED_ORIGINS: http://localhost:*,http://127.0.0.1:*,https://smartpot.app,https://www.smartpot.app,https://mcp.smartpot.app
     ports:
       - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MCP_PORT:-8092}:8002"
     tmpfs:
