@@ -5,16 +5,9 @@ usuarios sin privilegios y healthchecks):
 
 | Carpeta                               | Entorno      | Imágenes                                      | Para qué sirve                                             |
 |---------------------------------------|--------------|-----------------------------------------------|------------------------------------------------------------|
-| [`demo/`](demo/README.md)             | Demostración | GHCR (principal) o Docker Hub, a elección     | Probar SmartPot completo con un comando y datos de ejemplo |
-| [`demo-beta/`](demo-beta/README.md)   | Demostración beta | GHCR (públicas, un solo paso)                 | Vista previa del stack nuevo: API en Go y PostgreSQL + TimescaleDB |
+| [`demo/`](demo/README.md)             | Demostración | Publicadas en GHCR (un solo paso)             | Probar SmartPot completo con un comando y datos de ejemplo |
 | [`dev/`](dev/README.md)               | Desarrollo   | Compiladas desde los repositorios locales     | Programar y probar cambios con toda la plataforma          |
 | [`production/`](production/README.md) | Producción   | Publicadas en GHCR, con etiqueta configurable | Servidor con Nginx, HTTPS y despliegue automático          |
-
-> [!NOTE]
-> **`demo-beta/` es la vista previa de la migración.** Igual que `demo/`, pero con la API reescrita en Go
-> (`smartpot-api-go`) y PostgreSQL + TimescaleDB (`smartpot-db-postgre`) en lugar de Spring Boot y MongoDB; el resto de
-> componentes no cambia. Hoy producción sigue en el stack original. El plan completo está en la
-> [documentación de migración](../docs/SmartPot_Migration.md).
 
 ## Servicios
 
@@ -28,6 +21,8 @@ usuarios sin privilegios y healthchecks):
 | `api-smartpot`       | [SmartPot-API](https://github.com/SmartPotTech/SmartPot-API)                     | `ghcr.io/smartpottech/smartpot-api`           | `sebastian190030/api-smartpot`           |
 | `web-smartpot`       | [SmartPot-Web](https://github.com/SmartPotTech/SmartPot-Web)                     | `ghcr.io/smartpottech/smartpot-web`           | `sebastian190030/web-smartpot`           |
 | `simulator-smartpot` | [SmartPot-DataGenerator](https://github.com/SmartPotTech/SmartPot-DataGenerator) | `ghcr.io/smartpottech/smartpot-datagenerator` | `sebastian190030/datagenerator-smartpot` |
+| `trainer-smartpot`   | [SmartPot-Trainer](https://github.com/SmartPotTech/SmartPot-Trainer)             | `ghcr.io/smartpottech/smartpot-trainer`       | `sebastian190030/trainer-smartpot`       |
+| `mcp-smartpot`       | [SmartPot-MCP](https://github.com/SmartPotTech/SmartPot-MCP)                     | `ghcr.io/smartpottech/smartpot-mcp`           | `sebastian190030/mcp-smartpot`           |
 
 Los despliegues descargan de **GHCR**; Docker Hub es una réplica para distribución. Cada repositorio publica en Docker
 Hub cuando tiene los secrets `DOCKER_USERNAME` y `DOCKER_PASSWORD`.
@@ -46,5 +41,5 @@ las macetas virtuales del simulador, siempre encendidas y controladas desde la P
 | 8883                    | MQTT sobre TLS               | `127.0.0.1` (desarrollo, con certificados) | Público                              |
 | 9001                    | MQTT sobre WebSocket         | `127.0.0.1`                                | `127.0.0.1`, detrás de Nginx (`wss`) |
 | 8025                    | Bandeja de correo            | `127.0.0.1`                                | `127.0.0.1`, detrás de Nginx         |
-| 27017, 6379, 8000, 1025 | MongoDB, Redis, IA, SMTP     | Solo en desarrollo                         | Solo red interna                     |
+| 5432, 6379, 8000, 1025 | PostgreSQL, Valkey, IA, SMTP | Solo en desarrollo                         | Solo red interna                     |
 | 8081                    | API de control del simulador | Solo en desarrollo                         | Solo red interna                     |

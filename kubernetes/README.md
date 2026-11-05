@@ -41,7 +41,7 @@ En minikube, reemplaza `localhost` por la IP de `minikube ip` y ajusta `WEB_BASE
    ```
 
 2. Cambia los valores del `Secret smartpot-secrets`: son contraseñas de ejemplo solo para clústeres locales.
-   `SMARTPOT_AES_KEY` debe ser Base64 de 32 bytes (`openssl rand -base64 32`) y `MONGODB_URI` debe llevar la misma
+   `SMARTPOT_AES_KEY` debe ser Base64 de 32 bytes (`openssl rand -base64 32`) y `DATABASE_URL` debe llevar la misma
    `SMARTPOT_DB_PASSWORD`.
 
 3. Aplica y verifica:
@@ -67,11 +67,11 @@ En minikube, reemplaza `localhost` por la IP de `minikube ip` y ajusta `WEB_BASE
 | `Namespace`              | `smartpot`                                          | Aplica el perfil `restricted` de Pod Security                                                                             |
 | `Secret`                 | `smartpot-secrets`                                  | Contraseñas, secreto JWT, llave AES y tokens de la IA y del simulador                                                     |
 | `ConfigMap`              | `smartpot-config`                                   | URLs, usuarios y macetas simuladas                                                                                        |
-| `PersistentVolumeClaim`  | `db-data`, `broker-data`, `ai-data`                 | MongoDB (2 Gi), cuentas MQTT (256 Mi) y lo aprendido por la IA (1 Gi)                                                     |
-| `Deployment` + `Service` | `db`, `cache`, `mail`, `broker`, `ai`, `api`, `web` | Un pod por servicio                                                                                                       |
+| `PersistentVolumeClaim`  | `db-data`, `broker-data`, `ai-data`                 | PostgreSQL/TimescaleDB (2 Gi), broker EMQX (256 Mi) y lo aprendido por la IA (1 Gi)      |
+| `Deployment` + `Service` | `db`, `cache`, `mail`, `broker`, `ai`, `api`, `web`, `trainer`, `mcp` | Un pod por servicio                                                                       |
 | `Deployment` + `Service` | `simulator-smartpot`                                | Macetas fijas de la lechuga y el tomate demo, y las macetas virtuales que pida la API (control interno en el puerto 8081) |
 
-MongoDB, Redis, la IA y el simulador usan `ClusterIP`; la PWA, la API, el broker y la bandeja de correo se publican con
+PostgreSQL, Valkey, IA, Trainer, MCP y el simulador usan `ClusterIP`; la PWA, la API, el broker y la bandeja de correo se publican con
 `NodePort`.
 
 ---
@@ -80,8 +80,7 @@ MongoDB, Redis, la IA y el simulador usan `ClusterIP`; la PWA, la API, el broker
 
 Todos los pods cumplen el perfil `restricted`:
 
-* `runAsNonRoot` con el mismo usuario de la imagen (999 MongoDB, 999 Redis, 1000 Mailpit, 1883 Mosquitto, 1000 IA, API y
-  simulador, 101 nginx).
+* `runAsNonRoot` con el mismo usuario de la imagen (999 PostgreSQL/Valkey, 1000 Mailpit/EMQX/IA/Trainer/API/simulador, 101 nginx).
 * Sistema de archivos raíz de solo lectura, con `emptyDir` para `/tmp` y para la configuración que nginx genera al
   arrancar.
 * Sin capacidades de Linux, sin escalada de privilegios y con `seccompProfile: RuntimeDefault`.
