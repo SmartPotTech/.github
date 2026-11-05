@@ -264,7 +264,7 @@ services:
       - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_WEB_PORT:-5173}:8080"
     environment:
       API_URL: ${PUBLIC_API_URL}
-      MCP_URL: ${MCP_URL:-}
+      MCP_URL: ${MCP_URL:-https://mcp.smartpot.app}
     tmpfs:
       - /tmp
       - /etc/nginx/conf.d:uid=101,gid=101
@@ -312,9 +312,9 @@ services:
       TRANSPORT: streamable-http
       HOST: 0.0.0.0
       PORT: "8002"
-      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*
+      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*,mcp.smartpot.app:*
     ports:
-      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:8002:8002"
+      - "${SMARTPOT_BIND_ADDRESS:-127.0.0.1}:${SMARTPOT_MCP_PORT:-8092}:8002"
     tmpfs:
       - /tmp
     depends_on:
