@@ -48,8 +48,8 @@ docker compose up -d --build --wait
 | IA y documentación  | http://localhost:8000/docs (token en `SMARTPOT_AI_TOKEN`)                                |
 | Bandeja de correo   | http://localhost:8025 (`admin` / `MAILPIT_UI_PASSWORD`)                                  |
 | MQTT                | `localhost:1883` · WebSocket `ws://localhost:9001`                                       |
-| MongoDB             | `mongodb://smartpot:<SMARTPOT_DB_PASSWORD>@localhost:27017/smartpot?authSource=smartpot` |
-| Redis               | `localhost:6379` con `REDIS_PASSWORD`                                                    |
+| PostgreSQL          | `postgresql://smartpot:<SMARTPOT_DB_PASSWORD>@localhost:5432/smartpot`                  |
+| Valkey              | `localhost:6379` con `VALKEY_PASSWORD`                                                   |
 
 La base arranca con datos demo: `demo@smartpot.app` / `SmartPot2026`, con una lechuga en tubos NFT y un tomate en
 maceta, cultivos reales que publica el simulador (perfil `simulator`).

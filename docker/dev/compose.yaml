@@ -1,7 +1,8 @@
-# Desarrollo de SmartPot: compila cada servicio desde los repositorios clonados junto a este.
+# Desarrollo de SmartPot (Stack B): compila cada servicio desde los repositorios clonados junto a este.
 #   SmartPot/
 #   ├── .github/docker/dev/compose.yaml   (este archivo)
-#   ├── SmartPot-API/  SmartPot-Web/  SmartPot-AI/  SmartPot-Broker/ ...
+#   ├── SmartPot-API/  SmartPot-DB/  SmartPot-Cache/  SmartPot-Broker/  SmartPot-Web/
+#   └── SmartPot-AI/   SmartPot-Trainer/  SmartPot-DataGenerator/  SmartPot-MCP/  SmartPot-Mail/
 name: smartpot-dev
 
 x-hardening: &hardening
@@ -17,23 +18,36 @@ x-hardening: &hardening
       max-size: "10m"
       max-file: "3"
 
+x-db-hardening: &db-hardening
+  <<: *hardening
+  cap_add:
+    - CHOWN
+    - DAC_OVERRIDE
+    - FOWNER
+    - SETGID
+    - SETUID
+
 services:
   db-smartpot:
-    <<: *hardening
+    <<: *db-hardening
     build: ${SMARTPOT_REPOS:-../../..}/SmartPot-DB
     image: smartpot-db:dev
     container_name: smartpot-dev-db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-smartpot-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Falta MONGO_ROOT_PASSWORD en el .env}
+      POSTGRES_USER: ${POSTGRES_USER:-smartpot-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD en el .env}
+      POSTGRES_DB: ${POSTGRES_DB:-smartpot}
+      SMARTPOT_DB_USERNAME: ${SMARTPOT_DB_USERNAME:-smartpot}
       SMARTPOT_DB_PASSWORD: ${SMARTPOT_DB_PASSWORD:?Falta SMARTPOT_DB_PASSWORD en el .env}
+      SMARTPOT_READER_PASSWORD: ${SMARTPOT_READER_PASSWORD:-dev-reader-password-123}
       SMARTPOT_SEED_DEMO: ${SMARTPOT_SEED_DEMO:-true}
     ports:
-      - "127.0.0.1:${SMARTPOT_DB_PORT:-27017}:27017"
+      - "127.0.0.1:${SMARTPOT_DB_PORT:-5432}:5432"
     volumes:
-      - db_data:/data/db
+      - db_data:/var/lib/postgresql/data
     tmpfs:
       - /tmp
+      - /run/postgresql
     networks:
       - smartpot
 
@@ -43,9 +57,12 @@ services:
     image: smartpot-cache:dev
     container_name: smartpot-dev-cache
     environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD:?Falta REDIS_PASSWORD en el .env}
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?Falta VALKEY_PASSWORD en el .env}
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     ports:
       - "127.0.0.1:${SMARTPOT_CACHE_PORT:-6379}:6379"
+    volumes:
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     networks:
@@ -74,17 +91,21 @@ services:
     build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Broker
     image: smartpot-broker:dev
     container_name: smartpot-dev-broker
+    read_only: false
     environment:
       MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:-smartpot-api}
       MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD:?Falta MQTT_ADMIN_PASSWORD en el .env}
+      MQTT_AUTHN_TOKEN: ${MQTT_AUTHN_TOKEN:?Falta MQTT_AUTHN_TOKEN en el .env}
+      MQTT_AUTHN_URL: ${MQTT_AUTHN_URL:-http://api-smartpot:8091/internal/mqtt/authn}
+      MQTT_BROKER_API_KEY: ${MQTT_BROKER_API_KEY:?Falta MQTT_BROKER_API_KEY en el .env}
+      MQTT_BROKER_API_SECRET: ${MQTT_BROKER_API_SECRET:?Falta MQTT_BROKER_API_SECRET en el .env}
+      MQTT_SCHEDULERS: "2"
     ports:
       - "127.0.0.1:${SMARTPOT_MQTT_PORT:-1883}:1883"
       - "127.0.0.1:${SMARTPOT_MQTT_TLS_PORT:-8883}:8883"
       - "127.0.0.1:${SMARTPOT_MQTT_WS_PORT:-9001}:9001"
     volumes:
-      - broker_data:/mosquitto/data
-      # Opcional: certificados generados con SmartPot-Broker/scripts/generate-certs.sh
-      - ${SMARTPOT_CERTS_DIR:-./certs}:/etc/mosquitto/certs:ro
+      - broker_data:/opt/emqx/data
     tmpfs:
       - /tmp
     networks:
@@ -97,13 +118,41 @@ services:
     container_name: smartpot-dev-ai
     environment:
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN:?Falta SMARTPOT_AI_TOKEN en el .env}
-      DOCS_ENABLED: "true"
-      LOG_LEVEL: DEBUG
-      LEARNING_CHECK_SECONDS: "60"
+      SMARTPOT_TRAINER_URL: ${SMARTPOT_TRAINER_URL:-http://trainer-smartpot:8001}
+      LEARNING_CHECK_SECONDS: "0"
+      AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
+      GRPC_UDS_PATH: /var/run/smartpot/ai.sock
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
     ports:
       - "127.0.0.1:${SMARTPOT_AI_PORT:-8000}:8000"
     volumes:
       - ai_data:/data
+      - smartpot-ipc:/var/run/smartpot
+    tmpfs:
+      - /tmp
+    networks:
+      - smartpot
+
+  trainer-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-Trainer
+    image: smartpot-trainer:dev
+    container_name: smartpot-dev-trainer
+    environment:
+      SMARTPOT_TRAINER_TOKEN: ${SMARTPOT_TRAINER_TOKEN:-${SMARTPOT_AI_TOKEN}}
+      SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN}
+      SMARTPOT_AI_URL: http://ai-smartpot:8000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://smartpot_reader:dev-reader-password-123@db-smartpot:5432/smartpot}
+      AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
+      LEARNING_CHECK_SECONDS: "120"
+      LEARNING_MIN_SAMPLES: "200"
+      LEARNING_RETRAIN_EVERY: "300"
+    ports:
+      - "127.0.0.1:${SMARTPOT_TRAINER_PORT:-8001}:8001"
+    volumes:
+      - ai_data:/data
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     networks:
@@ -121,9 +170,10 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:${SMARTPOT_WEB_PORT:-5173}
       SMARTPOT_JWT_SECRET: ${SMARTPOT_JWT_SECRET:?Falta SMARTPOT_JWT_SECRET en el .env}
       SMARTPOT_AES_KEY: ${SMARTPOT_AES_KEY:?Falta SMARTPOT_AES_KEY en el .env}
-      MONGODB_URI: mongodb://smartpot:${SMARTPOT_DB_PASSWORD}@db-smartpot:27017/smartpot?authSource=smartpot
-      REDIS_HOST: cache-smartpot
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://smartpot:${SMARTPOT_DB_PASSWORD}@db-smartpot:5432/smartpot?sslmode=disable}
+      CACHE_HOST: cache-smartpot
+      CACHE_PASSWORD: ${VALKEY_PASSWORD}
+      VALKEY_SOCKET: /var/run/smartpot/valkey.sock
       MAIL_HOST: mail-smartpot
       MAIL_USERNAME: ${MAIL_USERNAME:-smartpot}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
@@ -131,10 +181,15 @@ services:
       MQTT_BROKER_URI: tcp://broker-smartpot:1883
       MQTT_ADMIN_USERNAME: ${MQTT_ADMIN_USERNAME:-smartpot-api}
       MQTT_ADMIN_PASSWORD: ${MQTT_ADMIN_PASSWORD}
+      MQTT_AUTHN_TOKEN: ${MQTT_AUTHN_TOKEN}
+      MQTT_BROKER_API_URL: http://broker-smartpot:18083
+      MQTT_BROKER_API_KEY: ${MQTT_BROKER_API_KEY}
+      MQTT_BROKER_API_SECRET: ${MQTT_BROKER_API_SECRET}
       MQTT_PUBLIC_HOST: localhost
       MQTT_PUBLIC_PORT: ${SMARTPOT_MQTT_PORT:-1883}
       MQTT_WEBSOCKET_URL: ws://localhost:${SMARTPOT_MQTT_WS_PORT:-9001}
       AI_BASE_URL: http://ai-smartpot:8000
+      AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
       SMARTPOT_AI_TOKEN: ${SMARTPOT_AI_TOKEN}
       AI_EVALUATION_INTERVAL: PT1M
       AI_LEARNING_FLUSH_INTERVAL: PT15S
@@ -145,6 +200,8 @@ services:
       TELEGRAM_MODE: polling
     ports:
       - "127.0.0.1:${SMARTPOT_API_PORT:-8091}:8091"
+    volumes:
+      - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
     depends_on:
@@ -164,6 +221,7 @@ services:
     container_name: smartpot-dev-web
     environment:
       API_URL: http://localhost:${SMARTPOT_API_PORT:-8091}
+      MCP_URL: http://localhost:${SMARTPOT_MCP_PORT:-8002}
     ports:
       - "127.0.0.1:${SMARTPOT_WEB_PORT:-5173}:8080"
     tmpfs:
@@ -184,9 +242,34 @@ services:
       MQTT_PORT: "1883"
       SIMULATOR_DEVICES: ${SIMULATOR_DEVICES:-}
       SIMULATOR_INTERVAL_SECONDS: ${SIMULATOR_INTERVAL_SECONDS:-15}
+      SIMULATOR_PAYLOAD_FORMAT: binary
       SIMULATOR_TOKEN: ${SIMULATOR_TOKEN:-}
+      RUST_LOG: debug
     ports:
       - "127.0.0.1:${SMARTPOT_SIMULATOR_PORT:-8081}:8081"
+    tmpfs:
+      - /tmp
+    depends_on:
+      api-smartpot:
+        condition: service_healthy
+    networks:
+      - smartpot
+
+  mcp-smartpot:
+    <<: *hardening
+    build: ${SMARTPOT_REPOS:-../../..}/SmartPot-MCP
+    image: smartpot-mcp:dev
+    container_name: smartpot-dev-mcp
+    profiles:
+      - mcp
+    environment:
+      SMARTPOT_API_URL: http://api-smartpot:8091
+      TRANSPORT: streamable-http
+      HOST: 0.0.0.0
+      PORT: "8002"
+      MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*
+    ports:
+      - "127.0.0.1:${SMARTPOT_MCP_PORT:-8002}:8002"
     tmpfs:
       - /tmp
     depends_on:
@@ -199,6 +282,12 @@ volumes:
   db_data:
   broker_data:
   ai_data:
+  smartpot-ipc:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=64m,mode=1777"
 
 networks:
   smartpot:
