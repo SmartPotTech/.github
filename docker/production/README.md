@@ -73,6 +73,8 @@ flowchart LR
 
 All configuration lives in a single `.env`, but `compose.yaml` gives each container only its own variables: the PWA never sees the JWT secret and the AI service only knows its token. The `internal` network has no internet egress: PostgreSQL, Valkey, and the AI service are not reachable from outside. The virtual crop simulator uses `public` only to query the weather and publishes no ports. Its control API is used only by the SmartPot API, with a token.
 
+**Model signing custody.** The AI mounts `ai_data:/data:ro`; it only reads `{SPECIES}_inference.json` and `{SPECIES}_manifest.json`. The Trainer writes models to `ai_data` and keeps the Ed25519 private key in a separate `trainer_keys` volume mounted at `/data/keys` (mode `0600`), never readable by the AI. Set `MODEL_SIGNING_KEY_PATH=/data/keys/ed25519_private.pem` and `TRUSTED_MODEL_PUBLIC_KEY_HEX=<32-byte hex>` so the AI authenticates every learned package; without the trust anchor it only checks the BLAKE2b hash. The MCP server validates each `spt_` token against the API and caches the verdict for 30 seconds (`MCP_TOKEN_CACHE_SECONDS`), including `tools/list`.
+
 ### Database Roles
 
 Production separates database roles. The API connects with the writable `DATABASE_URL` and the `smartpot` role. The trainer connects with a URL built from `smartpot_reader` and `SMARTPOT_READER_PASSWORD`, so it can never write through the API role. Development uses the same split. Kubernetes mounts the `TRAINER_DATABASE_URL` secret key as the trainer's `DATABASE_URL`, while the API keeps `DATABASE_URL`.
@@ -321,6 +323,8 @@ flowchart LR
 | `simulator-smartpot`            | `internal` + `public` (salida al clima) | Ninguno                          | `SIMULATOR_*`, `MQTT_*`                                                                                                                               |
 
 Toda la configuración vive en un único `.env`, pero `compose.yaml` entrega a cada contenedor solo sus variables: la PWA no ve el secreto JWT y el servicio de IA solo conoce su token. La red `internal` no tiene salida a internet: PostgreSQL, Valkey y la IA no son alcanzables desde fuera. El simulador de cultivos virtuales solo usa `public` para consultar el clima y no publica puertos. Su API de control la usa únicamente la API de SmartPot, con token.
+
+**Custodia de la firma de modelos.** La IA monta `ai_data:/data:ro` y solo lee `{SPECIES}_inference.json` y `{SPECIES}_manifest.json`. El Trainer escribe los modelos en `ai_data` y guarda la clave privada Ed25519 en el volumen separado `trainer_keys`, montado en `/data/keys` (modo `0600`), nunca legible por la IA. Define `MODEL_SIGNING_KEY_PATH=/data/keys/ed25519_private.pem` y `TRUSTED_MODEL_PUBLIC_KEY_HEX=<hex de 32 bytes>` para que la IA autentique cada paquete aprendido; sin el ancla de confianza solo comprueba el hash BLAKE2b. El servidor MCP valida cada token `spt_` contra la API y cachea el veredicto 30 segundos (`MCP_TOKEN_CACHE_SECONDS`), incluido `tools/list`.
 
 ### Roles de base de datos
 

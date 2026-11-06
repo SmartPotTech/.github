@@ -625,7 +625,7 @@ El panel general pide al asistente una mirada de conjunto (`POST /v1/fleet`):
 
 Los modelos base nacen de datos sintéticos; el aprendizaje continuo los complementa con lo que de verdad pasa en los
 cultivos reales. Cada lectura de un cultivo real que llega por MQTT se encola en la API (las de los virtuales no) y
-viaja a la IA en lotes cada minuto (`POST /v1/learning/readings`). La IA la guarda en SQLite, en el volumen `ai_data`,
+viaja a la IA en lotes cada minuto (`POST /v1/learning/readings`). La IA la reenvía al Trainer, que la guarda en SQLite en el volumen `ai_data`,
 con el id del cultivo **seudonimizado** con SHA-256; al borrar un cultivo, sus lecturas se olvidan.
 
 <!-- diagrama: SmartPot_16_Learning | titulo=Aprendizaje continuo con lecturas reales -->
