@@ -137,8 +137,10 @@ services:
       AI_GRPC_SOCKET: /var/run/smartpot/ai.sock
       GRPC_UDS_PATH: /var/run/smartpot/ai.sock
       VALKEY_SOCKET: /var/run/smartpot/valkey.sock
+      AI_TIMEZONE: ${AI_TIMEZONE:-America/Bogota}
+      TRUSTED_MODEL_PUBLIC_KEY_HEX: ${TRUSTED_MODEL_PUBLIC_KEY_HEX:-}
     volumes:
-      - ai_data:/data
+      - ai_data:/data:ro
       - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
@@ -162,8 +164,11 @@ services:
       LEARNING_CHECK_SECONDS: "120"
       LEARNING_MIN_SAMPLES: "200"
       LEARNING_RETRAIN_EVERY: "300"
+      MODEL_SIGNING_KEY_PATH: ${MODEL_SIGNING_KEY_PATH:-/data/keys/ed25519_private.pem}
+      TRUSTED_MODEL_PUBLIC_KEY_HEX: ${TRUSTED_MODEL_PUBLIC_KEY_HEX:-}
     volumes:
       - ai_data:/data
+      - trainer_keys:/data/keys
       - smartpot-ipc:/var/run/smartpot
     tmpfs:
       - /tmp
@@ -297,6 +302,7 @@ volumes:
   db_data:
   broker_data:
   ai_data:
+  trainer_keys:
   smartpot-ipc:
     driver: local
     driver_opts:
