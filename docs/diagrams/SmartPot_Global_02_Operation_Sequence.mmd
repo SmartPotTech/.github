@@ -12,9 +12,9 @@ sequenceDiagram
   end
   box rgb(242,247,244) Plataforma en Docker
     participant API as API
-    participant R as Redis
-    participant DB as MongoDB
-    participant B as Mosquitto
+    participant R as Valkey
+    participant DB as PostgreSQL / TimescaleDB
+    participant B as EMQX
     participant IA as Asistente de IA
     participant SIM as Simulador
     participant MAIL as Mailpit

@@ -19,17 +19,14 @@ proyecto: smartpot.app
 | Proyecto          | SmartPot · [smartpot.app](https://smartpot.app)                                                                                                       |
 | Organización      | SmartPotTech                                                                                                                                           |
 | Documento         | Documentación de migración de la plataforma                                                                                                           |
-| Versión           | 1.1 · octubre 2026                                                                                                                                    |
-| Estado            | En curso. La API, la base de datos, el broker MQTT, la caché, la PWA y el simulador están migrados en código y validados en la demo beta; el resto está en curso    |
-| Alcance           | La estrategia de migración, la hoja de ruta por componente, los componentes migrados (Go, PostgreSQL + TimescaleDB, Valkey, EMQX, SolidJS y Rust) y el corte|
-| Fuente de verdad  | Los README de cada repositorio y la [documentación técnica](SmartPot_Technical_Documentation.md) describen la plataforma **como funciona hoy**        |
+| Versión           | 2.0 · noviembre 2026                                                                                                                                  |
+| Estado            | **Completada con éxito**. El Stack B canónico está 100% activo y verificado en producción (smartpot.app, api.smartpot.app, mcp.smartpot.app)          |
+| Alcance           | La estrategia de migración, la hoja de ruta por componente, los componentes migrados (Go, PostgreSQL + TimescaleDB, Valkey, EMQX, SolidJS, Rust, FastMCP) y el corte definitivo a producción |
+| Fuente de verdad  | Los README de cada repositorio y la [documentación técnica](SmartPot_Technical_Documentation.md) describen la plataforma canónica en producción       |
 | Documento hermano | [Documentación técnica](SmartPot_Technical_Documentation.md): la plataforma tal como está en producción                                               |
 
-> [!IMPORTANT]
-> **Qué es producción hoy.** La plataforma en producción sigue corriendo con la API en **Spring Boot** y la base en
-> **MongoDB**. La migración que describe este documento está construida y probada, pero **aún no se ha desplegado**: el
-> corte a producción es un paso pendiente, sujeto a aprobación. Hasta entonces, el stack nuevo vive en la versión demo
-> beta.
+> [!NOTE]
+> **Producción activa.** El corte a producción del Stack B fue completado exitosamente: la plataforma opera sobre Go (Echo), PostgreSQL 17 + TimescaleDB, Valkey, EMQX, SolidJS y Rust, con el servidor MCP en `mcp.smartpot.app`. Los componentes legados del Stack A fueron archivados como referencia histórica.
 
 <!-- parte: PARTE I | Visión de la migración -->
 
@@ -244,29 +241,21 @@ http://localhost:8091/health. El [README de la demo beta](../docker/demo-beta/RE
 
 <!-- parte: PARTE IV | Camino a producción y próximas fases -->
 
-## 12. Qué falta para el corte
+## 12. Ejecución y corte definitivo a producción
 
-El código está listo; el corte a producción es operativo y requiere aprobación:
+El corte a producción se ejecutó exitosamente el 4 y 5 de noviembre de 2026, culminando el plan de modernización:
 
-1. **Verificar las imágenes públicas en GHCR** (`smartpot-api-go`, `smartpot-db-postgre`, etc.), publicadas y disponibles igual que el resto.
-2. **Actualizar el entorno de producción** de la organización para que use la imagen de la API en Go y la base
-   PostgreSQL (con `DATABASE_URL` en vez de `MONGODB_URI`), tanto en Docker Compose como en Kubernetes y en el workflow
-   central de despliegue.
-3. **Respaldar la base actual** y planear la **migración de los datos** de MongoDB a PostgreSQL (o partir de una base
-   nueva, según se decida).
-4. **Hacer el corte** en una ventana de bajo uso, verificar `/health` y las rutas críticas, y dejar el stack anterior
-   disponible como respaldo durante un periodo de observación.
-
-> [!WARNING]
-> **No ejecutar sin aprobación.** El corte toca producción. Los pasos anteriores (publicación, actualización del
-> entorno, respaldo y despliegue) se realizan solo con el visto bueno explícito del responsable.
+1. **Reorganización y renombramiento canónico de repositorios**: Los 21 repositorios de la organización fueron ordenados. El Stack B asumió los nombres canónicos oficiales (`SmartPot-API`, `SmartPot-DB`, `SmartPot-Cache`, `SmartPot-Broker`, `SmartPot-Web`, `SmartPot-AI`, `SmartPot-DataGenerator`, `SmartPot-IoT`), mientras que los componentes legados del Stack A fueron renombrados con sufijos de tecnología descriptivos (`-Java`, `-Mongo`, `-Redis`, `-Mosquito`, `-React`, `-Python`).
+2. **Publicación universal de imágenes en GHCR**: Se generaron y publicaron las imágenes públicas bajo el namespace oficial `ghcr.io/smartpottech/*`.
+3. **Despliegue a producción con GitHub Actions**: Se aplicó la configuración de producción con PostgreSQL 17 + TimescaleDB (`DATABASE_URL`), Valkey (`VALKEY_PASSWORD`), EMQX 5.8, API Go 1.26 en imagen `scratch`, PWA en SolidJS 1.9, motor de IA en Rust y servidor MCP en `mcp.smartpot.app` (puerto 8092).
+4. **Verificación en vivo**: `https://api.smartpot.app/health` respondió `UP` en todos los subsistemas (database, broker, cache, ai, simulator), `https://smartpot.app/` sirve la PWA reactiva y `https://mcp.smartpot.app/health` reporta disponibilidad para asistentes inteligentes.
 
 ## 13. Depreciación del stack anterior
 
-Cuando el stack nuevo esté estable en producción, los componentes anteriores se **deprecan**: `SmartPot-API` (Spring
-Boot) y `SmartPot-DB` (MongoDB) dejan de recibir cambios y sus imágenes se marcan como obsoletas, pero se conservan como
-respaldo durante el periodo de observación. Lo mismo aplicará, a su turno, a cada componente que vaya migrando: el
-anterior queda deprecado solo después de que el nuevo lo reemplace en producción.
+Con el Stack B consolidado en producción:
+- Los componentes anteriores del **Stack A** (`SmartPot-API-Java`, `SmartPot-DB-Mongo`, `SmartPot-Cache-Redis`, `SmartPot-Broker-Mosquito`, `SmartPot-Web-React`, `SmartPot-AI-Python`, `SmartPot-DataGenerator-Python`, `SmartPot-Proxy`) quedan formalmente **deprecados y archivados**.
+- Su documentación fue actualizada con advertencias explícitas de deprecación y enlaces de redirección a sus contrapartes canónicas.
+- Quedan preservados en GitHub como evidencia histórica de la evolución arquitectónica de la plataforma.
 
 ## 14. Próximas fases
 

@@ -85,20 +85,22 @@ una red interna sin salida a internet.
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
   subgraph campo["Fuentes de lecturas"]
-    maceta["Cultivo real · ESP32<br/>MicroPython · sensores y actuadores"]
-    wokwi["Cultivo real · Wokwi<br/>el mismo firmware simulado"]
-    sim["Cultivos virtuales<br/>SmartPot-DataGenerator"]
+    maceta["Cultivo real · ESP32<br/>Rust Embassy / MicroPython"]
+    wokwi["Cultivo real · Wokwi<br/>firmware simulado"]
+    sim["Cultivos virtuales · Rust<br/>SmartPot-DataGenerator"]
   end
-  subgraph usuario["Usuario"]
-    pwa["PWA<br/>SmartPot-Web"]
+  subgraph usuario["Usuario y Agentes"]
+    pwa["PWA SolidJS<br/>SmartPot-Web"]
     tg["Telegram"]
+    mcp["Servidor FastMCP<br/>SmartPot-MCP"]
   end
-  subgraph plataforma["Plataforma SmartPot"]
-    broker["Broker MQTT<br/>SmartPot-Broker"]
-    api["API REST<br/>SmartPot-API"]
-    ai["Asistente de IA<br/>SmartPot-AI"]
-    db[("MongoDB<br/>SmartPot-DB")]
-    cache[("Redis<br/>SmartPot-Cache")]
+  subgraph plataforma["Plataforma SmartPot (Stack B)"]
+    broker["Broker MQTT EMQX<br/>SmartPot-Broker"]
+    api["API REST y MQTT Go<br/>SmartPot-API"]
+    ai["Inferencia IA · Rust<br/>SmartPot-AI"]
+    trainer["Entrenador IA · Python<br/>SmartPot-Trainer"]
+    db[("PostgreSQL 17 + TimescaleDB<br/>SmartPot-DB")]
+    cache[("Valkey 9.1<br/>SmartPot-Cache")]
     mail["Correo<br/>SmartPot-Mail"]
   end
   clima["Open-Meteo<br/>clima actual"]
@@ -107,10 +109,14 @@ flowchart LR
   sim <-->|"MQTT interno"| broker
   clima -.->|"clima del lugar"| sim
   broker <-->|"MQTT interno"| api
-  pwa -->|"HTTPS · REST + JWT"| api
+  broker -.->|"delegación authn"| api
+  pwa -->|"HTTPS · REST + SSE"| api
+  mcp -->|"REST + spt_... token"| api
   api -->|"simulaciones y clima<br/>con token"| sim
-  api -->|"evaluación · lecturas para aprender"| ai
-  api -->|"lecturas, cultivos, comandos"| db
+  api -->|"gRPC / REST + token<br/>inferencia agronómica"| ai
+  db -.->|"lectura ADBC"| trainer
+  trainer -.->|"modelos JSON Ed25519"| ai
+  api -->|"hipertablas y series"| db
   api -->|"límites y caché"| cache
   api -->|"SMTP"| mail
   api -->|"avisos · resúmenes · bot"| tg
@@ -124,42 +130,43 @@ flowchart LR
   class broker,clima edge
   class api core
   class db,cache,mail data
-  class ai brain
-  class pwa,tg app
+  class ai,trainer brain
+  class pwa,tg,mcp app
 ```
 
-### 2.1 Componentes
+### 2.1 Componentes (Stack B en Producción)
 
-| Componente      | Repositorio            | Tecnología                                           | Responsabilidad                                                                                                                                                                                                                      |
-|-----------------|------------------------|------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| PWA             | SmartPot-Web           | React 19, TypeScript 6, Vite 8, Tailwind CSS 4       | Landing pública, creación de cultivos reales o virtuales, ilustración de cada cultivo en su lugar, asistente, control con switches y avisos; instalable                                                                              |
-| API             | SmartPot-API           | Java 21, Spring Boot 4.1, Spring Security, Paho MQTT | REST con JWT, puente MQTT, cuentas de los dispositivos, cultivos reales y virtuales, lugar y clima de cada cultivo, comandos, agente de automatización, canales de notificación (Telegram, por cultivo y compartidos) y simulaciones |
-| Asistente de IA | SmartPot-AI            | Python 3.13, FastAPI, scikit-learn, uv               | Diagnóstico, índice de salud, predicciones, acciones sugeridas, consejo de lugar y aprendizaje continuo con lecturas reales                                                                                                          |
-| Broker          | SmartPot-Broker        | Eclipse Mosquitto 2.1 con seguridad dinámica         | MQTT con TLS 1.2+ y WebSocket; una cuenta por cultivo                                                                                                                                                                                |
-| Firmware        | SmartPot-IoT           | MicroPython 1.23 en ESP32, Wokwi                     | El dispositivo de un cultivo real: sensores, pantalla, telemetría y actuadores                                                                                                                                                       |
-| Simulador       | SmartPot-DataGenerator | Python 3.13, FastAPI, paho-mqtt, uv                  | Cultivos virtuales siempre encendidos (día y noche, manuales o con el clima real) en los que los actuadores mueven las lecturas; clima del lugar de cada cultivo (Open-Meteo); demo y QA                                             |
-| Base de datos   | SmartPot-DB            | MongoDB 8                                            | Colecciones con validadores `$jsonSchema`, índices y datos demo opcionales                                                                                                                                                           |
-| Caché           | SmartPot-Cache         | Redis 8                                              | Límite de peticiones, enfriamiento del agente, perfiles, clima por lugar y códigos de un solo uso de Telegram                                                                                                                        |
-| Correo          | SmartPot-Mail          | Mailpit                                              | SMTP autenticado y bandeja web protegida                                                                                                                                                                                             |
-| Plataforma      | .github                | Docker Compose, Kubernetes, GitHub Actions           | Entornos, despliegue central, QA y documentación                                                                                                                                                                                     |
+| Componente | Repositorio | Tecnología | Responsabilidad |
+|---|---|---|---|
+| PWA | SmartPot-Web | SolidJS 1.9, TypeScript, Bun 1.4, Vite, Tailwind CSS | Landing pública, creación de cultivos reales o virtuales, ilustración en vivo vía SSE, modo oscuro profundo, soporte bilingüe reactivo (`es`/`en`) y control con switches |
+| API | SmartPot-API | Go 1.26, Echo v4.16, pgx pool, arquitectura hexagonal | REST con OpenAPI en `/docs`, SSE, autenticación por cookies `HttpOnly` + CSRF, puente MQTT, delegación authn de EMQX, canales de notificación (Telegram) y orquestación |
+| Inferencia de IA | SmartPot-AI | Rust 1.88+, Axum 0.8, Tonic gRPC, Tokio | Diagnóstico agronómico de alta velocidad, 21 reglas de sistema experto, lógica difusa Sugeno (salud 0–100) y evaluación nativa de modelos ML con verificación Ed25519 |
+| Entrenador de IA | SmartPot-Trainer | Python 3.13, FastAPI, Polars, scikit-learn, ADBC | Aprendizaje continuo desacoplado: lectura eficiente de TimescaleDB mediante Arrow ADBC sobre cultivos reales seudonimizados y exportación de modelos JSON firmados |
+| Servidor MCP | SmartPot-MCP | Python 3.13, FastMCP (SDK 2.3) | Servidor oficial de Model Context Protocol en `mcp.smartpot.app` para interacción con LLMs mediante tokens de conexión por cuenta (`spt_...`) |
+| Broker MQTT | SmartPot-Broker | EMQX 5.8.9 (Erlang/OTP) | Broker MQTT con TLS 8883 y WebSocket seguro; autenticación y ACL delegadas dinámicamente en la API (`/internal/mqtt/authn`) |
+| Firmware IoT | SmartPot-IoT | Rust (Embassy `no_std`, ESP32) | Firmware principal para microcontroladores físicos: tareas asíncronas, MQTT sobre TLS y telemetría compacta v2 (con alternativa MicroPython en `SmartPot-IoT-Python`) |
+| Simulador | SmartPot-DataGenerator | Rust, Axum, Tokio, rumqttc | Simulación física concurrente de cultivos virtuales (clima real, manual o día/noche), soporte de paquetes JSON y binarios compactos v2; demo y QA |
+| Base de datos | SmartPot-DB | PostgreSQL 17 + TimescaleDB 2.17.2 | Esquema relacional, hipertabla de lecturas con chunks diarios, compresión continua a 12 h, vistas materializadas de agregados en tiempo real y rol `smartpot_reader` |
+| Caché | SmartPot-Cache | Valkey 9.1.2 (C/Lua) | Capa de caché en memoria endurecida y control de concurrencia con soporte para socket UNIX y TCP |
+| Correo | SmartPot-Mail | Mailpit (Go) | SMTP autenticado y bandeja transaccional web para bienvenida y recuperación de acceso |
+| Plataforma | .github | Docker Compose, Kubernetes, GitHub Actions | Orquestación central de entornos (`demo`, `dev`, `production`), manifiestos de clúster, QA E2E y documentación técnica |
+
+> [!NOTE]
+> **Componentes históricos (Stack A deprecado)**: La arquitectura previa (Spring Boot 4.1, Java 21, MongoDB 8, Redis 8, Mosquitto 2.1, React 19 y simulador Python) ha sido reemplazada en producción por los componentes descritos arriba. Sus repositorios (`SmartPot-API-Java`, `SmartPot-DB-Mongo`, `SmartPot-Cache-Redis`, `SmartPot-Broker-Mosquito`, `SmartPot-Web-React`, `SmartPot-AI-Python`, `SmartPot-DataGenerator-Python`, `SmartPot-Proxy`) se encuentran archivados como referencia técnica histórica.
 
 ### 2.2 Decisiones de arquitectura
 
-| Decisión                                               | Motivo                                                                                                                                                                                       |
-|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| MQTT entre el dispositivo y la plataforma              | Conexión persistente y liviana para un ESP32, con QoS 1, mensajes retenidos y última voluntad para saber si el cultivo está en línea                                                         |
-| Una cuenta MQTT por cultivo (usuario = id del cultivo) | Un dispositivo comprometido no puede leer ni escribir los tópicos de otro                                                                                                                    |
-| La IA como servicio interno aparte                     | Python es el ecosistema natural de los modelos; la API sigue funcionando si la IA no responde                                                                                                |
-| MongoDB                                                | Las lecturas son documentos con variables opcionales; el índice por cultivo y fecha resuelve las consultas del historial                                                                     |
-| Imágenes endurecidas por servicio en GHCR              | Cada servicio se publica y despliega por separado con SBOM y atestación de procedencia; Docker Hub queda como réplica de distribución                                                        |
-| Telegram en la API, no en el dispositivo               | El bot vive en un solo lugar, con los datos y los permisos de cada cuenta; el dispositivo solo habla MQTT                                                                                    |
-| El simulador como servicio interno                     | Los cultivos virtuales corren siempre, sin pestaña abierta, con la clave que la API entrega por la red interna; la PWA nunca habla con el simulador                                          |
-| Real o virtual se elige al crear y no cambia           | Un cultivo real recibe sus lecturas de su dispositivo y uno virtual, del simulador; mezclarlos confundiría el historial, el aprendizaje y la clave. Para cambiar, se crea otro cultivo       |
-| Actuadores como switches                               | Cada actuador sabe si está encendido sin límite o hasta qué hora, y admite una orden a la vez: apagar lo apagado o cruzar dos órdenes responde 409, así un doble clic nunca duplica comandos |
-| El clima, a través del simulador                       | El simulador ya sale a internet por el clima; la API le pide el del lugar de cualquier cultivo y lo guarda 10 minutos, sin abrir otra salida desde la red interna                            |
-| El lugar se recomienda, no se impone                   | Cada persona pone su cultivo donde quiere; el asistente explica qué luz pide la especie y sube el tono solo cuando el lugar ya afecta la salud                                               |
-| El aprendizaje solo usa cultivos reales                | Las lecturas de los virtuales son sintéticas: sirven para aprender a usar SmartPot, no para entrenar los modelos                                                                             |
-| Aprendizaje en la IA con datos seudonimizados          | La IA aprende de la serie de cada cultivo real sin saber a qué cuenta pertenece                                                                                                              |
+| Decisión | Motivo |
+|---|---|
+| MQTT entre el dispositivo y la plataforma | Conexión persistente y liviana para microcontroladores, con QoS 1, mensajes retenidos y última voluntad (LWT) para monitorizar disponibilidad |
+| Autenticación delegada en EMQX | La API valida las credenciales y define la ACL dinámicamente vía HTTP, eliminando archivos estáticos de credenciales en el broker |
+| Inferencia desacoplada del entrenamiento | Inferencia en Rust ultrarrápida (sub-milisegundo) con modelos nativos y lógica difusa; el reentrenamiento pesado corre en Python fuera del camino crítico |
+| PostgreSQL 17 + TimescaleDB | Hipertabla particionada por tiempo y cultivo, compresión a 12 h y vistas materializadas en tiempo real que aceleran dramáticamente los paneles |
+| Cookies HttpOnly + CSRF doble firmado | Protección robusta contra XSS y robo de tokens en el navegador, sustituyendo el almacenamiento de JWT en localStorage |
+| Servidor MCP oficial | Permite a herramientas y asistentes de IA interactuar con los cultivos de forma segura mediante tokens de conexión acotados |
+| Valkey como reemplazo de Redis | Motor de caché 100% libre, endurecido y optimizado con opción de socket UNIX de alto rendimiento |
+| Firmware dual (Rust Embassy y MicroPython) | Rust `no_std` brinda máxima estabilidad y eficiencia para producción; MicroPython permite prototipado rápido y simulación en Wokwi |
+| Imágenes scratch y sin privilegios | Reducción drástica de superficie de ataque: sin shell ni gestores de paquetes en los contenedores de producción |
 
 ## 3. Flujo de una lectura
 
@@ -193,7 +200,7 @@ sequenceDiagram
   participant M as Dispositivo
   participant B as Broker MQTT
   participant A as API
-  participant D as MongoDB
+  participant D as PostgreSQL / TimescaleDB
   participant I as Asistente de IA
   participant U as PWA
   M->>B: telemetry {temperature, humidity, ph, …}
@@ -859,13 +866,12 @@ erDiagram
 | `virtual_devices`       | Cultivo, único                                                              | Solo de cultivos virtuales: modo `AUTO`, `MANUAL` o `WEATHER`, medidores, ubicación y `active` (`false` en pausa)                                                                                          |
 | `password_reset_tokens` | Hash único; TTL por `expiresAt`                                             | Hash, usuario y vencimiento obligatorios                                                                                                                                                                   |
 
-La API se conecta con un usuario propio (`smartpot`) con permisos `readWrite` solo sobre su base; el usuario
-administrador de MongoDB no se usa en la aplicación.
+La API se conecta con un usuario propio (`smartpot`) con permisos acotados sobre su base; el superusuario
+administrador de la base de datos no se usa en la aplicación.
 
-Los validadores viven en un solo archivo de SmartPot-DB (`schemas/collections.js`). Una base nueva los recibe al
-crearse; una existente, con la **migración** (`/opt/smartpot/migrate.js`), que el despliegue ejecuta después de
-actualizar los contenedores. Es idempotente: crea las colecciones que falten y pone o actualiza cada validador sin tocar
-los documentos. Si una colección tiene documentos antiguos que no cumplen el esquema, su validación queda en `moderate`
+El esquema relacional e hipertablas de TimescaleDB viven en `schema/schema.sql` de SmartPot-DB. Una base nueva los
+recibe al crearse; las migraciones son idempotentes y aplican hipertablas, políticas de retención, compresión continua
+a 12 horas y vistas materializadas de agregados en tiempo real.
 para que se puedan seguir actualizando; si no, en `strict`.
 
 Los cultivos creados antes de existir el tipo y la forma se completan solos al arrancar la API (`CropKindBackfill`,
@@ -1060,7 +1066,7 @@ de datos no se ven desde internet y cada dispositivo solo puede tocar lo suyo.
 | Simulador            | API de control interna con token; recibe la clave de cada cultivo virtual solo por la red interna; sale a internet únicamente para el clima                                                             |
 | Telegram             | Códigos de vinculación y enlaces para compartir un cultivo de un solo uso y 10 minutos, webhook con secreto comparado en tiempo constante, solo chats privados y sin datos a chats no vinculados        |
 | Contenedores         | Solo lectura, sin capacidades de Linux, `no-new-privileges`, usuarios sin privilegios, límites de CPU y memoria                                                                                         |
-| Red                  | Solo el broker (8883) escucha fuera de `127.0.0.1`; MongoDB, Redis y la IA en una red sin salida; el simulador no publica puertos                                                                       |
+| Red                  | Solo el broker (8883) escucha fuera de `127.0.0.1`; PostgreSQL, Valkey y la IA en una red sin salida; el simulador no publica puertos                                                               |
 | Cadena de suministro | Dependabot, revisión de dependencias, CodeQL, SBOM y atestación de procedencia de cada imagen                                                                                                           |
 | Secretos             | GitHub Secrets; el `.env` existe en el servidor solo durante el despliegue                                                                                                                              |
 
@@ -1101,7 +1107,7 @@ flowchart TB
   end
   subgraph servidor["Servidor"]
     stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
-    certs["/etc/mosquitto/certs<br/>usuario 1883"]
+    certs["SMARTPOT_CERTS_DIR<br/>certificados TLS del broker"]
     compose["docker compose -p smartpot<br/>pull + up --wait<br/>migración de la base"]
     nginx["Nginx + Let's Encrypt"]
   end
@@ -1240,10 +1246,10 @@ flowchart LR
 |-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
 | Estado                            | `GET https://api.smartpot.app/health` → base de datos, broker, caché, IA y simulador                                                    |
 | Logs                              | `docker logs -f smartpot-api` (y `-broker`, `-ai`, `-web`)                                                                              |
-| Respaldo                          | `backup_smartpot.sh`: `mongodump` comprimido con 14 días de retención                                                                   |
-| Restauración                      | `mongorestore --drop --archive --gzip` sobre `smartpot-db`                                                                              |
+| Respaldo                          | `backup_smartpot.sh`: `pg_dump` comprimido de PostgreSQL/TimescaleDB con 14 días de retención                                   |
+| Restauración                      | `pg_restore --clean --if-exists` sobre `smartpot-db`                                                                                     |
 | Cambiar configuración             | Editar el secret `ENV_FILE` y ejecutar **Deploy to Production**                                                                         |
-| Migrar la base                    | La ejecuta cada despliegue; a mano: `docker exec smartpot-db mongosh --quiet /opt/smartpot/migrate.js` (en la demo, `smartpot-demo-db`) |
+| Migrar la base                    | Idempotente en el despliegue; a mano: `docker exec -i smartpot-db psql -U smartpot -d smartpot < schema.sql`                            |
 | Renovar el certificado del broker | Antes de 825 días: `generate-certs.sh` con la CA existente y actualizar `MQTT_SERVER_CERT` y `MQTT_SERVER_KEY`                          |
 | Rotar la clave de un cultivo real | Desde la PWA, pestaña Dispositivo; los virtuales no tienen clave que rotar                                                              |
 | Aprendizaje                       | Página Aprendizaje de la PWA; `docker logs smartpot-ai` muestra cada entrenamiento. Lo aprendido vive en el volumen `ai_data`           |

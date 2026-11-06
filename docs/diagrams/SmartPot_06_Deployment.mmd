@@ -13,7 +13,7 @@ flowchart TB
   end
   subgraph servidor["Servidor"]
     stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
-    certs["/etc/mosquitto/certs<br/>usuario 1883"]
+    certs["SMARTPOT_CERTS_DIR<br/>certificados TLS del broker"]
     compose["docker compose -p smartpot<br/>pull + up --wait<br/>migración de la base"]
     nginx["Nginx + Let's Encrypt"]
   end

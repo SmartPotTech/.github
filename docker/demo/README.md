@@ -109,6 +109,6 @@ docker compose -p smartpot-demo down -v     # borra también la base de datos y 
 | `smartpot-demo-simulator` | `smartpot-datagenerator` | Simulador en Rust con soporte JSON y paquete binario compacto v2      |
 | `smartpot-demo-mcp`       | `smartpot-mcp`           | Servidor FastMCP para asistentes de IA                                |
 
-MongoDB, Redis y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
+PostgreSQL, Valkey y la IA viven en una red interna sin salida a internet; solo la API, la PWA, el broker y la bandeja de
 correo publican puertos, y únicamente en `127.0.0.1`. El simulador sale a internet solo para consultar el clima y no
 publica puertos. Lo aprendido por la IA se guarda en el volumen `ai_data`.

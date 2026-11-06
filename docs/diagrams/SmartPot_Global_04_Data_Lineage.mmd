@@ -31,9 +31,9 @@ flowchart LR
     ranges -->|"no"| discard
   end
 
-  subgraph mongo["MongoDB · base smartpot"]
+  subgraph mongo["PostgreSQL 17 + TimescaleDB · base smartpot"]
     direction TB
-    readings[("readings<br/>cropId · measuredAt · measures · source<br/>índice cropId + measuredAt · TTL 365 d")]
+    readings[("readings (Hipertabla TimescaleDB)<br/>cropId · measuredAt · measures · source<br/>chunks 1 d · compresión 12 h · agregados continuos")]
     crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type · kind · form<br/>placement: setting · exposure · location")]
     commands[("commands<br/>actuatorType · action · durationSeconds<br/>status · source USER o AGENT · reason<br/>createdAt · sentAt · completedAt · TTL 180 d")]
     actuators[("actuators<br/>type · active · runningUntil · lastChangedAt")]
@@ -44,7 +44,7 @@ flowchart LR
     users[("users · password_reset_tokens<br/>hash BCrypt · hash SHA-256 del token")]
   end
 
-  subgraph redis["Redis · datos efímeros"]
+  subgraph redis["Valkey · datos efímeros"]
     direction TB
     rkeys[("reading · ai-eval · agent · notify<br/>rate · channel-link · crop-share · weather<br/>ai:learning-status · ai:crop-profiles")]
   end

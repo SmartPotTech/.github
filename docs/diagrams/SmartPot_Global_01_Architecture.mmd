@@ -1,160 +1,171 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}, "flowchart": {"useMaxWidth": false, "htmlLabels": true, "curve": "basis", "padding": 14, "nodeSpacing": 45, "rankSpacing": 80, "wrappingWidth": 360}}}%%
 flowchart LR
-  subgraph actores["Personas y dispositivos"]
+  subgraph actores["Personas, Agentes y Dispositivos"]
     direction TB
     user(["Dueño del cultivo<br/>navegador o PWA instalada<br/>Android · iOS · escritorio"])
-    esp["Cultivo real · ESP32 físico<br/>MicroPython 1.23 · main.py<br/>SmartPotClient (MQTT con TLS · CA en config.py)<br/>ADCSensor: luz · pH · TDS · sustrato<br/>AtmosphereSensor DHT22<br/>ActuatorBank: bomba · luz ultravioleta · ventilador<br/>LCDDisplay 20x4 por I2C"]
-    wokwi["Cultivo real · Wokwi<br/>el mismo firmware en un ESP32 simulado<br/>diagram.json · se ejecuta a mano"]
+    esp["Cultivo real · ESP32 físico<br/>Rust Embassy no_std / MicroPython<br/>MQTT sobre TLS 8883<br/>Sensores: luz · pH · TDS · sustrato · DHT22<br/>Actuadores: bomba · luz UV · ventilador<br/>Telemetría JSON o binaria compacta v2"]
+    wokwi["Cultivo real · Wokwi<br/>ESP32 simulado con firmware en la nube<br/>diagram.json · ejecución directa"]
+    aiagents(["Asistentes de IA externos<br/>Claude · ChatGPT · Cursor · IDEs<br/>vía Model Context Protocol"])
     tgchat(["Chats privados de Telegram<br/>el del dueño y los compartidos<br/>/start · /estado · /desvincular · /ayuda"])
   end
 
   subgraph externos["Servicios externos"]
     direction TB
-    tgapi["Telegram Bot API<br/>api.telegram.org<br/>sendMessage · setWebhook · deleteWebhook · getUpdates"]
-    meteo["Open-Meteo<br/>clima actual y geocodificación<br/>abierto y sin clave"]
+    tgapi["Telegram Bot API<br/>api.telegram.org<br/>sendMessage · setWebhook · getUpdates"]
+    meteo["Open-Meteo<br/>clima exterior actual y geocodificación<br/>abierto y sin clave"]
     letsencrypt["Let's Encrypt<br/>certificados HTTPS"]
-    ghcr["GHCR · ghcr.io/smartpottech<br/>8 imágenes firmadas con SBOM<br/>y atestación de procedencia"]
+    ghcr["GHCR · ghcr.io/smartpottech<br/>10 imágenes de producción firmadas<br/>con SBOM y atestación de procedencia"]
   end
 
-  subgraph borde["Servidor · borde"]
+  subgraph borde["Servidor · Borde"]
     direction TB
     ufw["UFW<br/>abiertos: 80 · 443 · 2222 (SSH) · 8883 (MQTT TLS)<br/>todo lo demás cerrado"]
-    nginx["Nginx + HTTPS con HSTS<br/>smartpot.app y www → 127.0.0.1:5173<br/>api.smartpot.app → 127.0.0.1:8091<br/>mqtt.smartpot.app/mqtt → 127.0.0.1:9001 (WebSocket)<br/>mail.smartpot.app → 127.0.0.1:8025"]
+    nginx["Nginx + HTTPS con HSTS<br/>smartpot.app y www → 127.0.0.1:5173<br/>api.smartpot.app → 127.0.0.1:8091<br/>mcp.smartpot.app → 127.0.0.1:8092<br/>mqtt.smartpot.app/mqtt → 127.0.0.1:9001 (WebSocket)<br/>mail.smartpot.app → 127.0.0.1:8025"]
   end
 
-  subgraph docker["docker compose -p smartpot · redes internal (sin salida) y public"]
+  subgraph docker["docker compose -p smartpot · Stack B en Producción"]
     direction LR
 
-    subgraph webc["web-smartpot · :8080 · red public · 96 MB"]
+    subgraph webc["web-smartpot · SolidJS 1.9 + Bun 1.4 · :5173 · red public · 48 MB"]
       direction TB
-      pwa["PWA · React 19 · TypeScript 6 · Vite · Tailwind 4<br/>landing indexable · /app protegida<br/>manifiesto · service worker (solo app shell)<br/>CSP · X-Frame-Options · Permissions-Policy"]
-      pages["Pantallas<br/>Panel general · Mis cultivos · Control general<br/>Acciones · Aprendizaje · Alertas · Perfil<br/>Nuevo cultivo: real o virtual · especie · forma · lugar<br/>Detalle con la ilustración del cultivo en su lugar: Resumen · Asistente<br/>Control con switches · Historial · Dispositivo o Simulación · Ajustes con lugar y avisos<br/>Perfil · Aplicaciones (Telegram)"]
+      pwa["PWA · SolidJS 1.9 · TypeScript · Vite · Tailwind CSS<br/>SSE en vivo · modo oscuro profundo · i18n es/en<br/>manifiesto PWA · offline app shell · CSP estricto"]
+      pages["Vistas reactivas<br/>Panel general · Mis cultivos · Control general · Acciones<br/>Aprendizaje · Alertas · Perfil · Conexiones MCP<br/>Ilustración dinámica de cada cultivo en su lugar<br/>Switches táctiles de actuadores con guardas 409"]
       pwa --- pages
     end
 
-    subgraph apic["api-smartpot · Spring Boot 4.1 · Java 21 · hilos virtuales · :8091 · redes internal y public · 768 MB"]
+    subgraph apic["api-smartpot · Go 1.26 + Echo v4.16 · :8091 · scratch · 64 MB"]
       direction TB
-      http["Entrada HTTP<br/>CORS · RateLimitingFilter (300/min, 10/min en auth)<br/>filtro JWT HS256 · OpenAPI en /docs"]
-      security["security<br/>AuthController · AuthService<br/>JwtService · EncryptionService AES-256-GCM<br/>PasswordResetToken (hash SHA-256)"]
-      users["users<br/>UserController · UserService<br/>PasswordPolicy · BCrypt 12"]
-      crops["crops<br/>CropController · CropService<br/>máx. 20 cultivos · REAL o VIRTUAL (fijo)<br/>forma POT, NFT, TOWER o RAFT · lugar y exposición<br/>CropWeatherService: clima del lugar (10 min)<br/>clave del dispositivo · salud y estado en línea"]
-      actuators["actuators<br/>ActuatorController · ActuatorService<br/>6 tipos · switch encendido sin límite<br/>o hasta runningUntil"]
-      readings["readings<br/>ReadingController · ReadingService<br/>MeasureRanges · 1 lectura cada 5 s<br/>resumen · series · CSV"]
-      commands["commands<br/>CommandController · CommandCenterController<br/>CommandService · órdenes en bloque<br/>409 si no cambia nada o hay otra en curso<br/>vence a los 2 min (revisión cada 30 s)"]
-      mqttm["mqtt<br/>PahoMqttGateway · MqttMessageHandler<br/>TelemetryParser · MqttTopicResolver<br/>DeviceProvisioner (seguridad dinámica)"]
-      aim["ai<br/>InsightController · InsightService<br/>AutomationAgent (30 s o 5 min por cultivo)<br/>LearningFeed (solo cultivos reales, lotes cada minuto)<br/>AiClient"]
-      overview["overview<br/>OverviewController · OverviewService<br/>KPIs · series con $dateTrunc · flota"]
-      notifications["notifications<br/>NotificationController<br/>NotificationService (con enfriamiento)"]
-      channels["channels<br/>ChannelController · ChannelService<br/>ChannelDispatcher → NotificationChannel<br/>TelegramChannel · TelegramBot<br/>CropChannelService · CropChannelDigest<br/>avisos por cultivo · resúmenes · hasta 10 chats<br/>webhook o sondeo largo"]
-      virtual["virtualdevices<br/>VirtualDeviceController · VirtualDeviceService<br/>solo cultivos virtuales · pausa y reanuda<br/>SimulatorClient · reconciliación cada 1 min<br/>máx. 5 por cuenta · CropKindBackfill"]
-      mailm["mail<br/>MailService · MailTemplates<br/>bienvenida y recuperación"]
+      http["Entrada HTTP / Echo<br/>CORS con credenciales · RateLimitingFilter<br/>Cookies HttpOnly + CSRF doble envío firmado<br/>OpenAPI en /docs y /v3/api-docs"]
+      security["auth / security<br/>AuthHandler · Cookie smartpot_session<br/>HMAC-SHA256 CSRF · AES-256-GCM para claves<br/>BCrypt 12 · Tokens spt_... para MCP"]
+      users["users<br/>UserHandler · UserService<br/>Perfil, seguridad y borrado ordenado"]
+      crops["crops<br/>CropHandler · CropService · hexagonal<br/>REAL o VIRTUAL fijo · forma, lugar y clima<br/>clave MQTT descifrada en memoria"]
+      actuators["actuators<br/>ActuatorHandler · ActuatorService<br/>Switches por actuador con runningUntil"]
+      readings["readings<br/>ReadingHandler · ReadingService · SSE Stream<br/>Ingesta por lotes CopyFrom · Códec v1/v2"]
+      commands["commands<br/>CommandHandler · CommandService<br/>Órdenes en bloque · rechazo 409 repetidas<br/>vence a los 2 min (ticker en Go)"]
+      mqttm["mqtt<br/>MqttGateway · Paho v5 · workers dedicados<br/>Delegación HTTP: POST /internal/mqtt/authn<br/>ACL acotado dinámicamente por cultivo"]
+      aim["ai<br/>AiClient: canal dual Tonic gRPC y REST<br/>AutomationAgent · evaluación continua"]
+      overview["overview<br/>OverviewHandler · KPIs y series TimescaleDB"]
+      notifications["notifications<br/>NotificationHandler · enfriamiento"]
+      channels["channels<br/>TelegramBot · avisos por cultivo<br/>resúmenes diarios y comandos /estado"]
+      virtual["virtualdevices<br/>VirtualDeviceHandler · proxy al simulador Axum"]
+      connections["connections<br/>ConnectionTokens: tokens spt_... para FastMCP"]
+      mailm["mail<br/>MailService · plantillas transaccionales"]
       health["health<br/>/health: db · broker · cache · ai · simulator"]
-      cachem["cache<br/>CacheStore · Redis con respaldo en memoria<br/>límites · enfriamientos · códigos · caché de la IA"]
-      persist["Persistencia<br/>un repositorio Spring Data por dominio<br/>MongoTemplate para series y agregaciones"]
-      events{{"Eventos de Spring<br/>ReadingRecorded · NotificationCreated<br/>CropDeleted · DeviceKeyRotated · CropPlacementChanged<br/>MqttConnected · MqttMessage"}}
+      cachem["cache / valkey<br/>Valkey backend adapter (TCP o socket UNIX)<br/>límites, invalidación y caché temporal"]
+      persist["storage / postgres<br/>Adaptadores para PostgreSQL 17 + TimescaleDB<br/>pool pgx · hipertabla · agregados continuos"]
+      events{{"EventBus en memoria Go<br/>ReadingRecorded · NotificationCreated<br/>CropDeleted · DeviceKeyRotated"}}
 
-      http --> security & users & crops & actuators & readings & commands & overview & notifications & channels & virtual & aim & health
-      mqttm -->|"telemetry"| readings
+      http --> security & users & crops & actuators & readings & commands & overview & notifications & channels & virtual & aim & connections & health
+      mqttm -->|"telemetría"| readings
       mqttm -->|"commands/ack"| commands
-      mqttm -->|"status online · offline"| crops
+      mqttm -->|"status online/offline"| crops
       readings -.->|"ReadingRecordedEvent"| events
-      events -.->|"evaluar y actuar · aprender"| aim
-      aim -->|"órdenes del agente"| commands
+      events -.->|"evaluación y acción"| aim
+      aim -->|"órdenes automáticas"| commands
       commands -->|"publicar QoS 1"| mqttm
-      crops -->|"aprovisionar · rotar · retirar"| mqttm
-      crops -.->|"CropDeleted · DeviceKeyRotated · CropPlacementChanged"| events
-      events -.->|"retirar o actualizar la simulación"| virtual
+      crops -.->|"eventos de ciclo de vida"| events
       aim & commands & crops --> notifications
-      notifications -.->|"NotificationCreatedEvent"| events
-      events -.->|"reenviar a los canales"| channels
+      notifications -.->|"alerta creada"| events
+      events -.->|"despacho Telegram"| channels
       overview --> readings & aim
-      virtual -->|"clave del cultivo"| crops
       security --> mailm
       http --> cachem
       readings & aim & notifications & channels --> cachem
-      security & users & crops & actuators & readings & commands & notifications & channels & virtual --> persist
+      security & users & crops & actuators & readings & commands & notifications & channels & virtual & connections --> persist
     end
 
-    subgraph aic["ai-smartpot · FastAPI · Python 3.13 · scikit-learn · :8000 · red internal · 768 MB"]
+    subgraph aic["ai-smartpot · Rust 1.88+ · Axum 0.8 + Tonic gRPC · :8000/:50051 · 128 MB"]
       direction TB
-      airouters["routers · token de servicio en tiempo constante<br/>POST /v1/insights · POST /v1/fleet<br/>GET /v1/crop-profiles · GET /v1/models<br/>POST /v1/learning/readings · GET /v1/learning/status<br/>POST /v1/learning/train · DELETE /v1/learning/crops/{id}"]
-      knowledge["knowledge/profiles<br/>6 especies · rangos ideales y tolerancias"]
-      pipeline["services/insights · analyze()<br/>diagnóstico → pronóstico Theil-Sen<br/>→ modelos base y aprendidos → sistema experto (21 reglas)<br/>→ lógica difusa Sugeno → agente reactivo<br/>→ consejo de lugar (luz que pide la especie)"]
-      basemodels["engine/models<br/>regresión logística (ventilación)<br/>MLP (corrección de pH)<br/>Isolation Forest (lectura atípica)<br/>4000 muestras sintéticas al arrancar"]
-      fleetm["engine/fleet<br/>ranking · problemas compartidos<br/>K-Means por silueta · acciones en bloque"]
-      learning["learning<br/>store: SQLite · id SHA-256 · 60 días · 200 000 filas<br/>quality: IQR k = 3 · features · etiquetas a 1 h<br/>trainer: 7 modelos · TimeSeriesSplit · GridSearchCV<br/>campeón y retador · K-Means · Isolation Forest<br/>proceso aparte (spawn) · joblib por especie"]
-      aivol[("volumen ai_data<br/>/data/learning.db<br/>/data/models/*.joblib")]
-      airouters --> pipeline & fleetm & learning
+      airouters["Servidor dual gRPC / REST<br/>POST /v1/insights · POST /v1/fleet<br/>GET /v1/crop-profiles · Token Bearer"]
+      knowledge["knowledge/profiles<br/>6 especies · rangos agronómicos óptimos"]
+      pipeline["Pipeline de inferencia nativo<br/>diagnóstico → pronóstico Theil-Sen<br/>→ modelos ML nativos → 21 reglas experto<br/>→ lógica difusa Sugeno → agente reactivo"]
+      basemodels["Modelos ML en memoria<br/>regresión logística · MLP · árboles nativos<br/>validación criptográfica de modelos Ed25519"]
+      fleetm["engine/fleet<br/>análisis de flota · K-Means nativo"]
+      airouters --> pipeline & fleetm
       pipeline --> knowledge & basemodels
-      pipeline -->|"sección learning"| learning
-      learning --- aivol
     end
 
-    subgraph simc["simulator-smartpot · FastAPI · paho-mqtt · :8081 · redes internal y public (solo salida) · 160 MB"]
+    subgraph trainerc["trainer-smartpot · Python 3.13 · FastAPI + Polars · :8001 · 256 MB"]
       direction TB
-      simapi["api.py · token<br/>GET PUT DELETE /v1/pots/{cropId}<br/>GET /v1/places · GET /v1/weather · /health"]
-      potmanager["pots.py · PotManager<br/>VirtualPot por cultivo · tick continuo<br/>cultivos fijos SIMULATOR_DEVICES (demo y QA)"]
-      environment["environment.py · Environment<br/>AUTO: día y noche de la especie<br/>MANUAL: medidores de la persona<br/>WEATHER: clima real filtrado por el lugar<br/>actuadores en los tres modos · lectura a los 2 s de una orden"]
-      simdevice["device.py · SimulatedDevice<br/>un cliente MQTT por cultivo virtual<br/>clave real del cultivo · obedece y confirma"]
-      weather["weather.py · WeatherClient<br/>caché de 10 min por lugar"]
-      simapi --> potmanager --> environment & simdevice
-      environment --> weather
+      trainapi["FastAPI / Polars / ADBC<br/>POST /v1/learning/train · GET /v1/learning/status"]
+      adbc["Lector Arrow ADBC<br/>consulta eficiente a TimescaleDB<br/>solo cultivos reales seudonimizados"]
+      signing["Exportador firmado<br/>modelos JSON con firma Ed25519/BLAKE2b"]
+      trainapi --> adbc --> signing
     end
 
-    subgraph brokerc["broker-smartpot · Mosquitto 2.1 · redes internal y public · 128 MB"]
+    subgraph mcpc["mcp-smartpot · Python 3.13 · FastMCP SDK 2.3 · :8092 · 128 MB"]
       direction TB
-      mosquitto["Listeners<br/>:8883 MQTT sobre TLS 1.2+ (CA propia)<br/>:9001 WebSocket · :1883 solo red interna"]
-      dynsec["Seguridad dinámica<br/>rol device: publicar smartpot/v1/%u/telemetry · commands/ack · status<br/>suscribirse a smartpot/v1/%u/commands<br/>rol admin (API): smartpot/v1/#35; y $CONTROL/dynamic-security/v1<br/>anónimos rechazados · client id obligatorio"]
-      brokervol[("volumen broker_data<br/>dynamic-security.json<br/>/etc/mosquitto/certs (dueño 1883)")]
-      mosquitto --- dynsec --- brokervol
+      mcpcore["FastMCP Server<br/>Herramientas para LLMs y asistentes IA<br/>list_crops · get_crop_health · control_actuator"]
+      mcpauth["ConnectionTokenMiddleware<br/>Tokens spt_... validados contra la API"]
+      mcpauth --> mcpcore
     end
 
-    subgraph dbc["db-smartpot · MongoDB 8 · :27017 · red internal · 768 MB"]
+    subgraph simc["simulator-smartpot · Rust (Axum, Tokio, rumqttc) · :8081 · 48 MB"]
       direction TB
-      mongo["Base smartpot · usuario smartpot (readWrite)<br/>validadores $jsonSchema e índices"]
-      collections["users · crops · readings (TTL 365 d)<br/>actuators · commands (TTL 180 d)<br/>notifications (TTL 90 d) · channel_links<br/>crop_channels · virtual_devices · password_reset_tokens (TTL)"]
+      simapi["Axum API · token<br/>GET PUT DELETE /v1/pots/{cropId}"]
+      potmanager["PotManager asíncrono<br/>VirtualPot por cultivo virtual<br/>soporte JSON y paquete binario compacto v2"]
+      weather["WeatherClient<br/>Open-Meteo integrado"]
+      simapi --> potmanager --> weather
+    end
+
+    subgraph brokerc["broker-smartpot · EMQX 5.8.9 (Erlang) · :8883/:9001 · 256 MB"]
+      direction TB
+      emqx["Listeners EMQX<br/>:8883 MQTT sobre TLS 1.3/1.2 (CA propia)<br/>:9001 WebSocket seguro (/mqtt) · :1883 interno"]
+      authdelegate["Delegación HTTP<br/>POST /internal/mqtt/authn hacia la API<br/>ACL dinámico por cultivo sin estado local"]
+      emqx --- authdelegate
+    end
+
+    subgraph dbc["db-smartpot · PostgreSQL 17 + TimescaleDB 2.17.2 · :5432 · 256 MB"]
+      direction TB
+      postgres["PostgreSQL 17 relacional<br/>users, crops, actuators, commands, connections"]
+      timescale["TimescaleDB Extension<br/>hipertabla readings (chunks de 1 día)<br/>compresión continua a 12 h<br/>vistas materializadas en tiempo real (1m, 15m, 1h)"]
       dbvol[("volumen db_data")]
-      mongo --- collections --- dbvol
+      postgres --- timescale --- dbvol
     end
 
-    subgraph cachec["cache-smartpot · Redis 8 · :6379 · red internal · 192 MB"]
+    subgraph cachec["cache-smartpot · Valkey 9.1.2 · :6379 / socket UNIX · 64 MB"]
       direction TB
-      redis["Redis con contraseña<br/>comandos peligrosos deshabilitados<br/>maxmemory 128 MB"]
-      rediskeys["rate:{all o auth}:{ip}:{minuto}<br/>reading:{cropId} (5 s) · ai-eval:{cropId}<br/>agent:{cropId}:{actuador}:{acción} (10 min)<br/>notify:{clave} · channel-link:telegram:{código} (10 min)<br/>crop-share:telegram:{código} (10 min) · weather:{lat}:{lon} (10 min)<br/>ai:learning-status (1 min) · ai:crop-profiles (1 h)"]
-      redis --- rediskeys
+      valkey["Valkey en memoria endurecido<br/>autenticación por contraseña y socket UNIX opcional<br/>límites de tasa, sesiones y caché compartida"]
     end
 
-    subgraph mailc["mail-smartpot · Mailpit · redes internal y public · 128 MB"]
-      mailpit["SMTP :1025 con autenticación<br/>bandeja web :8025 con usuario y contraseña"]
+    subgraph mailc["mail-smartpot · Mailpit (Go) · :1025/:8025 · 64 MB"]
+      mailpit["SMTP :1025 autenticado<br/>bandeja web :8025 protegida"]
     end
   end
 
   user -->|"HTTPS 443"| ufw
   ufw --> nginx
   nginx -->|"smartpot.app"| pwa
-  pages -->|"REST JSON · Bearer JWT<br/>vía api.smartpot.app"| nginx
+  pages -->|"HTTPS REST + SSE"| nginx
   nginx -->|"api.smartpot.app"| http
+  nginx -->|"mcp.smartpot.app"| mcpauth
   nginx -->|"mail.smartpot.app"| mailpit
-  nginx -->|"/mqtt WebSocket"| mosquitto
-  esp -->|"MQTT TLS :8883<br/>usuario = cropId · clave del dispositivo"| mosquitto
-  wokwi -->|"MQTT TLS :8883"| mosquitto
-  mqttm <-->|"MQTT :1883 interno como admin<br/>smartpot/v1/+/… · $CONTROL"| mosquitto
-  simdevice <-->|"MQTT :1883 interno<br/>con la clave del cultivo"| mosquitto
+  nginx -->|"/mqtt WebSocket"| emqx
+  aiagents -->|"MCP Tools (HTTPS)"| nginx
+  esp -->|"MQTT TLS :8883"| emqx
+  wokwi -->|"MQTT TLS :8883"| emqx
+  emqx -.->|"POST /internal/mqtt/authn"| http
+  mqttm <-->|"MQTT :1883 interno"| emqx
+  potmanager <-->|"MQTT :1883 interno"| emqx
   virtual -->|"HTTP :8081 · token"| simapi
   crops -->|"GET /v1/weather · token"| simapi
-  aim -->|"HTTP :8000 · token"| airouters
+  aim -->|"Tonic gRPC :50051 / REST :8000"| airouters
   overview -->|"POST /v1/fleet"| airouters
-  persist -->|"MongoDB :27017 · usuario smartpot"| mongo
-  cachem -->|"Redis :6379 · con contraseña"| redis
+  adbc -.->|"consulta ADBC segura"| timescale
+  signing -.->|"modelos JSON Ed25519"| airouters
+  mcpcore -->|"REST + spt_... token"| http
+  persist -->|"pgx pool :5432"| postgres
+  persist --> timescale
+  cachem -->|"TCP :6379 / socket UNIX"| valkey
   mailm -->|"SMTP :1025"| mailpit
   channels -->|"HTTPS sendMessage"| tgapi
-  tgapi -->|"webhook firmado<br/>X-Telegram-Bot-Api-Secret-Token"| nginx
+  tgapi -->|"webhook firmado"| nginx
   tgapi <--> tgchat
   weather -->|"HTTPS · clima cada 10 min"| meteo
   simapi -->|"geocodificación"| meteo
   letsencrypt -.->|"certificados"| nginx
   ghcr -.->|"docker compose pull"| docker
-  health -.->|"ping"| mongo & redis & mosquitto & airouters & simapi
+  health -.->|"ping"| postgres & valkey & emqx & airouters & simapi
 
   classDef person fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
@@ -165,16 +176,14 @@ flowchart LR
   classDef ai fill:#EEF7FC,stroke:#1F6FA0,color:#17261F
   classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   classDef ext fill:#FDF4DD,stroke:#C98D12,color:#17261F
-  classDef warn fill:#FBE3E3,stroke:#D64545,color:#17261F
-  classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
-  class user,tgchat person
+  class user,tgchat,aiagents person
   class esp,wokwi device
   class ufw,nginx edge
   class pwa,pages web
   class http,events core
-  class security,users,crops,actuators,readings,commands,mqttm,aim,overview,notifications,channels,virtual,mailm,health,cachem,persist module
-  class airouters,knowledge,pipeline,basemodels,fleetm,learning ai
-  class simapi,potmanager,environment,simdevice,weather web
-  class mosquitto,dynsec edge
-  class mongo,collections,redis,rediskeys,mailpit,aivol,brokervol,dbvol store
+  class security,users,crops,actuators,readings,commands,mqttm,aim,overview,notifications,channels,virtual,connections,mailm,health,cachem,persist module
+  class airouters,knowledge,pipeline,basemodels,fleetm,trainapi,adbc,signing,mcpcore,mcpauth ai
+  class simapi,potmanager,weather web
+  class emqx,authdelegate edge
+  class postgres,timescale,valkey,mailpit,dbvol store
   class tgapi,meteo,letsencrypt,ghcr ext

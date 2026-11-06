@@ -8,7 +8,7 @@
 [![QA](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml)
 [![Deploy to Production](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml)
 
-Central repository of **SmartPot**, the hydroponic crop monitoring and automation platform published at [smartpot.app](https://smartpot.app). It brings together cross-service infrastructure: Docker and Kubernetes environments, production deployment workflows, QA suites, technical platform documentation, and organization community guidelines.
+Central repository of **SmartPot**, the hydroponic crop monitoring and automation platform published in production at [smartpot.app](https://smartpot.app). It brings together cross-service infrastructure: Docker Compose and Kubernetes environments, production deployment workflows, QA suites, technical platform documentation, and organization community guidelines.
 
 ## Repository Contents
 
@@ -16,14 +16,14 @@ Central repository of **SmartPot**, the hydroponic crop monitoring and automatio
 .github/
 ├── .github/
 │   ├── workflows/
-│   │   ├── deploy.yml          # Production deployment workflow (concurrency control)
+│   │   ├── deploy.yml          # Production deployment workflow (concurrency control & Snyk gatekeeper)
 │   │   ├── request-deploy.yml  # Invoked by services to request deployments and await results
 │   │   └── qa.yml              # CI tests across all repositories and E2E validation suite
 │   ├── ISSUE_TEMPLATE/         # Organization issue templates
 │   ├── dependabot.yml
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── docker/
-│   ├── demo/                   # Complete SmartPot stack in a single command with seed data
+│   ├── demo/                   # Canonical SmartPot stack in a single command with seed data
 │   ├── dev/                    # Build each service from local workspace repositories
 │   └── production/             # Production Compose, environment templates, nginx, and backups
 ├── kubernetes/                 # Manifests for local Kubernetes clusters
@@ -37,57 +37,78 @@ Central repository of **SmartPot**, the hydroponic crop monitoring and automatio
 
 ## Architecture
 
+The production platform runs on the canonical **Stack B** architecture:
+
 ```mermaid
 flowchart LR
-  M[Real crop: ESP32 or Wokwi<br>SmartPot-IoT] -->|MQTT TLS 8883| B[Broker<br>SmartPot-Broker]
-  S[Virtual crops<br>SmartPot-DataGenerator] -->|MQTT with crop account| B
+  M[Real crop: ESP32<br>SmartPot-IoT] -->|MQTT TLS 8883| B[Broker: EMQX 5.8<br>SmartPot-Broker]
+  S[Virtual crops: Rust<br>SmartPot-DataGenerator] -->|MQTT with crop account| B
   S -->|real weather| O[Open-Meteo]
-  U[PWA<br>SmartPot-Web] -->|HTTPS REST| A[API<br>SmartPot-API]
+  U[PWA: SolidJS 1.9<br>SmartPot-Web] -->|HTTPS REST + SSE| A[API: Go 1.26 Echo<br>SmartPot-API]
   A <-->|MQTT| B
+  B -.->|POST /internal/mqtt/authn<br>delegated auth & ACL| A
   A -->|HTTP + token<br>simulation & weather| S
-  A --> D[(Database<br>PostgreSQL/TimescaleDB)]
-  A --> C[(Cache<br>Valkey)]
+  A --> D[(Database<br>PostgreSQL 17 + TimescaleDB<br>SmartPot-DB)]
+  A --> C[(Cache<br>Valkey 9.1<br>SmartPot-Cache)]
   A -->|SMTP| E[Mailpit<br>SmartPot-Mail]
-  A -->|HTTP + token<br>evaluation & learning| I[AI Assistant<br>SmartPot-AI]
+  A -->|gRPC / REST + token<br>evaluation & inference| I[AI Inference: Rust<br>SmartPot-AI]
+  D -.->|ADBC continuous read| R[AI Trainer: Python<br>SmartPot-Trainer]
+  R -.->|Ed25519 signed JSON models| I
+  P[MCP Server<br>SmartPot-MCP] -->|REST + spt_... token| A
   A <-->|crop alerts<br>digests & webhook| T[Telegram]
+
   classDef platform fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
   classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   classDef external fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class A core
-  class B,U,I,E,S platform
+  class B,U,I,R,P,E,S platform
   class M device
   class D,C store
   class O,T external
 ```
 
-Each crop is **real** or **virtual**, selected permanently upon creation. Real crops publish telemetry to `smartpot/v1/{cropId}/telemetry` from an ESP32 microcontroller running MicroPython or C++, physically or simulated in Wokwi; virtual crops are continuously simulated by SmartPot, replicating local weather, manual overrides, and species diurnal rhythms. Both appear in live interactive diagrams reflecting form (pot, NFT pipes, tower, or raft), placement (indoor or outdoor with real ambient weather), and actuator switches. The API stores telemetry, consults the AI assistant for diagnoses (expert system, fuzzy logic, machine learning models, and reactive agent), provides placement advice, and under autonomous mode dispatches commands via `smartpot/v1/{cropId}/commands`. The assistant continuously learns from pseudonymized real crop readings across each species to predict upcoming irrigation and heat requirements. Notifications are dispatched to the PWA and to **Telegram** according to user preferences.
+Each crop is **real** or **virtual**, selected permanently upon creation:
+- **Real crops** publish telemetry to `smartpot/v1/{cropId}/telemetry` over MQTT TLS from an ESP32 microcontroller running our primary **Rust Embassy (`no_std`)** firmware (`SmartPot-IoT`) or the alternative **MicroPython** firmware (`SmartPot-IoT-Python`), physically or simulated in Wokwi.
+- **Virtual crops** are continuously simulated by `SmartPot-DataGenerator` in Rust, replicating local outdoor weather from Open-Meteo, manual overrides, and species diurnal rhythms.
 
-Detailed operational sequences and subsystem internals are documented in the [global diagrams](docs/README.md#global-diagrams).
+The **Go API** (`SmartPot-API`, Go 1.26 + Echo) implements a hexagonal architecture with ports and adapters, authenticates clients via `HttpOnly` session cookies + signed CSRF tokens, stores time-series telemetry in **PostgreSQL 17 + TimescaleDB** (`SmartPot-DB`) with hypertables and real-time continuous aggregates, manages caching and limits in **Valkey 9.1** (`SmartPot-Cache`), and delegates MQTT authentication from **EMQX** (`SmartPot-Broker`).
+
+The **AI assistant** comprises two specialized components:
+1. `SmartPot-AI` (Rust 1.88+, Axum, Tonic gRPC) executes real-time inference: expert rules, Sugeno fuzzy logic, and native evaluation of ML models verified via Ed25519 signatures.
+2. `SmartPot-Trainer` (Python 3.13, Polars, scikit-learn) runs continuous offline learning: queries TimescaleDB via Apache Arrow ADBC on real pseudonymized crops and exports cryptographically signed JSON models.
+
+External AI agents interface through `SmartPot-MCP` (`mcp.smartpot.app`) via Model Context Protocol tools using connection tokens (`spt_...`), while Telegram notifies users of alerts and daily digests.
+
+### Legacy Stack A Architecture (Deprecated)
+
+> [!NOTE]
+> The initial implementation (Stack A: Spring Boot 4.1, Java 21, MongoDB 8, Redis 8, Mosquitto 2.1, React 19, and Python simulator) has been completely deprecated and succeeded in production by the canonical Stack B. The previous repositories have been renamed with descriptive technology suffixes (`SmartPot-API-Java`, `SmartPot-DB-Mongo`, `SmartPot-Cache-Redis`, `SmartPot-Broker-Mosquito`, `SmartPot-Web-React`, `SmartPot-AI-Python`, `SmartPot-DataGenerator-Python`, `SmartPot-Proxy`) and archived as historical reference.
 
 ## Getting Started
 
-| Objective                                  | Guide                                                    |
-|--------------------------------------------|----------------------------------------------------------|
-| Run SmartPot locally in one command        | [`docker/demo`](docker/README.md)                        |
-| Develop locally on a service               | [`docker/dev`](docker/dev/README.md)                     |
-| Deploy to a production server              | [`docker/production`](docker/production/README.md)       |
-| Test on Kubernetes                         | [`kubernetes`](kubernetes/README.md)                     |
-| Understand architecture & contracts        | [`docs`](docs/README.md)                                 |
-| View complete platform architecture        | [Global diagrams](docs/README.md#global-diagrams)        |
+| Objective | Guide |
+|---|---|
+| Run SmartPot locally in one command | [`docker/demo`](docker/README.md) |
+| Develop locally on a service | [`docker/dev`](docker/dev/README.md) |
+| Deploy to a production server | [`docker/production`](docker/production/README.md) |
+| Test on Kubernetes | [`kubernetes`](kubernetes/README.md) |
+| Understand architecture & contracts | [`docs`](docs/README.md) |
+| View complete platform architecture | [Global diagrams](docs/README.md#global-diagrams) |
 
 ## Quality Assurance (QA)
 
-The [`qa.yml`](.github/workflows/qa.yml) workflow triggers on changes, weekly on schedules, and via manual execution:
+The [`qa.yml`](.github/workflows/qa.yml) workflow triggers on repository pushes, weekly on schedules, and via manual execution:
 
-| Pipeline Job                        | Scope of Validation                                                                                                                                                                                                                                                                  |
-|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| API                                 | Unit, integration, and controller tests                                                                                                                                                                                                                                              |
-| Web                                 | ESLint, TypeScript verification, Vitest suite, and production bundle build                                                                                                                                                                                                           |
-| SmartPot-AI, -DataGenerator, -IoT   | Ruff linting, pytest suites, and engine parity checks                                                                                                                                                                                                                                |
-| SmartPot-Broker, -DB, -Cache, -Mail | Hardened container images and smoke tests (authentication, per-crop ACL, TLS, database schemas)                                                                                                                                                                                      |
-| End-to-End Suite                    | Builds container images, spins up demo stack, and validates 46 end-to-end assertions: registration, real crop, MQTT telemetry, command ACK, actuator conflict guards (409), AI diagnosis, placement advice, dashboard series, bulk actions, virtual crop simulation, and cleanup. |
+| Pipeline Job | Scope of Validation |
+|---|---|
+| API (`SmartPot-API`) | Go test suites (`./...`), `go vet`, and hexagonal architecture integration tests |
+| Web (`SmartPot-Web`) | ESLint, TypeScript verification (`tsc -b`), Vitest suite (96 tests), and production bundle build |
+| AI & Simulator (`SmartPot-AI`, `-DataGenerator`, `-IoT`) | Rust `cargo test`, `cargo clippy`, Embassy ESP32 checks, and native model parity tests |
+| Learning & MCP (`SmartPot-Trainer`, `SmartPot-MCP`) | Python Ruff lint/format, pytest suites, ADBC query verification, and FastMCP tool tests |
+| Infrastructure (`SmartPot-Broker`, `-DB`, `-Cache`, `-Mail`) | Hardened container smoke tests: EMQX authn delegation, PostgreSQL 17/TimescaleDB schema, Valkey socket/password auth, and Mailpit SMTP |
+| End-to-End Suite | Spins up the canonical demo stack and validates 46 end-to-end assertions: registration, real crop, MQTT telemetry, command ACK, conflict guards (409), AI diagnosis, placement advice, dashboard series, bulk actions, virtual crop simulation, and cleanup. |
 
 ## Deployment
 
@@ -102,13 +123,12 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ---
 
 <a id="español"></a>
+## Visión General
+
 [![QA](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/qa.yml)
 [![Deploy to Production](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml/badge.svg)](https://github.com/SmartPotTech/.github/actions/workflows/deploy.yml)
 
-Repositorio central de **SmartPot**, la plataforma de monitoreo y automatización de cultivos hidropónicos publicada
-en [smartpot.app](https://smartpot.app). Reúne lo que no pertenece a un solo servicio: los entornos de Docker y
-Kubernetes, el despliegue a producción, la batería de QA, la documentación técnica y los archivos de comunidad de la
-organización.
+Repositorio central de **SmartPot**, la plataforma de monitoreo y automatización de cultivos hidropónicos publicada en producción en [smartpot.app](https://smartpot.app). Reúne lo que no pertenece a un solo servicio: los entornos de Docker Compose y Kubernetes, el flujo de despliegue a producción, la batería de QA, la documentación técnica y las directrices de comunidad de la organización.
 
 ## Contenido
 
@@ -116,20 +136,20 @@ organización.
 .github/
 ├── .github/
 │   ├── workflows/
-│   │   ├── deploy.yml          # Único despliegue a producción, de a uno (concurrency)
-│   │   ├── request-deploy.yml  # Lo llaman los servicios para pedir el despliegue y esperar el resultado
-│   │   └── qa.yml              # Pruebas de todos los repositorios y prueba de extremo a extremo
+│   │   ├── deploy.yml          # Despliegue único a producción con control de concurrencia y Snyk Gatekeeper
+│   │   ├── request-deploy.yml  # Invocado por los servicios para solicitar despliegue y esperar resultado
+│   │   └── qa.yml              # Pruebas integrales de todos los repositorios y batería E2E
 │   ├── ISSUE_TEMPLATE/         # Plantillas de issues de la organización
 │   ├── dependabot.yml
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── docker/
-│   ├── demo/                   # SmartPot completo con un comando y datos de ejemplo
-│   ├── dev/                    # Compila cada servicio desde los repositorios locales
-│   └── production/             # Compose, variables, nginx y respaldos del servidor
-├── kubernetes/                 # Manifiesto para clústeres locales
-├── docs/                       # Documentación técnica, recorrido y ciclo de vida; diagramas específicos y generales
-├── scripts/e2e.py              # Prueba de extremo a extremo sobre la demo
-├── profile/README.md           # Presentación pública de la organización
+│   ├── demo/                   # Stack canónico de SmartPot en un solo comando con datos demo
+│   ├── dev/                    # Compilación de cada servicio desde repositorios locales
+│   └── production/             # Compose de producción, plantillas de variables, nginx y respaldos
+├── kubernetes/                 # Manifiestos para clústeres locales
+├── docs/                       # Documentación técnica, recorrido, ciclo de vida y diagramas de arquitectura
+├── scripts/e2e.py              # Batería automatizada de verificación de extremo a extremo
+├── profile/README.md           # Presentación pública de la organización en GitHub
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 └── CODE_OF_CONDUCT.md
@@ -137,74 +157,82 @@ organización.
 
 ## Arquitectura
 
+La plataforma en producción opera sobre la arquitectura canónica del **Stack B**:
+
 ```mermaid
 flowchart LR
-  M[Cultivo real: ESP32 o Wokwi<br>SmartPot-IoT] -->|MQTT TLS 8883| B[Broker<br>SmartPot-Broker]
-  S[Cultivos virtuales<br>SmartPot-DataGenerator] -->|MQTT con la cuenta del cultivo| B
+  M[Cultivo real: ESP32<br>SmartPot-IoT] -->|MQTT TLS 8883| B[Broker: EMQX 5.8<br>SmartPot-Broker]
+  S[Cultivos virtuales: Rust<br>SmartPot-DataGenerator] -->|MQTT con cuenta del cultivo| B
   S -->|clima real| O[Open-Meteo]
-  U[PWA<br>SmartPot-Web] -->|HTTPS REST| A[API<br>SmartPot-API]
+  U[PWA: SolidJS 1.9<br>SmartPot-Web] -->|HTTPS REST + SSE| A[API: Go 1.26 Echo<br>SmartPot-API]
   A <-->|MQTT| B
-  A -->|HTTP + token<br>simulación y clima del lugar| S
-  A --> D[(MongoDB<br>SmartPot-DB)]
-  A --> C[(Redis<br>SmartPot-Cache)]
+  B -.->|POST /internal/mqtt/authn<br>autenticación y ACL delegadas| A
+  A -->|HTTP + token<br>simulación y clima| S
+  A --> D[(Base de datos<br>PostgreSQL 17 + TimescaleDB<br>SmartPot-DB)]
+  A --> C[(Caché<br>Valkey 9.1<br>SmartPot-Cache)]
   A -->|SMTP| E[Mailpit<br>SmartPot-Mail]
-  A -->|HTTP + token<br>evaluación y aprendizaje| I[Asistente de IA<br>SmartPot-AI]
-  A <-->|avisos por cultivo<br>resúmenes y webhook| T[Telegram]
+  A -->|gRPC / REST + token<br>evaluación e inferencia| I[Inferencia IA: Rust<br>SmartPot-AI]
+  D -.->|lectura continua ADBC| R[Entrenador IA: Python<br>SmartPot-Trainer]
+  R -.->|modelos JSON firmados Ed25519| I
+  P[Servidor MCP<br>SmartPot-MCP] -->|REST + token spt_...| A
+  A <-->|alertas de cultivo<br>resúmenes y webhook| T[Telegram]
+
   classDef platform fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef device fill:#FBE9E1,stroke:#B85A38,color:#17261F
   classDef store fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   classDef external fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   class A core
-  class B,U,I,E,S platform
+  class B,U,I,R,P,E,S platform
   class M device
   class D,C store
   class O,T external
 ```
 
-Cada cultivo es **real** o **virtual**, y eso se elige al crearlo. Uno real publica sus lecturas en
-`smartpot/v1/{cropId}/telemetry` desde un ESP32 con el firmware, físico o simulado en Wokwi; uno virtual lo simula
-SmartPot, que sigue el clima de la ciudad, los medidores que mueva la persona o el día y la noche de la especie. Los dos
-se ven en vivo con su forma (maceta, tubos NFT, torre o balsa), en su lugar (bajo techo o al aire libre, con el clima
-de afuera) y con cada actuador, que se maneja con un switch. La API guarda cada lectura, pide al asistente de IA un
-diagnóstico (sistema experto, lógica difusa, modelos de aprendizaje automático y un agente reactivo) con el consejo de
-lugar y, si el cultivo tiene el modo automático, envía comandos a los actuadores por `smartpot/v1/{cropId}/commands`.
-El asistente además **aprende de forma continua** con las lecturas de los cultivos reales de cada especie,
-seudonimizadas, para anticipar el riego y el calor de la próxima hora. Los avisos llegan a la PWA, que se instala en el
-teléfono, y a **Telegram**: cada cultivo elige qué avisa, al instante o en resúmenes, y con qué chats se comparte.
+Cada cultivo es **real** o **virtual**, fijado de manera permanente al crearlo:
+- Los **cultivos reales** publican telemetría a `smartpot/v1/{cropId}/telemetry` mediante MQTT TLS desde un microcontrolador ESP32 con el firmware principal en **Rust Embassy (`no_std`)** (`SmartPot-IoT`) o el firmware alternativo en **MicroPython** (`SmartPot-IoT-Python`), físico o simulado en Wokwi.
+- Los **cultivos virtuales** son simulados continuamente por `SmartPot-DataGenerator` en Rust, replicando el clima exterior de Open-Meteo, ajustes manuales y fotoperiodo de la especie.
 
-Para ver cada pieza por dentro y toda la operación paso a paso están
-los [diagramas generales](docs/README.md#diagramas-generales).
+La **API en Go** (`SmartPot-API`, Go 1.26 + Echo) implementa arquitectura hexagonal con puertos y adaptadores, autentica clientes mediante cookies `HttpOnly` + tokens CSRF de doble envío firmado, persiste las lecturas en **PostgreSQL 17 + TimescaleDB** (`SmartPot-DB`) con hipertablas y agregados continuos en tiempo real, gestiona límites y caché en **Valkey 9.1** (`SmartPot-Cache`), y atiende la delegación de autenticación de **EMQX** (`SmartPot-Broker`).
+
+El **asistente de IA** está desacoplado en dos componentes:
+1. `SmartPot-AI` (Rust 1.88+, Axum, Tonic gRPC): inferencia en tiempo real con sistema experto, lógica difusa Sugeno y evaluación nativa de modelos ML firmados con Ed25519.
+2. `SmartPot-Trainer` (Python 3.13, Polars, scikit-learn): entrenamiento continuo fuera del camino crítico mediante consultas ADBC optimizadas sobre cultivos reales seudonimizados.
+
+Los asistentes de IA externos se conectan vía Model Context Protocol a través de `SmartPot-MCP` (`mcp.smartpot.app`) con tokens de conexión (`spt_...`), mientras Telegram envía resúmenes y alertas interactivas.
+
+### Arquitectura histórica del Stack A (Deprecada)
+
+> [!NOTE]
+> La arquitectura inicial (Stack A: Spring Boot 4.1, Java 21, MongoDB 8, Redis 8, Mosquitto 2.1, React 19 y simulador en Python) ha sido completamente deprecada y reemplazada en producción por el Stack canónico (Stack B). Los repositorios originales fueron renombrados con sufijos de tecnología (`SmartPot-API-Java`, `SmartPot-DB-Mongo`, `SmartPot-Cache-Redis`, `SmartPot-Broker-Mosquito`, `SmartPot-Web-React`, `SmartPot-AI-Python`, `SmartPot-DataGenerator-Python`, `SmartPot-Proxy`) y archivados como referencia histórica y arqueología de software.
 
 ## Empezar
 
-| Quiero...                                  | Guía                                                      |
-|--------------------------------------------|-----------------------------------------------------------|
-| Ver SmartPot funcionando en mi equipo      | [`docker/demo`](docker/README.md)                         |
-| Programar en un servicio                   | [`docker/dev`](docker/dev/README.md)                      |
-| Desplegar en un servidor                   | [`docker/production`](docker/production/README.md)        |
-| Probar en Kubernetes                       | [`kubernetes`](kubernetes/README.md)                      |
-| Entender el sistema                        | [`docs`](docs/README.md)                                  |
-| Ver toda la plataforma en un solo diagrama | [Diagramas generales](docs/README.md#diagramas-generales) |
+| Quiero... | Guía |
+|---|---|
+| Ver SmartPot funcionando en mi equipo en un comando | [`docker/demo`](docker/README.md) |
+| Programar en un servicio local | [`docker/dev`](docker/dev/README.md) |
+| Desplegar en un servidor de producción | [`docker/production`](docker/production/README.md) |
+| Probar en Kubernetes | [`kubernetes`](kubernetes/README.md) |
+| Entender la arquitectura y contratos | [`docs`](docs/README.md) |
+| Ver toda la plataforma en diagramas | [Diagramas generales](docs/README.md#diagramas-generales) |
 
 ## QA
 
-El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada cambio de este repositorio, cada lunes y a mano:
+El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada push, semanalmente y bajo demanda:
 
-| Trabajo                             | Qué valida                                                                                                                                                                                                                                                                                                                                                                           |
-|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| API                                 | Pruebas unitarias y de controladores con Maven                                                                                                                                                                                                                                                                                                                                       |
-| Web                                 | Lint, tipos, pruebas con Vitest y build de producción                                                                                                                                                                                                                                                                                                                                |
-| SmartPot-AI, -DataGenerator, -IoT   | Ruff y pytest                                                                                                                                                                                                                                                                                                                                                                        |
-| SmartPot-Broker, -DB, -Cache, -Mail | Imagen endurecida y pruebas de humo (autenticación, ACL por cultivo, TLS, validadores de MongoDB)                                                                                                                                                                                                                                                                                    |
-| End-to-End                          | Compila las ocho imágenes, levanta la demo y recorre en 46 comprobaciones registro, cultivo real, telemetría MQTT, comando con confirmación, switches que rechazan órdenes repetidas, asistente, lugar con su consejo y su clima, panel general, órdenes en bloque, tipo fijo, cultivo virtual con pausa, aprendizaje continuo, canales y avisos por cultivo, y borrado de la cuenta |
+| Trabajo | Qué valida |
+|---|---|
+| API (`SmartPot-API`) | Pruebas unitarias y de integración en Go (`go test ./...`), `go vet` y contratos Echo |
+| Web (`SmartPot-Web`) | ESLint, verificación de tipos (`tsc -b`), batería de Vitest (96 pruebas) y compilación de producción con Bun |
+| IA y Simulador (`SmartPot-AI`, `-DataGenerator`, `-IoT`) | Pruebas de Rust (`cargo test`), `cargo clippy`, chequeo Embassy para ESP32 y paridad de modelos nativos |
+| Aprendizaje y MCP (`SmartPot-Trainer`, `SmartPot-MCP`) | Linter y formateo Ruff, pruebas pytest, consultas ADBC y verificación de herramientas FastMCP |
+| Infraestructura (`SmartPot-Broker`, `-DB`, `-Cache`, `-Mail`) | Pruebas de humo de contenedores: delegación authn en EMQX, esquemas e hipertablas de PostgreSQL/TimescaleDB, autenticación en Valkey y SMTP en Mailpit |
+| End-to-End | Levanta la demo canónica y valida 46 aserciones de extremo a extremo: registro, cultivo real, telemetría MQTT, comando con confirmación, switches con guardas (409), asistente, lugar y clima, panel general, órdenes en bloque, cultivo virtual, aprendizaje y borrado. |
 
 ## Despliegue
 
-Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub como réplica) y pide el despliegue a [
-`deploy.yml`](.github/workflows/deploy.yml), que actualiza el servidor por SSH con el `compose.yaml` de producción
-descargando las imágenes de GHCR. Los detalles, los secrets necesarios y la configuración de nginx están en [
-`docker/production`](docker/production/README.md).
+Cada servicio publica su imagen en `ghcr.io/smartpottech` (y en Docker Hub como réplica) y pide el despliegue a [`deploy.yml`](.github/workflows/deploy.yml), que actualiza el servidor por SSH con el `compose.yaml` de producción descargando las imágenes de GHCR. Los detalles, secrets necesarios y configuración de nginx están en [`docker/production`](docker/production/README.md).
 
 Para evitar ejecuciones redundantes del despliegue en cambios que no lo requieran (documentación, pruebas, ajustes menores), cualquier commit que contenga `[skip deploy]` o `#no-deploy` en su mensaje omitirá automáticamente la llamada al despliegue central en `.github`. Si un cambio necesita desplegarse a producción, simplemente se omiten dichos marcadores (o se dispara manualmente con `workflow_dispatch`).
 

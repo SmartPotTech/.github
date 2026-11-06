@@ -1,32 +1,38 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  subgraph web["SmartPot-Web · PWA"]
+  subgraph web["SmartPot-Web · SolidJS PWA"]
     w1["Panel general · Cultivos<br/>Control · Acciones"]
-    w2["Asistente · Aprendizaje"]
-    w3["Nuevo cultivo · Ilustración del cultivo<br/>Simulación · Perfil y canales"]
+    w2["Asistente · Aprendizaje (SSE)"]
+    w3["Nuevo cultivo · Ilustración viva<br/>Simulación · Perfil y Conexiones MCP"]
   end
-  subgraph api["SmartPot-API · Spring Boot"]
-    a1["security · users"]
+  subgraph api["SmartPot-API · Go (Echo)"]
+    a1["security · auth (HttpOnly/CSRF) · users"]
     a2["crops · readings · actuators · commands"]
-    a3["mqtt · aprovisionamiento"]
-    a4["ai · agente · LearningFeed"]
+    a3["mqtt gateway · authn delegada"]
+    a4["ai client (gRPC/REST) · agente"]
     a5["notifications · channels · telegram"]
-    a6["virtualdevices · overview"]
+    a6["virtualdevices · overview · connections"]
   end
-  subgraph ai["SmartPot-AI · FastAPI"]
-    i1["engine: diagnóstico, reglas,<br/>difusa, agente, pronóstico, flota"]
-    i2["learning: almacén, calidad,<br/>variables, entrenador, servicio"]
+  subgraph ai["SmartPot-AI · Rust"]
+    i1["Inferencia: diagnóstico, 21 reglas,<br/>lógica difusa Sugeno, modelos nativos"]
   end
-  subgraph sim["SmartPot-DataGenerator"]
-    s1["pots · environment · weather · api"]
+  subgraph trainer["SmartPot-Trainer · Python"]
+    t1["Aprendizaje: lectura ADBC TimescaleDB,<br/>entrenamiento offline, firma Ed25519"]
   end
-  web -->|"REST + JWT"| api
-  a3 <-->|"MQTT"| broker["SmartPot-Broker"]
+  subgraph sim["SmartPot-DataGenerator · Rust"]
+    s1["pots · environment · weather · api Axum"]
+  end
+  web -->|"REST + SSE"| api
+  a3 <-->|"MQTT"| broker["SmartPot-Broker · EMQX"]
+  broker -.->|"delegación authn"| a3
   s1 <-->|"MQTT"| broker
-  a4 -->|"HTTP + token"| ai
+  a4 -->|"gRPC / REST"| ai
+  t1 -.->|"modelos JSON"| ai
   a6 -->|"HTTP + token"| sim
   a5 -->|"Bot API"| tg["Telegram"]
   classDef box fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef ext fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
-  class w1,w2,w3,a1,a2,a3,a4,a5,a6,i1,i2,s1 box
+  classDef train fill:#FDF4DD,stroke:#C98D12,color:#17261F
+  class w1,w2,w3,a1,a2,a3,a4,a5,a6,i1,s1 box
+  class t1 train
   class broker,tg ext

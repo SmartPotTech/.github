@@ -4,7 +4,7 @@ sequenceDiagram
   participant M as Dispositivo
   participant B as Broker MQTT
   participant A as API
-  participant D as MongoDB
+  participant D as PostgreSQL / TimescaleDB
   participant I as Asistente de IA
   participant U as PWA
   M->>B: telemetry {temperature, humidity, ph, …}

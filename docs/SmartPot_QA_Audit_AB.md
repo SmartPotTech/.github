@@ -71,14 +71,14 @@ Se comparan dos entornos completos desplegados localmente sobre Docker en la dir
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  subgraph STACK_A["Entorno A — Demo Estable (Legacy Stack)"]
+  subgraph STACK_A["Stack A — Arquitectura Legada (Deprecada / Archivada)"]
     direction LR
-    A_WEB["PWA React 19<br/>smartpot-web · 240 kB gzip<br/>Port 5173:80"]
-    A_API["API REST Spring Boot 4<br/>smartpot-api · Java 21 · 385 MB RAM<br/>Port 8091:8091"]
-    A_DB[("MongoDB 8<br/>smartpot-db<br/>BSON :27017")]
-    A_CACHE[("Redis 8<br/>smartpot-cache<br/>RESP :6379")]
-    A_BROKER["Mosquitto 2.1<br/>smartpot-broker<br/>DynSec :1883"]
-    A_SIM["Simulador Python<br/>smartpot-datagenerator<br/>asyncio · 82 MB RAM"]
+    A_WEB["PWA React 19<br/>SmartPot-Web-React · 240 kB gzip<br/>Port 5173:80"]
+    A_API["API REST Spring Boot 4<br/>SmartPot-API-Java · Java 21 · 385 MB RAM<br/>Port 8091:8091"]
+    A_DB[("MongoDB 8<br/>SmartPot-DB-Mongo<br/>BSON :27017")]
+    A_CACHE[("Redis 8<br/>SmartPot-Cache-Redis<br/>RESP :6379")]
+    A_BROKER["Mosquitto 2.1<br/>SmartPot-Broker-Mosquito<br/>DynSec :1883"]
+    A_SIM["Simulador Python<br/>SmartPot-DataGenerator-Python<br/>asyncio · 82 MB RAM"]
 
     A_WEB -->|HTTP| A_API
     A_API -->|BSON| A_DB
@@ -87,32 +87,36 @@ flowchart TB
     A_SIM <-->|MQTT| A_BROKER
   end
 
-  subgraph SHARED["Componentes Compartidos (Invariables en ambos entornos)"]
+  subgraph STACK_B["Stack B — Arquitectura Canónica en Producción (Vigente)"]
     direction LR
-    S_AI["Asistente de IA (smartpot-ai)<br/>FastAPI · scikit-learn · Lógica Difusa Sugeno<br/>Diagnóstico agronómico y aprendizaje continuo · Port 8000:8000"]
-    S_MAIL["Servidor de Correo (smartpot-mail)<br/>Mailpit SMTP autenticado & Web UI<br/>SMTP :1025 · Web UI :8025"]
-  end
+    B_WEB["PWA SolidJS 1.9<br/>SmartPot-Web · Bun · Vite · 71 kB gzip (-70%)<br/>Port 5173:8080"]
+    B_API["API REST Go 1.26<br/>SmartPot-API · Scratch · 18 MB RAM (-95%)<br/>Port 8091:8091"]
+    B_DB[("TimescaleDB 2.17<br/>SmartPot-DB (PostgreSQL 17)<br/>SQL :5432")]
+    B_CACHE[("Valkey 9.1<br/>SmartPot-Cache<br/>RESP :6379")]
+    B_BROKER["EMQX 5.8<br/>SmartPot-Broker<br/>Auth delegada HTTP"]
+    B_SIM["Simulador Rust<br/>SmartPot-DataGenerator<br/>Tokio · v2 binario · 14.8 MB RAM (-82%)"]
+    B_AI["Inferencia Rust<br/>SmartPot-AI<br/>Axum / Tonic gRPC"]
+    B_TRAINER["Entrenador Python<br/>SmartPot-Trainer<br/>ADBC TimescaleDB"]
 
-  subgraph STACK_B["Entorno B — Demo BETA (Next-Gen Stack)"]
-    direction LR
-    B_WEB["PWA SolidJS 1.9<br/>SmartPot-Web-Solid · 71 kB gzip (-70%)<br/>Port 5173:8080"]
-    B_API["API REST Go 1.26<br/>SmartPot-API-Go · Scratch · 18 MB RAM (-95%)<br/>Port 8091:8091"]
-    B_DB[("TimescaleDB 2.17<br/>SmartPot-DB-Postgre<br/>SQL :5432")]
-    B_CACHE[("Valkey 9.1<br/>SmartPot-Cache-Valkey<br/>RESP :6379")]
-    B_BROKER["EMQX 5.8<br/>SmartPot-Broker-EMQX<br/>Auth HTTP :1883"]
-    B_SIM["Simulador Rust 2.0<br/>SmartPot-DataGenerator-Rust<br/>Tokio · 14.8 MB RAM (-82%)"]
-
-    B_WEB -->|HTTP| B_API
-    B_API -->|pgx| B_DB
-    B_API -->|RESP| B_CACHE
+    B_WEB -->|HTTP + SSE| B_API
+    B_API -->|pgx pool| B_DB
+    B_API -->|RESP / socket| B_CACHE
     B_API <-->|MQTT| B_BROKER
+    B_BROKER -.->|POST /internal/mqtt/authn| B_API
     B_SIM <-->|MQTT| B_BROKER
+    B_API -->|gRPC / REST| B_AI
+    B_DB -.->|ADBC| B_TRAINER
+    B_TRAINER -.->|Ed25519 JSON| B_AI
   end
 
-  A_API -.->|POST /v1/insights| S_AI
-  A_API -.->|SMTP :1025| S_MAIL
-  B_API -.->|POST /v1/insights| S_AI
+  subgraph SHARED["Componentes de Soporte"]
+    direction LR
+    S_MAIL["Servidor de Correo (SmartPot-Mail)<br/>Mailpit SMTP autenticado & Web UI<br/>SMTP :1025 · Web UI :8025"]
+    S_MCP["Servidor MCP (SmartPot-MCP)<br/>FastMCP para asistentes IA<br/>Port 8092:8092"]
+  end
+
   B_API -.->|SMTP :1025| S_MAIL
+  S_MCP -->|REST + token spt_...| B_API
 
   classDef core fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef platform fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
@@ -123,8 +127,8 @@ flowchart TB
   class A_API,B_API core
   class A_WEB,B_WEB platform
   class A_DB,B_DB,A_CACHE,B_CACHE store
-  class A_BROKER,B_BROKER,A_SIM,B_SIM device
-  class S_AI,S_MAIL shared
+  class A_BROKER,B_BROKER,A_SIM,B_SIM,B_AI,B_TRAINER device
+  class S_MCP,S_MAIL shared
 ```
 
 <!-- parte: PARTE II | Pruebas de Humo y Exploración -->
@@ -470,6 +474,7 @@ Se aplicaron cuotas estrictas de recursos en los 8 microservicios para evitar at
 | **GATE-7: Ingesta Batching y Resiliencia** | Worker pool acotado, micro-batching 10ms y circuit breaker | 0 saturación goroutines; 0 stampede | **APROBADO** |
 
 > [!TIP]
-> **Veredicto Técnico:** **APROBADO PARA CORTE A PRODUCCIÓN.**  
-> El stack BETA es funcionalmente idéntico para el cliente y los dispositivos, cuadruplica la capacidad de procesamiento
-> concurrente y disminuye los costos operativos de infraestructura a más de la mitad.
+> **Veredicto Técnico:** **APROBADO Y DESPLEGADO EN PRODUCCIÓN.**  
+> El corte a producción fue ejecutado y completado exitosamente (2026-11-05). El Stack B asumió los nombres canónicos
+> oficiales y opera hoy en producción en `smartpot.app`, cuadruplicando la capacidad concurrente y reduciendo los costos
+> operativos de infraestructura a más de la mitad. El Stack A ha sido archivado como referencia histórica.

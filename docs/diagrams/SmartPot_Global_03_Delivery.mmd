@@ -58,11 +58,11 @@ flowchart TB
       direction TB
       ssh["SSH :2222 con known_hosts<br/>carpeta .deploy-id temporal"]
       lock["flock /var/lock/smartpot-deploy.lock"]
-      certs["/etc/mosquitto/certs · dueño 1883"]
+      certs["SMARTPOT_CERTS_DIR · certificados TLS"]
       compose["docker compose -p smartpot<br/>pull desde GHCR · up -d --wait<br/>migración de los esquemas de la base<br/>borra el .env al terminar"]
-      runtime["8 contenedores de solo lectura<br/>sin capacidades · no-new-privileges<br/>redes internal y public · volúmenes db_data, broker_data y ai_data"]
+      runtime["Contenedores endurecidos Stack B<br/>sin capacidades · no-new-privileges<br/>redes internal y public · volúmenes db_data, broker_data y ai_data"]
       nginx["Nginx + Let's Encrypt · UFW"]
-      backup["backup_smartpot.sh<br/>mongodump comprimido · 14 días"]
+      backup["backup_smartpot.sh<br/>pg_dump comprimido · 14 días"]
       ssh --> lock --> certs --> compose --> runtime
       nginx --> runtime
       runtime --> backup

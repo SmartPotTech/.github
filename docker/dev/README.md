@@ -21,12 +21,14 @@ SmartPot/
 ├── SmartPot-DataGenerator/
 ├── SmartPot-DB/
 ├── SmartPot-Mail/
+├── SmartPot-MCP/
+├── SmartPot-Trainer/
 └── SmartPot-Web/
 ```
 
 ```bash
 mkdir SmartPot && cd SmartPot
-for repo in .github SmartPot-AI SmartPot-API SmartPot-Broker SmartPot-Cache SmartPot-DataGenerator SmartPot-DB SmartPot-Mail SmartPot-Web; do
+for repo in .github SmartPot-AI SmartPot-API SmartPot-Broker SmartPot-Cache SmartPot-DataGenerator SmartPot-DB SmartPot-Mail SmartPot-MCP SmartPot-Trainer SmartPot-Web; do
   git clone https://github.com/SmartPotTech/$repo.git
 done
 ```
