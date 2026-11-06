@@ -5,7 +5,7 @@ flowchart LR
     user(["Dueño del cultivo<br/>navegador o PWA instalada<br/>Android · iOS · escritorio"])
     esp["Cultivo real · ESP32 físico<br/>Rust Embassy no_std / MicroPython<br/>MQTT sobre TLS 8883<br/>Sensores: luz · pH · TDS · sustrato · DHT22<br/>Actuadores: bomba · luz UV · ventilador<br/>Telemetría JSON o binaria compacta v2"]
     wokwi["Cultivo real · Wokwi<br/>ESP32 simulado con firmware en la nube<br/>diagram.json · ejecución directa"]
-    aiagents(["Asistentes de IA externos<br/>Claude · ChatGPT · Cursor · IDEs<br/>vía Model Context Protocol"])
+    aiagents(["Asistentes de IA externos<br/>Agentes · Clientes MCP · IDEs<br/>vía Model Context Protocol"])
     tgchat(["Chats privados de Telegram<br/>el del dueño y los compartidos<br/>/start · /estado · /desvincular · /ayuda"])
   end
 
