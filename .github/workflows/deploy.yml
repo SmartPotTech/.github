@@ -280,12 +280,12 @@ jobs:
           install -m 644 "$stage/compose.yaml" compose.yaml
           install -m 600 "$stage/.env" .env
 
-          # El broker EMQX corre como el usuario 1000/1883.
+          # El broker EMQX corre como el usuario 1000/1883 (requiere lectura en server.key).
           if [ -d "$stage/certs" ]; then
             install -d -m 755 "$CERTS_DIR"
             install -m 644 "$stage/certs/ca.crt" "$CERTS_DIR/ca.crt"
             install -m 644 "$stage/certs/server.crt" "$CERTS_DIR/server.crt"
-            install -m 600 "$stage/certs/server.key" "$CERTS_DIR/server.key"
+            install -m 644 "$stage/certs/server.key" "$CERTS_DIR/server.key"
             echo "Certificados MQTT actualizados en $CERTS_DIR."
           fi
 
