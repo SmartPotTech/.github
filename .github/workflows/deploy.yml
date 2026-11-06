@@ -168,7 +168,7 @@ jobs:
           printf '%s\n' "$ENV_FILE" | tr -d '\r' > .env
           value() { sed -n "s/^$1=//p" .env | tail -n 1; }
           for key in SMARTPOT_JWT_SECRET SMARTPOT_AES_KEY SMARTPOT_AI_TOKEN MQTT_ADMIN_PASSWORD VALKEY_PASSWORD \
-                     WEB_BASE_URL PUBLIC_API_URL CORS_ALLOWED_ORIGINS MQTT_PUBLIC_HOST DATABASE_URL; do
+                     SMARTPOT_READER_PASSWORD WEB_BASE_URL PUBLIC_API_URL CORS_ALLOWED_ORIGINS MQTT_PUBLIC_HOST DATABASE_URL; do
             [ -n "$(value "$key")" ] || { echo "::error::ENV_FILE no define $key."; exit 1; }
           done
           [ "$(value SMARTPOT_JWT_SECRET | tr -d '\n' | wc -c)" -ge 32 ] \

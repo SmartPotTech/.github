@@ -17,7 +17,9 @@ stringData:
   POSTGRES_PASSWORD: k8s-root-password-local
   SMARTPOT_DB_PASSWORD: k8s-app-password-local
   SMARTPOT_READER_PASSWORD: k8s-reader-password-local
+  # Separación de roles: la API usa DATABASE_URL con el rol escritor; el trainer usa TRAINER_DATABASE_URL con smartpot_reader (solo lectura).
   DATABASE_URL: postgresql://smartpot:k8s-app-password-local@db-smartpot:5432/smartpot?sslmode=disable
+  TRAINER_DATABASE_URL: postgresql://smartpot_reader:k8s-reader-password-local@db-smartpot:5432/smartpot?sslmode=disable
   VALKEY_PASSWORD: k8s-valkey-password-local
   CACHE_PASSWORD: k8s-valkey-password-local
   MAIL_PASSWORD: k8s-mail-password-local
@@ -102,6 +104,18 @@ spec:
   resources:
     requests:
       storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trainer-keys
+  namespace: smartpot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 128Mi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -527,6 +541,14 @@ spec:
               value: "http://trainer-smartpot:8001"
             - name: LEARNING_CHECK_SECONDS
               value: "0"
+            - name: AI_TIMEZONE
+              value: "America/Bogota"
+            - name: TRUSTED_MODEL_PUBLIC_KEY_HEX
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: TRUSTED_MODEL_PUBLIC_KEY_HEX
+                  optional: true
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -553,6 +575,7 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
@@ -623,7 +646,15 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: smartpot-secrets
-                  key: DATABASE_URL
+                  key: TRAINER_DATABASE_URL
+            - name: MODEL_SIGNING_KEY_PATH
+              value: "/data/keys/ed25519_private.pem"
+            - name: TRUSTED_MODEL_PUBLIC_KEY_HEX
+              valueFrom:
+                secretKeyRef:
+                  name: smartpot-secrets
+                  key: TRUSTED_MODEL_PUBLIC_KEY_HEX
+                  optional: true
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -644,12 +675,17 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            - name: keys
+              mountPath: /data/keys
             - name: tmp
               mountPath: /tmp
       volumes:
         - name: data
           persistentVolumeClaim:
             claimName: ai-data
+        - name: keys
+          persistentVolumeClaim:
+            claimName: trainer-keys
         - name: tmp
           emptyDir: { }
 ---
@@ -1010,7 +1046,11 @@ spec:
             - name: PORT
               value: "8002"
             - name: MCP_ALLOWED_HOSTS
-              value: "localhost:*,127.0.0.1:*,mcp-smartpot:*"
+              value: "localhost:*,127.0.0.1:*,[::1]:*,mcp-smartpot:*,mcp.smartpot.app,mcp.smartpot.app:*"
+            - name: MCP_ALLOWED_ORIGINS
+              value: "http://localhost:*,http://127.0.0.1:*,http://[::1]:*,https://smartpot.app,https://www.smartpot.app,https://mcp.smartpot.app"
+            - name: MCP_TOKEN_CACHE_SECONDS
+              value: "30"
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
