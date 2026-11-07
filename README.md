@@ -108,7 +108,7 @@ The [`qa.yml`](.github/workflows/qa.yml) workflow triggers on repository pushes,
 | AI & Simulator (`SmartPot-AI`, `-DataGenerator`, `-IoT`) | Rust `cargo test`, `cargo clippy`, Embassy ESP32 checks, and native model parity tests |
 | Learning & MCP (`SmartPot-Trainer`, `SmartPot-MCP`) | Python Ruff lint/format, pytest suites, ADBC query verification, and FastMCP tool tests |
 | Infrastructure (`SmartPot-Broker`, `-DB`, `-Cache`, `-Mail`) | Hardened container smoke tests: EMQX authn delegation, PostgreSQL 17/TimescaleDB schema, Valkey socket/password auth, and Mailpit SMTP |
-| End-to-End Suite | Spins up the canonical demo stack and validates 46 end-to-end assertions: registration, real crop, MQTT telemetry, command ACK, conflict guards (409), AI diagnosis, placement advice, dashboard series, bulk actions, virtual crop simulation, and cleanup. |
+| End-to-End Suite | Spins up the canonical demo stack and validates 101 end-to-end assertions: registration, real crop, MQTT telemetry and capabilities, command ACK, conflict guards (409), AI diagnosis, placement advice, dashboard series, bulk actions, virtual crop simulation, CSV summary/export, password recovery through Mailpit, profile and password changes, `spt_` connections with MCP read/control scopes, cross-account isolation, validation errors, and cleanup. The Telegram link-code check is skipped when no bot is configured (100 checks run). |
 
 ## Deployment
 
@@ -228,7 +228,7 @@ El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada push, semana
 | IA y Simulador (`SmartPot-AI`, `-DataGenerator`, `-IoT`) | Pruebas de Rust (`cargo test`), `cargo clippy`, chequeo Embassy para ESP32 y paridad de modelos nativos |
 | Aprendizaje y MCP (`SmartPot-Trainer`, `SmartPot-MCP`) | Linter y formateo Ruff, pruebas pytest, consultas ADBC y verificación de herramientas FastMCP |
 | Infraestructura (`SmartPot-Broker`, `-DB`, `-Cache`, `-Mail`) | Pruebas de humo de contenedores: delegación authn en EMQX, esquemas e hipertablas de PostgreSQL/TimescaleDB, autenticación en Valkey y SMTP en Mailpit |
-| End-to-End | Levanta la demo canónica y valida 46 aserciones de extremo a extremo: registro, cultivo real, telemetría MQTT, comando con confirmación, switches con guardas (409), asistente, lugar y clima, panel general, órdenes en bloque, cultivo virtual, aprendizaje y borrado. |
+| End-to-End | Levanta la demo canónica y valida 101 aserciones de extremo a extremo: registro, cultivo real, telemetría y capacidades MQTT, comando con confirmación, switches con guardas (409), asistente, lugar y clima, panel general, órdenes en bloque, cultivo virtual, resumen y exportación CSV, recuperación de contraseña por Mailpit, perfil y cambio de clave, conexiones `spt_` con alcance READ/CONTROL en MCP, aislamiento entre cuentas, errores de validación y borrado. La comprobación del código de Telegram se omite si no hay bot configurado (se ejecutan 100). |
 
 ## Despliegue
 
