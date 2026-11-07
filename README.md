@@ -104,7 +104,7 @@ The [`qa.yml`](.github/workflows/qa.yml) workflow triggers on repository pushes,
 | Pipeline Job | Scope of Validation |
 |---|---|
 | API (`SmartPot-API`) | Go test suites (`./...`), `go vet`, and hexagonal architecture integration tests |
-| Web (`SmartPot-Web`) | ESLint, TypeScript verification (`tsc -b`), Vitest suite (96 tests), and production bundle build |
+| Web (`SmartPot-Web`) | ESLint, TypeScript verification (`tsc -b`), Vitest suite (208 tests), and production bundle build |
 | AI & Simulator (`SmartPot-AI`, `-DataGenerator`, `-IoT`) | Rust `cargo test`, `cargo clippy`, Embassy ESP32 checks, and native model parity tests |
 | Learning & MCP (`SmartPot-Trainer`, `SmartPot-MCP`) | Python Ruff lint/format, pytest suites, ADBC query verification, and FastMCP tool tests |
 | Infrastructure (`SmartPot-Broker`, `-DB`, `-Cache`, `-Mail`) | Hardened container smoke tests: EMQX authn delegation, PostgreSQL 17/TimescaleDB schema, Valkey socket/password auth, and Mailpit SMTP |
@@ -224,7 +224,7 @@ El workflow [`qa.yml`](.github/workflows/qa.yml) se ejecuta en cada push, semana
 | Trabajo | Qué valida |
 |---|---|
 | API (`SmartPot-API`) | Pruebas unitarias y de integración en Go (`go test ./...`), `go vet` y contratos Echo |
-| Web (`SmartPot-Web`) | ESLint, verificación de tipos (`tsc -b`), batería de Vitest (96 pruebas) y compilación de producción con Bun |
+| Web (`SmartPot-Web`) | ESLint, verificación de tipos (`tsc -b`), batería de Vitest (208 pruebas) y compilación de producción con Bun |
 | IA y Simulador (`SmartPot-AI`, `-DataGenerator`, `-IoT`) | Pruebas de Rust (`cargo test`), `cargo clippy`, chequeo Embassy para ESP32 y paridad de modelos nativos |
 | Aprendizaje y MCP (`SmartPot-Trainer`, `SmartPot-MCP`) | Linter y formateo Ruff, pruebas pytest, consultas ADBC y verificación de herramientas FastMCP |
 | Infraestructura (`SmartPot-Broker`, `-DB`, `-Cache`, `-Mail`) | Pruebas de humo de contenedores: delegación authn en EMQX, esquemas e hipertablas de PostgreSQL/TimescaleDB, autenticación en Valkey y SMTP en Mailpit |
