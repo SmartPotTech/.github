@@ -81,6 +81,10 @@ The **AI assistant** comprises two specialized components:
 
 External AI agents interface through `SmartPot-MCP` (`mcp.smartpot.app`) via Model Context Protocol tools using connection tokens (`spt_...`), while Telegram notifies users of alerts and daily digests.
 
+### Interactive Diagrams
+
+The [interactive diagrams](docs/diagrams/interactive/README.md#english) show the production topology, the `deploy.yml` deployment workflow and the 21 repositories of the organization, in English and Spanish, with links to the exact source lines. Each service repository also has its own interactive diagrams under `docs/diagrams/interactive/`.
+
 ### Legacy Stack A Architecture (Deprecated)
 
 > [!NOTE]
@@ -200,6 +204,10 @@ El **asistente de IA** está desacoplado en dos componentes:
 2. `SmartPot-Trainer` (Python 3.13, Polars, scikit-learn): entrenamiento continuo fuera del camino crítico mediante consultas ADBC optimizadas sobre cultivos reales seudonimizados.
 
 Los asistentes de IA externos se conectan vía Model Context Protocol a través de `SmartPot-MCP` (`mcp.smartpot.app`) con tokens de conexión (`spt_...`), mientras Telegram envía resúmenes y alertas interactivas.
+
+### Diagramas interactivos
+
+Los [diagramas interactivos](docs/diagrams/interactive/README.md#español) muestran la topología de producción, el workflow de despliegue `deploy.yml` y los 21 repositorios de la organización, en español e inglés, con enlaces a las líneas exactas del código. Cada repositorio de servicio tiene además sus propios diagramas interactivos en `docs/diagrams/interactive/`.
 
 ### Arquitectura histórica del Stack A (Deprecada)
 
