@@ -212,9 +212,13 @@ services:
       AI_LEARNING_FLUSH_INTERVAL: PT15S
       SIMULATOR_BASE_URL: http://simulator-smartpot:8081
       SIMULATOR_TOKEN: *simulator-token
+      # La demo local encadena registro, login y recuperación en una sola suite; el límite general no cambia.
+      AUTH_RATE_LIMIT_PER_MINUTE: ${AUTH_RATE_LIMIT_PER_MINUTE:-100}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
-      TELEGRAM_MODE: polling
+      TELEGRAM_MODE: ${TELEGRAM_MODE:-polling}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
+      TELEGRAM_API_BASE_URL: ${TELEGRAM_API_BASE_URL:-https://api.telegram.org}
     ports:
       - "127.0.0.1:8091:8091"
     volumes:
@@ -287,6 +291,8 @@ services:
       HOST: 0.0.0.0
       PORT: "8002"
       MCP_ALLOWED_HOSTS: localhost:*,127.0.0.1:*,mcp-smartpot:*
+      # La demo revoca tokens al instante: las pruebas comprueban el 401 sin esperar la caché de 30 s.
+      MCP_TOKEN_CACHE_SECONDS: ${MCP_TOKEN_CACHE_SECONDS:-0}
     ports:
       - "127.0.0.1:8002:8002"
     tmpfs:

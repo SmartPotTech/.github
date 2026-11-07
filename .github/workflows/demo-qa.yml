@@ -30,7 +30,7 @@ jobs:
   validate-demo:
     name: Validate Demo Stack
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -44,6 +44,9 @@ jobs:
           python-version: '3.12'
 
       - name: Start Demo Stack
+        env:
+          # La suite encadena login y recuperación de contraseña desde la misma IP.
+          AUTH_RATE_LIMIT_PER_MINUTE: "100"
         run: |
           docker compose -f docker/demo/compose.yaml up -d --wait --wait-timeout 300
 
@@ -53,6 +56,15 @@ jobs:
           docker stats --no-stream
 
       - name: Run Centralized Test Suite
+        env:
+          SMARTPOT_API_URL: http://localhost:8091
+          SMARTPOT_MCP_URL: http://localhost:8002
+          SMARTPOT_MAILPIT_URL: http://localhost:8025
+          SMARTPOT_MAILPIT_USERNAME: admin
+          SMARTPOT_MAILPIT_PASSWORD: demo-mailpit-ui
+          SMARTPOT_DEMO_EMAIL: demo@smartpot.app
+          SMARTPOT_DEMO_PASSWORD: SmartPot2026
+          SMARTPOT_BROKER_CONTAINER: smartpot-demo-broker
         run: |
           python3 docker/demo/test.py
 

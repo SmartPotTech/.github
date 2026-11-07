@@ -143,7 +143,7 @@ jobs:
     name: End-to-End
     needs: [ api, web, rust, python, containers ]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Checkout QA configuration
         uses: actions/checkout@v7
@@ -164,9 +164,26 @@ jobs:
           done
 
       - name: Start demo stack
+        env:
+          # Bot de prueba sin salida a Telegram: la API valida el canal y el webhook sin llamar al servicio real.
+          TELEGRAM_BOT_TOKEN: demo-telegram-token
+          TELEGRAM_BOT_USERNAME: smartpot_demo_bot
+          TELEGRAM_MODE: webhook
+          TELEGRAM_WEBHOOK_SECRET: demo-telegram-webhook-secret
+          TELEGRAM_API_BASE_URL: http://127.0.0.1:9
+          # La suite encadena registro, login y recuperación desde la misma IP.
+          AUTH_RATE_LIMIT_PER_MINUTE: "100"
         run: docker compose -f docker/demo/compose.yaml up -d --pull never --wait --wait-timeout 300
 
       - name: Run end-to-end checks
+        env:
+          SMARTPOT_API_URL: http://localhost:8091
+          SMARTPOT_MCP_URL: http://localhost:8002
+          SMARTPOT_MAILPIT_URL: http://localhost:8025
+          SMARTPOT_MAILPIT_USERNAME: admin
+          SMARTPOT_MAILPIT_PASSWORD: demo-mailpit-ui
+          SMARTPOT_DEMO_EMAIL: demo@smartpot.app
+          SMARTPOT_DEMO_PASSWORD: SmartPot2026
         run: python3 scripts/e2e.py
 
       - name: Show logs on failure
