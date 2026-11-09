@@ -1,28 +1,28 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  subgraph prep["1 · Datos"]
+  subgraph prep["1 · Data Preparation"]
     direction LR
-    lect["Lecturas reales<br/>lotes cada minuto"] --> alm[("SQLite en /data<br/>pseudonymized crop")]
-    alm --> cal["Calidad de datos<br/>completitud · validez · IQR"]
+    lect["Real crop readings<br/>1-minute batches via ADBC"] --> alm[("SQLite en /data<br/>pseudonymized crop")]
+    alm --> cal["Data Quality<br/>completeness · validation · IQR"]
     cal --> var["Variables<br/>position in range, circular hour,<br/>tendencia de 30 min"]
   end
   subgraph sup["2 · Supervisado"]
     direction LR
-    eti["Etiquetas autosupervisadas<br/>outcome in subsequent hour?"] --> cv["7 modelos con<br/>TimeSeriesSplit<br/>+ baseline"]
+    eti["Self-supervised labels<br/>outcome in subsequent hour?"] --> cv["Tournament models with<br/>TimeSeriesSplit<br/>+ baseline"]
     cv --> gs["GridSearchCV<br/>del mejor"]
-    gs --> cc{"¿Supera a la baseline<br/>y al vigente en lo<br/>most recent?"}
+    gs --> cc{"Outperforms baseline<br/>and active model in<br/>recent evaluations?"}
     cc -->|"Sí"| nuevo["Campeón nuevo<br/>version + joblib artifact"]
-    cc -->|"No"| vig["Se conserva<br/>el vigente"]
+    cc -->|"No"| vig["Retain active<br/>model"]
   end
   subgraph nosup["3 · No supervisado"]
     direction LR
-    km["K-Means por silueta<br/>operational states"]
+    km["K-Means by silhouette<br/>operational states"]
     iso["Isolation Forest<br/>atypical / anomalous readings"]
   end
   var --> eti
   var --> km
   var --> iso
-  inf["4 · Cada evaluación: riego y calor en 1 h, sustrato en 1 h, estado y atipicidad"]
+  inf["4 · Evaluation: irrigation & heat in 1h, soil trend, operational state & anomaly"]
   nuevo --> inf
   vig --> inf
   km --> inf

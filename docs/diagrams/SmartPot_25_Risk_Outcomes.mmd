@@ -12,11 +12,11 @@ flowchart LR
     r7["Deuda técnica"]
     r8["Cuotas de capas gratuitas"]
     r9["AppSec & Vulnerability y acceso a actuadores"]
-    r10["Saturación por datos IoT"]
+    r10["IoT telemetry saturation"]
   end
   subgraph desenlace["Desenlace"]
-    ok["Resuelto con una decisión técnica<br/>MQTT v1 contract, self-hosted infrastructure,<br/>tenant control, rate limits, and cache"]
-    parcial["Absorbido por la gestión<br/>alcance ampliado por ciclos,<br/>plan reprogramado"]
+    ok["Resolved by architecture decision<br/>MQTT v1 contract, self-hosted infrastructure,<br/>tenant control, rate limits, and cache"]
+    parcial["Managed iteratively<br/>phased scope expansion,<br/>automated verification"]
   end
   r1 & r8 & r9 & r10 & r7 --> ok
   r2 & r3 & r4 & r5 & r6 --> parcial

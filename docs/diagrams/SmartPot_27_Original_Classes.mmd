@@ -5,13 +5,13 @@ classDiagram
     <<interface>>
     -float medida
     -int pin
-    -bool estado
+    -bool status
     +calibrar(medida)
     +encender()
     +Turn off()
     +medir()
   }
-  class Actuador {
+  class Actuator {
     <<interface>>
     -int pin
     -encender()
@@ -25,7 +25,7 @@ classDiagram
     -WaterPump waterPump
     -UVLight uvLight
     -Api api
-    -Cultivo cultivo
+    -Crop crop
     -string token
     +monitorear_sensores()
     +ejecutar_actuador()
@@ -43,7 +43,7 @@ classDiagram
     +registrar_comando()
     +enviar_respuesta()
   }
-  class Cultivo {
+  class Crop {
     -string tipo
     -dictionary condicionesOptimas
     -string estadoSalud
@@ -61,10 +61,10 @@ classDiagram
     -dictionary medidas
   }
   class FabricaCultivos {
-    -Map cultivos
+    -Map crops
     +obtenerCultivo()
   }
-  class Usuario {
+  class User {
     -string nombre
     -string email
     +editarPerfil()
@@ -76,7 +76,7 @@ classDiagram
     +validarSesion()
     +cerrarSesion()
   }
-  class Notificacion {
+  class Notification {
     -string mensaje
     -string tipo
     +enviarNotificacion()

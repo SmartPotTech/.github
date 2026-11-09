@@ -17,7 +17,7 @@ flowchart LR
     cu12["UC012 View AI Model Insights"]
   end
   maceta(("Device<br/>ESP32 or Wokwi"))
-  simulador(("SmartPot<br/>Simulator"))
+  simulator(("SmartPot<br/>Simulator"))
   agente(("AI<br/>Agent"))
   persona --- cu1
   persona --- cu2
@@ -32,12 +32,12 @@ flowchart LR
   persona --- cu12
   cu2 --- maceta
   cu3 --- maceta
-  cu10 --- simulador
+  cu10 --- simulator
   cu4 --- agente
   cu5 --- agente
   classDef actor fill:#067A52,stroke:#0B3D2B,color:#FFFFFF
   classDef base fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef nuevo fill:#FDF4DD,stroke:#C98D12,color:#17261F
-  class persona,maceta,simulador,agente actor
+  class persona,maceta,simulator,agente actor
   class cu1,cu2,cu3,cu4,cu5,cu6,cu7,cu8 base
   class cu9,cu10,cu11,cu12 nuevo

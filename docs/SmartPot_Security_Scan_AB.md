@@ -160,8 +160,8 @@ flowchart TD
   subgraph STACK_A["Stack A: Legacy Architecture (Broad Attack Surface & Tech Debt)"]
     direction TB
     A_API["SmartPot-API-Java (Java 21 / Spring Boot 4.1)<br/>47 SCA Vulnerabilities (8 Critical, 14 High)<br/>Jackson Deserialization RCE (CVE-2026-110879)<br/>Tomcat Auth & Access Bypass (CVE-2026-101296)"]
-    A_SO["Contenedor Temurin / Debian 12<br/>42 Vulnerabilidades en paquetes de SO<br/>Shell sh/bash y utilidades disponibles"]
-    A_BROKER["SmartPot-Broker-Mosquito (Mosquitto 2.1)<br/>dynamic-security.json en disco<br/>Condiciones de carrera en concurrencia"]
+    A_SO["Temurin / Debian 12 container<br/>42 OS package vulnerabilities<br/>Shell sh/bash and system utilities present"]
+    A_BROKER["SmartPot-Broker-Mosquito (Mosquitto 2.1)<br/>dynamic-security.json on disk<br/>Concurrency race conditions"]
   end
 
   subgraph CONTROLS["Shared Controls & Universal Mitigations"]
@@ -174,9 +174,9 @@ flowchart TD
 
   subgraph STACK_B["Stack B: Canonical Production (Hexagonal Architecture & Zero Trust Isolation)"]
     direction TB
-    B_API["SmartPot-API (Go 1.27.3 / Echo / pgx v5)<br/>4 SCA Vulnerabilities (0 Critical, 1 High in x509)<br/>Zero-alloc parser · DTOs fuertemente tipados<br/>Native SQL Parameterization $1..$11"]
-    B_SO["Contenedor scratch (12.2 MB)<br/>0 Vulnerabilidades de SO en runtime<br/>Sin shell, sin paquetes, sin utilidades"]
-    B_BROKER["SmartPot-Broker (EMQX 5.8.9.9.9)<br/>Webhook Authn en memoria con Valkey<br/>Dynamic Per-Crop Tenant ACL Isolation<br/>Active REST Disconnect on Key Rotation/Deletion"]
+    B_API["SmartPot-API (Go 1.27.3 / Echo / pgx v5)<br/>4 SCA Vulnerabilities (0 Critical, 1 High in x509)<br/>Zero-alloc parser · Strongly typed DTOs<br/>Native SQL Parameterization $1..$11"]
+    B_SO["scratch container (12.2 MB)<br/>0 OS runtime vulnerabilities<br/>No shell, no packages, no binaries"]
+    B_BROKER["SmartPot-Broker (EMQX 5.8.9)<br/>In-memory Webhook Authn with Valkey<br/>Dynamic Per-Crop Tenant ACL Isolation<br/>Active REST Disconnect on Key Rotation/Deletion"]
   end
 
   STACK_A -.->|"Hexagonal Modernization"| CONTROLS

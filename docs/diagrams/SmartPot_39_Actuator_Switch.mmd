@@ -13,7 +13,7 @@ flowchart LR
   timed -->|"encender de nuevo<br/>reinicia el tiempo"| timed
   off -.->|"Turn off · 409"| off
   unlimited -.->|"encender sin límite · 409"| unlimited
-  rule["Cada cambio se aplica al llegar la confirmsción del dispositivo.<br/>While awaiting ACK, any new order to the same actuator returns 409 Conflict."]
+  rule["State transitions apply upon receiving device ACK confirmation.<br/>While awaiting ACK, any new order to the same actuator returns 409 Conflict."]
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
   classDef core fill:#067A52,stroke:#0B3D2B,color:#FFFFFF

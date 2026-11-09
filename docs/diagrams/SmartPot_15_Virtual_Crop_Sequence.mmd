@@ -4,28 +4,28 @@ sequenceDiagram
   participant P as User
   participant W as PWA
   participant A as API
-  participant S as Simulador
+  participant S as Simulator
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Nuevo cultivo › Virtual › Balsa flotante › al aire libre · Clima real · Medellín
+  P->>W: New Crop › Virtual › Floating Raft › Outdoor · Live Weather · Medellin
   W->>A: POST /crops {kind: VIRTUAL, form, placement, virtual}
   A->>A: hasta 5 virtuales · el modo weather exige lugar
-  A->>A: cultivo, seis actuadores y cuenta MQTT
+  A->>A: Provision crop, 6 actuators, and MQTT credentials
   A->>S: PUT /v1/pots/{id} (key, mode, location & exposure)
   A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: current weather (10 min cache)
-  S->>B: conecta con la cuenta del cultivo
+  S->>B: Connects with crop credentials
   loop cada intervalo
-    S->>B: telemetría con el weather filtrado por el lugar y los actuadores encendidos
+    S->>B: Publish telemetry with location weather and active actuator effects
     B->>A: reading → assistant → agent (excluded from learning)
   end
   P->>W: Control › switch de la bomba de agua · 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
-  S->>B: ACK «Bomba de agua encendida por 15 s»
-  S->>B: lectura nueva a los 2 s con el sustrato más húmedo
+  S->>B: ACK «Water pump turned on for 15s»
+  S->>B: New reading after 2s with increased soil moisture
   W->>A: GET /crops/{id}/virtual-device
-  A-->>W: weather, lecturas y actuadores encendidos
+  A-->>W: Weather, readings, and active actuators
   W-->>P: la ilustración muestra la bomba en marcha
-  Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
+  Note over A,S: Pause retains configuration · each minute<br/>the API reconciles missing active simulations

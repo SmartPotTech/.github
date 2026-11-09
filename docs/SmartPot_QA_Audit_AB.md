@@ -79,8 +79,8 @@ sequenceDiagram
   participant SDET as SDET Harness (CI/CD)
   participant API as SmartPot-API-Go
   participant DB as TimescaleDB
-  participant BROKER as EMQX 5.8.9.9
-  participant SIM as Simulador Rust
+  participant BROKER as EMQX 5.8.9
+  participant SIM as Rust Simulator
   participant AI as SmartPot-AI
 
   SDET->>API: GET /health
@@ -93,7 +93,7 @@ sequenceDiagram
   API->>DB: INSERT INTO crops (...)
   API->>SIM: PUT /v1/pots/{id} (Provisions Simulation)
   SIM-->>API: 200 OK (Active simulation)
-  API-->>SDET: 201 Created (ID CHAR(24), sin credenciales al usuario)
+  API-->>SDET: 201 Created (ID CHAR(24), sin credenciales al user)
 
   SIM->>BROKER: CONNECT / SUBSCRIBE smartpot/v1/{id}/commands
   BROKER->>API: POST /internal/mqtt/authn (x-smartpot-broker-token)
@@ -101,7 +101,7 @@ sequenceDiagram
   BROKER-->>SIM: CONNACK (Aceptado)
 
   SIM->>BROKER: PUBLISH smartpot/v1/{id}/telemetry (QoS 1)
-  BROKER->>API: Entrega mensaje de telemetría
+  BROKER->>API: Deliver telemetry message
   API->>DB: INSERT INTO readings (...) [Hipertabla]
 
   SDET->>API: GET /api/v1/crops/{id}/insights
@@ -112,7 +112,7 @@ sequenceDiagram
   SDET->>API: POST /api/v1/crops/{id}/commands (FAN ACTIVATE)
   API-->>SDET: 202 Accepted (Comando SENT)
   SDET->>API: POST /api/v1/crops/{id}/commands (FAN DEACTIVATE)
-  API-->>SDET: 409 Conflict ("Orden en curso")
+  API-->>SDET: 409 Conflict ("In-flight command active")
 
   SDET->>API: DELETE /api/v1/crops/{id}
   API->>SIM: DELETE /v1/pots/{id}
@@ -194,22 +194,22 @@ flowchart TD
 
   subgraph INTERNAL_NETWORK["Docker Internal Network (internal: true / No Internet Egress)"]
     direction TB
-    API["SmartPot-API-Go<br/>RequestContext reciclado con sync.Pool<br/>Zero-alloc radix tree<br/>subtle.ConstantTimeCompare"]
+    API["SmartPot-API<br/>RequestContext pooled with sync.Pool<br/>Zero-alloc radix tree router<br/>subtle.ConstantTimeCompare"]
     DB[("PostgreSQL 17 + TimescaleDB 2.17.2.2<br/>cap_drop: ALL + 5 minimal capabilities<br/>smartpot user with DML-only privileges<br/>Port 5432")]
-    VALKEY[("Valkey 9.1.3.3.3<br/>read_only: true · cap_drop: ALL<br/>Mandatory Passwords<br/>Port 6379")]
-    EMQX["SmartPot-Broker-EMQX<br/>Auth webhook en caliente<br/>Dynamic ACL Rules"]
-    AI["SmartPot-AI<br/>scikit-learn · Sugeno<br/>Port 8000"]
+    VALKEY[("Valkey 9.1.3-alpine<br/>read_only: true · cap_drop: ALL<br/>Mandatory Passwords<br/>Port 6379")]
+    EMQX["SmartPot-Broker<br/>Dynamic live authn webhook<br/>Dynamic ACL Rules"]
+    AI["SmartPot-AI<br/>Rust Axum / Tonic gRPC · Sugeno Fuzzy Logic<br/>Port 8000"]
   end
 
   subgraph DEVICE_ISOLATION["Multi-Tenant MQTT Tenant Isolation"]
     DEV_A["Device Crop A<br/>Tenant Credentials A"]
     DEV_B["Device Crop B<br/>Tenant Credentials B"]
-    ACL_ENGINE{"Dynamic ACL Engine<br/>EMQX 5.8.9.9.9"}
+    ACL_ENGINE{"Dynamic ACL Engine<br/>EMQX 5.8.9"}
   end
 
   PWA -->|HTTP :8091| API_PORT
   API_PORT --> API
-  API -->|pgxpool / SQL parametrizado| DB
+  API -->|pgxpool / Parameterized SQL| DB
   API -->|Rate limit & Cache| VALKEY
   API -.->|POST /v1/insights| AI
 

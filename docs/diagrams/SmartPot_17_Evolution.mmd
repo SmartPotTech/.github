@@ -2,12 +2,12 @@
 flowchart TB
   subgraph antes["Diseño y primeras versiones"]
     direction LR
-    f1["<b>Initial Version</b><br/>ESP32 con MicroPython<br/>bot de Telegram en la maceta"] --> f2["<b>Software Engineering Design</b><br/>requisitos, casos de uso<br/>y diagramas UML"]
+    f1["<b>Initial Version</b><br/>ESP32 with MicroPython<br/>standalone Telegram bot on device"] --> f2["<b>Software Engineering Design</b><br/>Requirements, use cases,<br/>and UML diagrams"]
     f2 --> f3["<b>Primera plataforma</b><br/>API Spring Boot, portal React<br/>MongoDB en la nube"]
   end
   subgraph despues["Formulación y plataforma actual"]
     direction LR
-    f4["<b>Research & Governance</b><br/>estudio de mercado, acta<br/>and predictive AI proposal"] --> f5["<b>Plataforma actual</b><br/>MQTT v1, Self-Hosted, Docker<br/>IA, PWA, seguridad y QA"]
+    f4["<b>Research & Governance</b><br/>Market research, charter,<br/>and predictive AI proposal"] --> f5["<b>Current Platform (Stack B)</b><br/>MQTT v1/v2, Self-Hosted, Docker<br/>Rust AI, SolidJS PWA, AppSec & QA"]
     f5 --> f6["<b>Learning & Channels</b><br/>continuous learning, Telegram<br/>from API and virtual crops"]
   end
   antes --> despues

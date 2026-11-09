@@ -1,22 +1,22 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
-  subgraph campo["Reading Sources"]
+  subgraph sources["Reading Sources"]
     maceta["Physical Crop · ESP32<br/>Rust Embassy / MicroPython"]
     wokwi["Physical Crop · Wokwi<br/>Simulated Firmware"]
     sim["Virtual Crops · Rust<br/>SmartPot-DataGenerator"]
   end
-  subgraph usuario["Users and Agents"]
+  subgraph users_agents["Users and Agents"]
     pwa["SolidJS PWA<br/>SmartPot-Web"]
     tg["Telegram"]
     mcp["FastMCP Server<br/>SmartPot-MCP"]
   end
-  subgraph plataforma["SmartPot Platform (Stack B)"]
-    broker["MQTT Broker EMQX 5.8.9.9<br/>SmartPot-Broker"]
+  subgraph platform["SmartPot Platform (Stack B)"]
+    broker["MQTT Broker EMQX 5.8.9<br/>SmartPot-Broker"]
     api["REST & MQTT API Go 1.27.3<br/>SmartPot-API"]
     ai["AI Inference · Rust 1.88+<br/>SmartPot-AI"]
     trainer["AI Trainer · Python 3.13+<br/>SmartPot-Trainer"]
-    db[("PostgreSQL 17 + TimescaleDB 2.17.2 2.17.2<br/>SmartPot-DB")]
-    cache[("Valkey 9.1.3.3<br/>SmartPot-Cache")]
+    db[("PostgreSQL 17 + TimescaleDB 2.17.2.2<br/>SmartPot-DB")]
+    cache[("Valkey 9.1.3-alpine<br/>SmartPot-Cache")]
     mail["Mailpit v1.33.0 Mail<br/>SmartPot-Mail"]
   end
   weather["Open-Meteo<br/>Current Weather"]

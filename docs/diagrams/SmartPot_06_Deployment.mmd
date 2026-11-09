@@ -3,7 +3,7 @@ flowchart TB
   subgraph github["GitHub · SmartPotTech"]
     repo["Push a main<br/>en un servicio"] --> ci["CI del repo<br/>tests · CodeQL static analysis"]
     repo --> pkg["packaging.yml<br/>imagen + SBOM + procedencia"]
-    pkg --> ghcr[("GHCR<br/>registro de despliegue")]
+    pkg --> ghcr[("GHCR<br/>Deployment Registry")]
     pkg --> hub[("Docker Hub<br/>distribution replica")]
     pkg --> dep["deploy.yml del repo<br/>request-deploy.yml"]
     dep -->|"workflow_dispatch<br/>DEPLOY_DISPATCH_TOKEN"| queue["Cola smartpot-production<br/>one executing · newest pending queued"]
@@ -11,7 +11,7 @@ flowchart TB
     central -.->|"resultado"| dep
     secrets["Secrets solo en .github<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
   end
-  subgraph servidor["Host Server"]
+  subgraph server["Host Server"]
     stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
     certs["SMARTPOT_CERTS_DIR<br/>certificados TLS del broker"]
     compose["docker compose -p smartpot<br/>pull + up --wait<br/>database schema migration"]

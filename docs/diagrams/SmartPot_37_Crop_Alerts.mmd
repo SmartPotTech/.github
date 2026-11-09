@@ -7,8 +7,8 @@ sequenceDiagram
   participant D as MongoDB
   participant T as Telegram
   participant C as Shared Chat
-  P->>W: Settings del cultivo › Avisos por Telegram
-  W->>A: PUT /crops/{id}/channels/TELEGRAM (eventos, entrega, resumen diario)
+  P->>W: Settings del crop › Avisos por Telegram
+  W->>A: PUT /crops/{id}/channels/TELEGRAM (events, delivery, daily digest)
   A->>D: persists crop_channels
   P->>W: Share with another chat
   W->>A: POST /crops/{id}/channels/TELEGRAM/recipients

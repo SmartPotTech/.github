@@ -3,9 +3,9 @@ flowchart LR
   subgraph origen["Origen del dato"]
     direction TB
     sensors["Sensores del ESP32<br/>DHT22: temperatura y humedad<br/>ADC: Light 0–2000 · pH 0–14<br/>TDS 0–3000 ppm · sustrato 0–100 %"]
-    physics["Física del simulador<br/>AUTO · MANUAL · WEATHER<br/>actuators modulate the environment"]
+    physics["Simulator Physics Engine<br/>AUTO · MANUAL · WEATHER<br/>actuators modulate environment state"]
     weatherte["Clima de Open-Meteo<br/>temperature · humidity · solar radiation<br/>rainfall · pressure"]
-    manual["Lectura manual<br/>POST /crops/{id}/readings<br/>origen HTTP"]
+    manual["Manual Telemetry Input<br/>POST /api/v1/crops/{id}/readings<br/>HTTP REST"]
     person(["Persona<br/>commands · automatic mode · location<br/>meters · per-crop notification channels"])
     weatherte --> physics
   end
@@ -24,14 +24,14 @@ flowchart LR
     parser["TelemetryParser<br/>JSON → Measures"]
     throttle{"reading:{cropId}<br/>5 seconds elapsed?"}
     ranges{"MeasureRanges<br/>all telemetry variables<br/>within physical bounds?"}
-    discard["Lectura descartada"]
+    discard["Discarded Reading"]
     parser --> throttle
     throttle -->|"sí"| ranges
     throttle -->|"no"| discard
     ranges -->|"no"| discard
   end
 
-  subgraph mongo["PostgreSQL 17 + TimescaleDB 2.17.2 · base smartpot"]
+  subgraph mongo["PostgreSQL 17 + TimescaleDB 2.17.2.2 · base smartpot"]
     direction TB
     readings[("readings (Hipertabla TimescaleDB)<br/>cropId · measuredAt · measures · source<br/>1-day chunks · 12h compression · continuous aggregates")]
     crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type · kind · form<br/>placement: setting · exposure · location")]

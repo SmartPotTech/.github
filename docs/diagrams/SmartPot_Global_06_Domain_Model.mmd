@@ -2,7 +2,7 @@
 classDiagram
   direction LR
 
-  namespace Cuentas {
+  namespace Accounts {
     class User {
       +String id
       +String name
@@ -27,7 +27,7 @@ classDiagram
     }
   }
 
-  namespace Cultivos {
+  namespace Crops {
     class Crop {
       +String id
       +String ownerId
@@ -112,7 +112,7 @@ classDiagram
     }
   }
 
-  namespace Lecturas {
+  namespace Readings {
     class Reading {
       +String id
       +String cropId
@@ -383,7 +383,7 @@ classDiagram
   CropChannel --> Delivery
   CropChannel *-- Recipient : hasta 10
   NotificationChannel <|.. TelegramChannel
-  NotificationChannel ..> ChannelLink : entrega a
+  NotificationChannel ..> ChannelLink : delivers to
   VirtualDevice *-- VirtualLocation
   VirtualDevice --> VirtualMode
   VirtualDevice *-- Measures : manual
@@ -392,11 +392,11 @@ classDiagram
   DeviceProvisioner ..> MqttGateway
   DeviceProvisioner ..> Device : clave descifrada
   InsightRequest ..> Measures
-  InsightRequest ..> Crop : se arma con
+  InsightRequest ..> Crop : assembled from
   InsightResponse *-- Diagnosis
   InsightResponse *-- Forecast
   InsightResponse *-- Action
   InsightResponse *-- Learning
   InsightResponse *-- PlacementAdvice
   InsightResponse ..> CropHealth : actualiza
-  Action ..> Command : con modo automático
+  Action ..> Command : with automatic mode

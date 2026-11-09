@@ -1,28 +1,28 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}, "flowchart": {"useMaxWidth": false, "htmlLabels": true, "curve": "basis", "padding": 14, "nodeSpacing": 45, "rankSpacing": 80, "wrappingWidth": 360}}}%%
 flowchart TB
-  subgraph local["Trabajo local"]
+  subgraph local["Local Development"]
     direction TB
-    dev(["Desarrollador"])
-    tooling["Herramientas por lenguaje<br/>Java: Maven Wrapper · Python: uv · Web: pnpm"]
-    devenv["docker/dev<br/>toda la plataforma compilada<br/>desde los repositorios locales"]
-    commitrule["Commits en inglés, en imperativo<br/>single responsibility · 1-2 files per concern"]
-    inject["secrets/inject_secrets.py (no versionado)<br/>gh secret set via standard input"]
+    dev(["Developer"])
+    tooling["Toolchain by Language<br/>Go: 1.27.3 · Rust: 1.88+ · Python: uv · Web: Bun 1.4"]
+    devenv["docker/dev<br/>Full platform compiled<br/>from local repositories"]
+    commitrule["Commits in English, imperative<br/>Exclusive author SebastianLopezO · 0 AI attribution"]
+    inject["secrets/inject_secrets.py (unversioned)<br/>gh secret set via standard input"]
     dev --> tooling --> devenv
     dev --> commitrule
   end
 
   subgraph org["GitHub · SmartPotTech"]
     direction TB
-    subgraph services["Repositorios de servicio"]
+    subgraph services["Service Repositories"]
       direction TB
-      repos["SmartPot-API · SmartPot-Web · SmartPot-AI<br/>SmartPot-DataGenerator · SmartPot-Broker<br/>SmartPot-DB · SmartPot-Cache · SmartPot-Mail"]
-      iot["SmartPot-IoT<br/>firmware · simulated MicroPython tests"]
-      proxy["SmartPot-Proxy<br/>archivado"]
-      ci["CI por repositorio<br/>maven.yml · node.js.yml · ci.yml"]
-      codeql["codeql.yml · dependency-review.yml<br/>stale.yml · Dependabot semanal"]
-      packaging["packaging.yml<br/>hardened image · SBOM · provenance attestation<br/>push to GHCR and mirrored on Docker Hub"]
-      request["deploy.yml del servicio<br/>request-deploy.yml · workflow_dispatch<br/>espera el resultado del despliegue central"]
-      svcsecrets["Secrets del servicio<br/>DEPLOY_DISPATCH_TOKEN (Actions: read y write en .github)<br/>DOCKER_USERNAME · DOCKER_PASSWORD (opcionales)"]
+      repos["SmartPot-API · SmartPot-Web · SmartPot-AI<br/>SmartPot-DataGenerator · SmartPot-Broker<br/>SmartPot-DB · SmartPot-Cache · SmartPot-Mail · SmartPot-Trainer · SmartPot-MCP"]
+      iot["SmartPot-IoT & SmartPot-IoT-Python<br/>Embedded Rust ESP32 & MicroPython"]
+      proxy["SmartPot-Proxy & Legacy Stack A Repos<br/>Archived reference"]
+      ci["Per-Repository CI<br/>go.yml · rust.yml · bun.yml · ruff.yml"]
+      codeql["CodeQL · Dependency Review<br/>Snyk Gatekeeper · Dependabot"]
+      packaging["packaging.yml<br/>Hardened scratch/alpine image · SBOM<br/>Push to GHCR (ghcr.io/smartpottech/*)"]
+      request["Central Deployment Workflow<br/>.github/workflows/deploy.yml<br/>Manual dispatch verification"]
+      svcsecrets["Deployment Secrets<br/>SERVER_HOST · SERVER_KEY · ENV_FILE<br/>TLS Certificates & Keys"]
       repos --> ci
       repos --> codeql
       repos --> packaging --> request
@@ -44,17 +44,17 @@ flowchart TB
     end
   end
 
-  subgraph registries["Registros de imágenes"]
+  subgraph registries["Container Image Registries"]
     direction TB
     ghcr[("GHCR · ghcr.io/smartpottech<br/>smartpot-api · -web · -ai · -datagenerator<br/>-broker · -db · -cache · -mail")]
-    hub[("Docker Hub · réplica<br/>usuario/componente-smartpot")]
+    hub[("Docker Hub · réplica<br/>user/componente-smartpot")]
   end
 
   subgraph environments["Entornos"]
     direction TB
     demo["docker/demo<br/>compose.yaml (GHCR) · compose.dockerhub.yaml<br/>seed fixtures · 2 simulated real crops · virtual crops<br/>Telegram opcional por sondeo largo"]
     k8s["kubernetes/k8s-deployment.yml<br/>namespace smartpot · Secret · ConfigMap<br/>PVC db-data, broker-data y ai-data<br/>8 Deployments y 8 Services · Pod Security restricted"]
-    subgraph server["Host Server de producción"]
+    subgraph server["Production Linux VPS Server"]
       direction TB
       ssh["SSH :2222 con known_hosts<br/>carpeta .deploy-id temporal"]
       lock["flock /var/lock/smartpot-deploy.lock"]

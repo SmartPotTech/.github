@@ -2,9 +2,9 @@
 flowchart LR
   inicio["/ · Public Landing<br/>Indexable"] --> ingreso["/login · /register<br/>/forgot-password"]
   ingreso --> panel["/app · Overview Dashboard"]
-  panel --> cultivos["/app/crops · My Crops"]
-  cultivos --> nuevo["New Crop<br/>Real or Virtual · Species · Form"]
-  cultivos --> detalle["/app/crops/:id"]
+  panel --> crops["/app/crops · My Crops"]
+  crops --> nuevo["New Crop<br/>Real or Virtual · Species · Form"]
+  crops --> detalle["/app/crops/:id"]
   detalle --> hero["Dynamic Crop Scene<br/>Across All Sub-Tabs"]
   hero --> t1["Summary"] & t2["AI Assistant"] & t3["Control"] & t4["History"] & t5["Device<br/>Physical Only"] & t6["Simulation<br/>Virtual Only"] & t7["Settings"]
   panel --> control["/app/control · Fleet Control"]
@@ -21,7 +21,7 @@ flowchart LR
   classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   class inicio,ingreso water
   class panel core
-  class cultivos,control,acciones,aprendizaje,alertas,perfil leaf
+  class crops,control,acciones,aprendizaje,alertas,perfil leaf
   class detalle,nuevo sun
   class hero leaf
   class t1,t2,t3,t4,t5,t6,t7 muted

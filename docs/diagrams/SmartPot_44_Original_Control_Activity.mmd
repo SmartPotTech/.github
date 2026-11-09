@@ -2,12 +2,12 @@
 flowchart TB
   subgraph esp["ESP32"]
     direction LR
-    lee(["Lectura de sensores"]) --> pila["Pasa a la pila<br/>of communication"] --> publica["Envía la lectura<br/>al broker"]
-    recibe["Recibe el comando"] --> procesa["Procesa el actuador<br/>asignado"] --> activa["Activa el actuador"] --> estado["Envía el estado<br/>del comando"]
+    lee(["Read Sensors"]) --> pila["Pass to Network Stack<br/>of communication"] --> publica["Publish Telemetry<br/>to MQTT Broker"]
+    recibe["Receive Command"] --> procesa["Parse target actuator<br/>and duration"] --> activa["Trigger Actuator Relay"] --> estado["Publish Command ACK<br/>status & execution"]
   end
   subgraph broker["Broker MQTT"]
     direction LR
-    reparte["Reparte la lectura<br/>a los suscriptores"]
+    reparte["Dispatch telemetry<br/>to subscribers"]
     cola["Guarda el comando<br/>en la cola"] --> entrega["Reparte el comando"]
     reparteEstado["Reparte el estado"]
   end

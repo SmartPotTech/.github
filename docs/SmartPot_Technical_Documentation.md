@@ -60,24 +60,24 @@ The system includes preconfigured agronomic profiles for 6 standard hydroponic c
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart LR
-  subgraph campo["Reading Sources"]
+  subgraph sources["Reading Sources"]
     maceta["Physical Crop · ESP32<br/>Rust Embassy / MicroPython"]
     wokwi["Physical Crop · Wokwi<br/>Simulated Firmware"]
     sim["Virtual Crops · Rust<br/>SmartPot-DataGenerator"]
   end
-  subgraph usuario["Users and Agents"]
+  subgraph users_agents["Users and Agents"]
     pwa["SolidJS PWA<br/>SmartPot-Web"]
     tg["Telegram"]
     mcp["FastMCP Server<br/>SmartPot-MCP"]
   end
-  subgraph plataforma["SmartPot Platform (Stack B)"]
-    broker["MQTT Broker EMQX 5.8.9.9.9<br/>SmartPot-Broker"]
+  subgraph platform["SmartPot Platform (Stack B)"]
+    broker["MQTT Broker EMQX 5.8.9<br/>SmartPot-Broker"]
     api["REST & MQTT API Go 1.27.3<br/>SmartPot-API"]
     ai["AI Inference · Rust 1.88+<br/>SmartPot-AI"]
-    trainer["AI Trainer · Python >=3.13+<br/>SmartPot-Trainer"]
-    db[("PostgreSQL 17 + TimescaleDB 2.17.2.2 2.17.2<br/>SmartPot-DB")]
-    cache[("Valkey 9.1.3.3.3<br/>SmartPot-Cache")]
-    mail["Mailpit v1.33.0 v1.33.0 Mail<br/>SmartPot-Mail"]
+    trainer["AI Trainer · Python 3.13+<br/>SmartPot-Trainer"]
+    db[("PostgreSQL 17 + TimescaleDB 2.17.2.2<br/>SmartPot-DB")]
+    cache[("Valkey 9.1.3-alpine<br/>SmartPot-Cache")]
+    mail["Mailpit v1.33.0 Mail<br/>SmartPot-Mail"]
   end
   weather["Open-Meteo<br/>Current Weather"]
   maceta <-->|"MQTT TLS 8883<br/>Telemetry · Commands · ACK"| broker
@@ -118,9 +118,9 @@ flowchart LR
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
   subgraph web["SmartPot-Web · SolidJS PWA"]
-    w1["Panel general · Cultivos<br/>Control · Acciones"]
+    w1["Overview Dashboard · My Crops<br/>Actuator Control · Action Feed"]
     w2["Asistente · Aprendizaje (SSE)"]
-    w3["Nuevo cultivo · Ilustración viva<br/>Simulation · Profile & MCP Connections"]
+    w3["New Crop Wizard · Live Plant Scene<br/>Simulation · Profile & MCP Connections"]
   end
   subgraph api["SmartPot-API · Go (Echo)"]
     a1["security · auth (HttpOnly/CSRF) · users"]
@@ -131,7 +131,7 @@ flowchart TB
     a6["virtualdevices · overview · connections"]
   end
   subgraph ai["SmartPot-AI · Rust"]
-    i1["Inferencia: diagnóstico, 21 reglas,<br/>Sugeno fuzzy logic, native ML models"]
+    i1["Inference: 21 expert rules,<br/>Sugeno fuzzy logic, native ML models"]
   end
   subgraph trainer["SmartPot-Trainer · Python"]
     t1["Aprendizaje: ADBC Reading TimescaleDB,<br/>entrenamiento offline, firma Ed25519"]
@@ -391,29 +391,29 @@ flowchart TB
 ```mermaid
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  subgraph prep["1 · Datos"]
+  subgraph prep["1 · Data Preparation"]
     direction LR
-    lect["Lecturas reales<br/>lotes cada minuto"] --> alm[("SQLite en /data<br/>pseudonymized crop")]
-    alm --> cal["Calidad de datos<br/>completitud · validez · IQR"]
+    lect["Real crop readings<br/>1-minute batches via ADBC"] --> alm[("SQLite en /data<br/>pseudonymized crop")]
+    alm --> cal["Data Quality<br/>completeness · validation · IQR"]
     cal --> var["Variables<br/>position in range, circular hour,<br/>tendencia de 30 min"]
   end
   subgraph sup["2 · Supervisado"]
     direction LR
-    eti["Etiquetas autosupervisadas<br/>outcome in subsequent hour?"] --> cv["7 modelos con<br/>TimeSeriesSplit<br/>+ baseline"]
+    eti["Self-supervised labels<br/>outcome in subsequent hour?"] --> cv["Tournament models with<br/>TimeSeriesSplit<br/>+ baseline"]
     cv --> gs["GridSearchCV<br/>del mejor"]
-    gs --> cc{"¿Supera a la baseline<br/>y al vigente en lo<br/>most recent?"}
+    gs --> cc{"Outperforms baseline<br/>and active model in<br/>recent evaluations?"}
     cc -->|"Sí"| nuevo["Campeón nuevo<br/>version + joblib artifact"]
-    cc -->|"No"| vig["Se conserva<br/>el vigente"]
+    cc -->|"No"| vig["Retain active<br/>model"]
   end
   subgraph nosup["3 · No supervisado"]
     direction LR
-    km["K-Means por silueta<br/>operational states"]
+    km["K-Means by silhouette<br/>operational states"]
     iso["Isolation Forest<br/>atypical / anomalous readings"]
   end
   var --> eti
   var --> km
   var --> iso
-  inf["4 · Cada evaluación: riego y calor en 1 h, sustrato en 1 h, estado y atipicidad"]
+  inf["4 · Evaluation: irrigation & heat in 1h, soil trend, operational state & anomaly"]
   nuevo --> inf
   vig --> inf
   km --> inf
@@ -445,7 +445,7 @@ erDiagram
   CROPS ||--o{ COMMANDS : "recibe"
   CROPS ||--o{ NOTIFICATIONS : "genera"
   CROPS ||--o| VIRTUAL_DEVICES : "simula"
-  CROPS ||--o{ CROP_CHANNELS : "avisa por"
+  CROPS ||--o{ CROP_CHANNELS : "alerts via"
   ACTUATORS ||--o{ COMMANDS : "ejecuta"
   USERS {
     ObjectId _id
@@ -479,7 +479,7 @@ erDiagram
     ObjectId cropId
     string type "WATER_PUMP, UV_LIGHT, FAN, …"
     bool active "indefinite activation"
-    date runningUntil "si corre por tiempo"
+    date runningUntil "if duration-bounded"
   }
   COMMANDS {
     ObjectId _id
@@ -551,9 +551,9 @@ erDiagram
 flowchart LR
   inicio["/ · Public Landing<br/>Indexable"] --> ingreso["/login · /register<br/>/forgot-password"]
   ingreso --> panel["/app · Overview Dashboard"]
-  panel --> cultivos["/app/crops · My Crops"]
-  cultivos --> nuevo["New Crop<br/>Real or Virtual · Species · Form"]
-  cultivos --> detalle["/app/crops/:id"]
+  panel --> crops["/app/crops · My Crops"]
+  crops --> nuevo["New Crop<br/>Real or Virtual · Species · Form"]
+  crops --> detalle["/app/crops/:id"]
   detalle --> hero["Dynamic Crop Scene<br/>Across All Sub-Tabs"]
   hero --> t1["Summary"] & t2["AI Assistant"] & t3["Control"] & t4["History"] & t5["Device<br/>Physical Only"] & t6["Simulation<br/>Virtual Only"] & t7["Settings"]
   panel --> control["/app/control · Fleet Control"]
@@ -570,7 +570,7 @@ flowchart LR
   classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   class inicio,ingreso water
   class panel core
-  class cultivos,control,acciones,aprendizaje,alertas,perfil leaf
+  class crops,control,acciones,aprendizaje,alertas,perfil leaf
   class detalle,nuevo sun
   class hero leaf
   class t1,t2,t3,t4,t5,t6,t7 muted
@@ -593,8 +593,8 @@ sequenceDiagram
   participant D as MongoDB
   participant T as Telegram
   participant C as Shared Chat
-  P->>W: Settings del cultivo › Avisos por Telegram
-  W->>A: PUT /crops/{id}/channels/TELEGRAM (eventos, entrega, resumen diario)
+  P->>W: Settings del crop › Avisos por Telegram
+  W->>A: PUT /crops/{id}/channels/TELEGRAM (events, delivery, daily digest)
   A->>D: persists crop_channels
   P->>W: Share with another chat
   W->>A: POST /crops/{id}/channels/TELEGRAM/recipients
@@ -625,31 +625,31 @@ sequenceDiagram
   participant P as User
   participant W as PWA
   participant A as API
-  participant S as Simulador
+  participant S as Simulator
   participant O as Open-Meteo
   participant B as Broker
-  P->>W: Nuevo cultivo › Virtual › Balsa flotante › al aire libre · Clima real · Medellín
+  P->>W: New Crop › Virtual › Floating Raft › Outdoor · Live Weather · Medellin
   W->>A: POST /crops {kind: VIRTUAL, form, placement, virtual}
   A->>A: hasta 5 virtuales · el modo weather exige lugar
-  A->>A: cultivo, seis actuadores y cuenta MQTT
+  A->>A: Provision crop, 6 actuators, and MQTT credentials
   A->>S: PUT /v1/pots/{id} (key, mode, location & exposure)
   A-->>W: 201 sin credenciales: no hay nada que configurar
   S->>O: current weather (10 min cache)
-  S->>B: conecta con la cuenta del cultivo
+  S->>B: Connects with crop credentials
   loop cada intervalo
-    S->>B: telemetría con el weather filtrado por el lugar y los actuadores encendidos
+    S->>B: Publish telemetry with location weather and active actuator effects
     B->>A: reading → assistant → agent (excluded from learning)
   end
   P->>W: Control › switch de la bomba de agua · 15 s
   W->>A: POST /crops/{id}/commands
   A->>B: comando
   B->>S: comando
-  S->>B: ACK «Bomba de agua encendida por 15 s»
-  S->>B: lectura nueva a los 2 s con el sustrato más húmedo
+  S->>B: ACK «Water pump turned on for 15s»
+  S->>B: New reading after 2s with increased soil moisture
   W->>A: GET /crops/{id}/virtual-device
-  A-->>W: weather, lecturas y actuadores encendidos
+  A-->>W: Weather, readings, and active actuators
   W-->>P: la ilustración muestra la bomba en marcha
-  Note over A,S: Pausar conserva la configuración · cada minuto<br/>la API recrea las simulaciones activas que falten
+  Note over A,S: Pause retains configuration · each minute<br/>the API reconciles missing active simulations
 ```
 
 - **Physical Microcontroller (ESP32):** Real hardware running MicroPython or Rust Embassy connected over Wi-Fi with TLS.
@@ -688,7 +688,7 @@ flowchart LR
   api --> db
   api --> cache
   api --> ai
-  api -->|"8081 con token"| sim
+  api -->|"8081 with Bearer Token"| sim
   sim -->|"1883"| broker
   sim -.->|"weather"| internet
   api -.->|"Telegram Bot API"| internet
@@ -720,7 +720,7 @@ flowchart TB
   subgraph github["GitHub · SmartPotTech"]
     repo["Push a main<br/>en un servicio"] --> ci["CI del repo<br/>tests · CodeQL static analysis"]
     repo --> pkg["packaging.yml<br/>imagen + SBOM + procedencia"]
-    pkg --> ghcr[("GHCR<br/>registro de despliegue")]
+    pkg --> ghcr[("GHCR<br/>Deployment Registry")]
     pkg --> hub[("Docker Hub<br/>distribution replica")]
     pkg --> dep["deploy.yml del repo<br/>request-deploy.yml"]
     dep -->|"workflow_dispatch<br/>DEPLOY_DISPATCH_TOKEN"| queue["Cola smartpot-production<br/>one executing · newest pending queued"]
@@ -728,7 +728,7 @@ flowchart TB
     central -.->|"resultado"| dep
     secrets["Secrets solo en .github<br/>ENV_FILE · SERVER_KEY · MQTT_*"] -.-> central
   end
-  subgraph servidor["Host Server"]
+  subgraph server["Host Server"]
     stage[".deploy-{id}<br/>compose.yaml · .env · certificados"]
     certs["SMARTPOT_CERTS_DIR<br/>certificados TLS del broker"]
     compose["docker compose -p smartpot<br/>pull + up --wait<br/>database schema migration"]
@@ -769,7 +769,7 @@ flowchart LR
   web --> e2e
   py --> e2e
   ct --> e2e
-  e2e --> flow["registro → cultivo → telemetría MQTT → comando con ACK → switches<br/>→ assistant → location & weather → overview dashboard<br/>→ bulk commands → virtual crop → continuous learning<br/>→ canales and per-crop notifications → borrado"]
+  e2e --> flow["registration → crop creation → MQTT telemetry → command with ACK → actuator switches<br/>→ AI assistant → location & weather → overview dashboard<br/>→ bulk commands → virtual crop → continuous learning<br/>→ notification channels → account deletion & cleanup (Loopback 127.0.0.1 SSRF guard)"]
   classDef start fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef job fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef final fill:#067A52,stroke:#0B3D2B,color:#FFFFFF

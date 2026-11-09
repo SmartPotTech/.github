@@ -1,8 +1,8 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "sequence": {"useMaxWidth": false, "actorMargin": 70, "messageMargin": 26, "boxMargin": 10, "noteMargin": 12, "mirrorActors": true, "rightAngles": false, "wrap": true, "width": 190}}}%%
 sequenceDiagram
   autonumber
-  box rgb(221,245,234) Personas y dispositivos
-    participant U as Dueño del cultivo
+  box rgb(221,245,234) Users and Devices
+    participant U as Crop Owner / Grower
     participant PWA as PWA
     participant M as Device (ESP32 o Wokwi) o simulación
     participant TG as Chat de Telegram
@@ -16,7 +16,7 @@ sequenceDiagram
     participant DB as PostgreSQL / TimescaleDB
     participant B as EMQX
     participant IA as AI Assistant
-    participant SIM as Simulador
+    participant SIM as Simulator
     participant MAIL as Mailpit v1.33.0
   end
   box rgb(253,244,221) External Services
@@ -30,9 +30,9 @@ sequenceDiagram
     API->>B: CONNECT as admin (tcp 1883, internal network)
     B-->>API: CONNACK
     API->>B: SUBSCRIBE smartpot/v1/+/telemetry, commands/ack, status y la respuesta de $CONTROL
-    API->>DB: Cultivos con su clave cifrada
+    API->>DB: Crops with AES-GCM encrypted device key
     API->>API: Descifra cada clave (AES-256-GCM)
-    API->>B: $CONTROL/dynamic-security/v1 · createRole device + addRoleACL · createClient y setClientPassword por cultivo
+    API->>B: $CONTROL/dynamic-security/v1 · createRole device + addRoleACL · createClient y setClientPassword por crop
     B-->>API: Respuesta de la seguridad dinámica
     API->>SIM: GET /v1/pots (reconciliation every minute)
     API->>DB: virtual_devices
@@ -53,7 +53,7 @@ sequenceDiagram
   end
 
   rect rgb(227,242,251)
-    Note over U,B: 3 · Crear un cultivo real o virtual (type is immutable after creation)
+    Note over U,B: 3 · Crear un real crop o virtual (type is immutable after creation)
     U->>PWA: New crop · real or virtual · name, species, system form (pot, NFT, tower, raft) y dónde está
     PWA->>API: POST /api/v1/crops · Bearer · kind, form, placement y, si es virtual, cómo arranca la simulación
     API->>DB: Counts owner crops (max 20 total · 5 virtual)
@@ -70,9 +70,9 @@ sequenceDiagram
   end
 
   rect rgb(251,233,225)
-    Note over M,B: 4 · El dispositivo de un cultivo real se conecta (Physical ESP32 or Wokwi)
+    Note over M,B: 4 · El device de un real crop se conecta (Physical ESP32 or Wokwi)
     M->>M: Hora por NTP y TLS con ca.crt
-    M->>B: CONNECT :8883 · usuario cropId · clave · última voluntad status offline
+    M->>B: CONNECT :8883 · user cropId · clave · última voluntad status offline
     B-->>M: CONNACK · ACL limitada a smartpot/v1/cropId
     M->>B: PUBLISH status online (retenido, QoS 1)
     B->>API: status online
@@ -81,20 +81,20 @@ sequenceDiagram
   end
 
   rect rgb(221,245,234)
-    Note over U,OM: 5 · O la simulación de un cultivo virtual con el weather real
-    U->>PWA: Nuevo cultivo virtual · Clima real · busca su ciudad
+    Note over U,OM: 5 · O la simulación de un crop virtual con el weather real
+    U->>PWA: Nuevo crop virtual · Clima real · busca su ciudad
     PWA->>API: GET /api/v1/virtual-devices/places?q=
     API->>SIM: GET /v1/places?q= (token)
     SIM->>OM: Geocodificación
     OM-->>SIM: Lugares
     SIM-->>API: Lugares
     API-->>PWA: Lugares
-    U->>PWA: Elige el lugar y crea el cultivo
+    U->>PWA: Elige el lugar y crea el crop
     PWA->>API: POST /api/v1/crops · kind VIRTUAL · virtual WEATHER con el lugar
     API->>DB: virtual_devices (mode, location, meters, active)
-    API->>API: Descifra la clave del cultivo
+    API->>API: Descifra la clave del crop
     API->>SIM: PUT /v1/pots/{cropId} con la clave (internal network only)
-    SIM->>B: CONNECT como el cultivo · status online retenido
+    SIM->>B: CONNECT como el crop · status online retenido
     loop Cada 10 minutos por lugar
       SIM->>OM: Clima actual
       OM-->>SIM: Temperatura, humedad, radiación, lluvia y presión
@@ -171,12 +171,12 @@ sequenceDiagram
   rect rgb(253,244,221)
     Note over API,TG: 8 · Avisos por Telegram
     API-)API: NotificationCreatedEvent (each notification)
-    API->>DB: crop_channels del cultivo o, sin ajustes, channel_links del owner con ese tipo de aviso
+    API->>DB: crop_channels del crop o, sin ajustes, channel_links del owner con ese tipo de aviso
     alt Instant Delivery
-      API->>TAPI: sendMessage al owner y a los chats compartidos · HTML escapado y botón al cultivo
+      API->>TAPI: sendMessage al owner y a los chats compartidos · HTML escapado y botón al crop
       TAPI->>TG: Mensaje
     else Digest Delivery
-      API->>DB: Queda para el resumen del cultivo
+      API->>DB: Queda para el resumen del crop
     end
     loop Cada minuto · CropChannelDigest
       API->>TAPI: Digest every 1 to 24h and daily recap at configured hour (health, telemetry & 24h recap)
@@ -193,16 +193,16 @@ sequenceDiagram
       API->>DB: Tenant-scoped queries (404 if not owner)
       API-->>PWA: JSON en español
     end
-    opt Ilustración del cultivo sobre todas sus secciones
+    opt Ilustración del crop sobre todas sus secciones
       PWA->>API: GET /crops/{id}/actuators y /commands cada 5 a 10 s · /weather · /virtual-device si es virtual
       API->>R: GET weather:{lat}:{lon} (10 min)
       API->>SIM: GET /v1/weather si no está en caché
-      PWA-->>U: El cultivo en su lugar con el weather de afuera y cada actuador · sin conexión no se ilustra
+      PWA-->>U: El crop en su lugar con el weather de afuera y cada actuador · sin conexión no se ilustra
     end
     PWA->>API: GET /api/v1/overview/fleet
     API->>IA: POST /v1/fleet
     IA-->>API: Ranking, problemas compartidos, grupos K-Means y acciones por actuador
-    API-->>PWA: Análisis de todos los cultivos
+    API-->>PWA: Análisis de todos los crops
     PWA->>API: GET /api/v1/ai/learning
     API->>R: GET ai:learning-status (1 min)
     API->>IA: GET /v1/learning/status si no está en caché
@@ -214,11 +214,11 @@ sequenceDiagram
     U->>PWA: Actuator Switch o una orden a varios en Control general
     PWA->>API: POST /crops/{id}/commands o POST /commands/bulk
     opt Otra orden en curso o la orden no cambia nada
-      API-->>PWA: 409 «El ventilador ya está apagado» · en bloque, ese cultivo se omite con su motivo
+      API-->>PWA: 409 «El ventilador ya está apagado» · en bloque, ese crop se omite con su motivo
     end
-    API->>DB: commands PENDING (origen USER) por cada cultivo con ese actuador
+    API->>DB: commands PENDING (origen USER) por cada crop con ese actuador
     API->>B: PUBLISH commands (QoS 1)
-    alt El dispositivo o la simulación confirms
+    alt El device o la simulación confirms
       B->>M: commands
       M->>B: commands/ack EXECUTED
       B->>API: ack
@@ -226,7 +226,7 @@ sequenceDiagram
       M->>B: telemetry a los 2 s si es una simulación
     else Sin ACK en 2 minutos
       API->>DB: Revisión cada 30 s → commands EXPIRED
-      API->>DB: notifications COMMAND El dispositivo no respondió
+      API->>DB: notifications COMMAND El device no respondió
     end
   end
 
@@ -245,8 +245,8 @@ sequenceDiagram
     API->>DB: channel_links (TELEGRAM, chat, avisos elegidos, activo)
     API->>TAPI: sendMessage Listo, este chat quedó vinculado
     TAPI->>TG: Confirmación
-    opt Compartir un cultivo con otro chat
-      U->>PWA: Settings del cultivo · Avisos · Compartir
+    opt Compartir un crop con otro chat
+      U->>PWA: Settings del crop · Avisos · Compartir
       PWA->>API: POST /crops/{id}/channels/TELEGRAM/recipients
       API->>R: SET crop-share:telegram:code (10 min)
       API-->>PWA: Enlace t.me/bot?start=código de un solo uso
@@ -257,7 +257,7 @@ sequenceDiagram
   end
 
   rect rgb(251,227,227)
-    Note over M,TG: 12 · El dispositivo se desconecta
+    Note over M,TG: 12 · El device se desconecta
     M--xB: Se corta la conexión
     B->>B: Publishes LWT status offline (retained)
     B->>API: status offline
@@ -268,7 +268,7 @@ sequenceDiagram
   end
 
   rect rgb(242,247,244)
-    Note over U,B: 13 · Rotar la clave de un cultivo real (los virtuales no tienen clave que configurar)
+    Note over U,B: 13 · Rotar la clave de un real crop (los virtuales no tienen clave que configurar)
     PWA->>API: POST /api/v1/crops/{id}/device/key
     API->>DB: Clave nueva cifrada
     API->>B: setClientPassword · disableClient and enableClient (disconnects prior session)
@@ -287,9 +287,9 @@ sequenceDiagram
   end
 
   rect rgb(251,233,225)
-    Note over U,SIM: 15 · Borrar un cultivo o la cuenta
+    Note over U,SIM: 15 · Borrar un crop o la cuenta
     PWA->>API: DELETE /api/v1/crops/{id} (DELETE /users/me cascades across all owned crops, notifications, links & tokens)
-    API->>DB: Borra readings, commands, actuators, notifications y el cultivo
+    API->>DB: Borra readings, commands, actuators, notifications y el crop
     API->>B: deleteClient cropId
     API-)API: CropDeletedEvent
     par Olvidar lo aprendido

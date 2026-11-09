@@ -1,7 +1,7 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "16px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}, "layout": "elk", "elk": {"nodePlacementStrategy": "BRANDES_KOEPF", "mergeEdges": false, "cycleBreakingStrategy": "GREEDY"}, "flowchart": {"useMaxWidth": false, "htmlLabels": true, "curve": "basis", "padding": 14, "nodeSpacing": 45, "rankSpacing": 80, "wrappingWidth": 360}}}%%
 flowchart LR
   visitor(["Visitante"])
-  owner(["Dueño del cultivo"])
+  owner(["Crop Owner / Grower"])
 
   subgraph public["Páginas públicas"]
     direction TB
@@ -15,19 +15,19 @@ flowchart LR
   subgraph app["/app · requiere sesión · navegación lateral o inferior"]
     direction TB
     overview["/app · Overview Dashboard<br/>average health · online devices · commands executed today<br/>ranking · AI analysis · fleet comparator · latest readings"]
-    crops["/app/crops · My Crops<br/>tarjetas real o virtual · forma<br/>Nuevo cultivo: tipo fijo · especie · forma · lugar<br/>preview · ESP32 or Wokwi guide"]
+    crops["/app/crops · My Crops<br/>tarjetas real o virtual · forma<br/>Nuevo crop: tipo fijo · especie · forma · lugar<br/>preview · ESP32 or Wokwi guide"]
     control["/app/control · Fleet Control<br/>auto per-crop or fleet-wide · shortcuts · bulk commands"]
     actions["/app/actions · Actions<br/>bulk recommendations · command history"]
     learningp["/app/learning · Learning (escritorio)<br/>quality · models · states · anomalies"]
     alerts["/app/notifications · Notifications"]
     profile["/app/profile · Perfil<br/>profile data · password · applications<br/>Telegram disabled if unconfigured · Account Deletion"]
-    subgraph detail["/app/crops/:cropId · Detalle del cultivo"]
+    subgraph detail["/app/crops/:cropId · Detalle del crop"]
       direction TB
       summary["Summary<br/>readings vs threshold · 24h timeline"]
       assistant["AI Assistant<br/>health index derivation · placement recommendation<br/>diagnosis · forecast · insights · actions"]
       ctrl["Control<br/>automatic mode · one switch per actuator<br/>with duration · commands"]
       history["History<br/>6h · 24h · 7d · CSV export"]
-      hero["Ilustración del cultivo · sobre todas las secciones<br/>form and species in environment · each actuator<br/>encendido o apagado · weather de afuera · sin acciones"]
+      hero["Ilustración del crop · sobre todas las secciones<br/>form and species in environment · each actuator<br/>encendido o apagado · weather de afuera · sin acciones"]
       virtualtab["Simulación · solo virtuales<br/>estado con Pausar y Reanudar<br/>simulation controls · mode · meters · apply changes"]
       settings["Settings<br/>data · location (environment, sun, coordinates)<br/>Telegram alerts if chat is linked"]
       devicetab["Dispositivo · solo reales<br/>ESP32 or Wokwi guide · config.py with CA · key rotation"]

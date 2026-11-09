@@ -11,13 +11,13 @@ flowchart LR
     actuadores["Actuadores"]
     subgraph api["API"]
       direction TB
-      usuarios["GestorUsuario"]
-      cultivos["GestorCultivo"]
+      users["GestorUsuario"]
+      crops["GestorCultivo"]
     end
     portal["PortalWeb"]
     bd["BD"]
-    usuario["Usuario"]
-    cultivo["Cultivo"]
+    user["Usuario"]
+    crop["Cultivo"]
     notificacion["Notificacion<br/>message · type · timestamp · user<br/>enviarNotificacion() · crearNotificacion()"]
   end
   dc -->|"importa"| sensores
@@ -27,7 +27,7 @@ flowchart LR
   portal -->|"accede"| api
   portal -->|"accede"| bd
   bd -->|"importa"| api
-  usuario -->|"accede"| cultivo
+  user -->|"accede"| crop
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef water fill:#E3F2FB,stroke:#1F6FA0,color:#17261F
   classDef sun fill:#FDF4DD,stroke:#C98D12,color:#17261F
@@ -37,7 +37,7 @@ flowchart LR
   classDef muted fill:#F2F7F4,stroke:#5B6B63,color:#17261F
   class dc,lcd clay
   class sensores,actuadores clay
-  class usuarios,cultivos core
+  class users,crops core
   class portal leaf
   class bd,notificacion muted
-  class usuario,cultivo water
+  class user,crop water

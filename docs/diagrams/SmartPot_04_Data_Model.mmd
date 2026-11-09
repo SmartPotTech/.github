@@ -9,7 +9,7 @@ erDiagram
   CROPS ||--o{ COMMANDS : "recibe"
   CROPS ||--o{ NOTIFICATIONS : "genera"
   CROPS ||--o| VIRTUAL_DEVICES : "simula"
-  CROPS ||--o{ CROP_CHANNELS : "avisa por"
+  CROPS ||--o{ CROP_CHANNELS : "alerts via"
   ACTUATORS ||--o{ COMMANDS : "ejecuta"
   USERS {
     ObjectId _id
@@ -43,7 +43,7 @@ erDiagram
     ObjectId cropId
     string type "WATER_PUMP, UV_LIGHT, FAN, …"
     bool active "indefinite activation"
-    date runningUntil "si corre por tiempo"
+    date runningUntil "if duration-bounded"
   }
   COMMANDS {
     ObjectId _id

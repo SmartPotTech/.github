@@ -2,13 +2,13 @@
 flowchart LR
   subgraph front["FrontEnd"]
     portal["Portal web"]
-    gestor["Gestor de usuarios"]
+    gestor["User Manager"]
   end
   subgraph back["Backend"]
     api["API"]
     comandos["Comandos"]
-    controller["Controller de cultivo"]
-    historial["History"]
+    controller["Crop Controller"]
+    historial["History Service"]
     notificaciones["Notificaciones"]
   end
   db[("Database Architecture")]
@@ -17,7 +17,7 @@ flowchart LR
     core0["Core 0 · sensores<br/>BME280, BH1750, pH, TDS"]
     core1["Core 1 · actuadores<br/>pump, humidifier, light"]
   end
-  portal -->|"petición del usuario"| api
+  portal -->|"request del user"| api
   gestor -->|"registro, sesión, perfil"| api
   api --> comandos & controller & historial & notificaciones
   historial -->|"registros históricos"| db

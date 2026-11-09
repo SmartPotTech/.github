@@ -2,35 +2,35 @@
 stateDiagram-v2
   direction LR
 
-  state "User Session" as sesion {
+  state "User Session" as user_session {
     direction LR
     [*] --> Anonima
-    Anonima --> Authenticated : Login or Register (7-day session)
-    Autenticada --> Anonima : cierre de sesión o JWT vencido
-    Anonima --> Recuperando : olvidé mi contraseña
-    Recuperando --> Anonima : enlace vencido (30 min)
-    Recuperando --> Autenticada : contraseña nueva y nuevo ingreso
-    Anonima --> Limitada : más de 10 peticiones por minuto a auth
-    Limitada --> Anonima : pasa el minuto (429 con Retry-After)
+    Anonymous --> Authenticated : Login or Register (HttpOnly Cookie)
+    Authenticated --> Anonymous : Sign out (CSRF verified) or session expired
+    Anonymous --> Recovering : Forgot password request
+    Recovering --> Anonymous : Token expired (30m)
+    Recovering --> Authenticated : Password updated & authenticated
+    Anonymous --> RateLimited : >10 requests/min to /auth (Valkey SET NX)
+    RateLimited --> Anonymous : 1 minute window elapsed (429 Retry-After)
   }
 
-  state "Device and MQTT Tenant Account" as maceta {
+  state "Device and MQTT Tenant Account" as device_account {
     direction LR
-    [*] --> Provisioned : Create crop (createClient)
-    Aprovisionada --> EnLinea : CONNECT con la clave · status online
-    EnLinea --> Desconectada : última voluntad offline
-    Desconectada --> EnLinea : reconecta
-    EnLinea --> Rotada : rotar la clave (disableClient y enableClient)
-    Rotada --> EnLinea : reconecta con la clave nueva
-    Aprovisionada --> Retired : Delete crop (deleteClient)
-    Desconectada --> Retirada : borrar el cultivo
+    [*] --> Provisioned : Create crop (AES-GCM key generated)
+    Provisioned --> Online : CONNECT with key · status online
+    Online --> Disconnected : LWT message published (offline)
+    Disconnected --> Online : Reconnected with valid key
+    Online --> Rotated : Key rotated via API (evict sessions)
+    Rotated --> Online : Reconnected with new key
+    Provisioned --> Retired : Delete crop & revoke credentials
+    Desconectada --> Retirada : borrar el crop
     Retirada --> [*]
   }
 
   state "Comando" as comando {
     direction LR
-    [*] --> PENDING : orden de la persona o del agente
-    PENDING --> SENT : publicado con QoS 1
+    [*] --> PENDING : User or autonomous agent command
+    PENDING --> SENT : Published with QoS 1 to broker
     PENDING --> FAILED : broker no disponible
     SENT --> EXECUTED : ACK EXECUTED
     SENT --> FAILED : ACK FAILED
@@ -43,7 +43,7 @@ stateDiagram-v2
   state "Actuator Switch" as switch {
     direction LR
     state "Off (OFF)" as SwitchOff
-    state "Encendido por un tiempo" as SwitchTimed
+    state "Timed Actuator Operation" as SwitchTimed
     state "Indefinite On" as SwitchUnlimited
     [*] --> SwitchOff
     SwitchOff --> SwitchTimed : Turn on with duration, al confirmsr
@@ -57,7 +57,7 @@ stateDiagram-v2
   state "Crop Evaluation" as salud {
     direction LR
     [*] --> SinLecturas
-    SinLecturas --> Evaluado : primera lectura válida
+    NoReadings --> Evaluated : First valid reading
     state Evaluado {
       direction LR
       EXCELLENT --> GOOD : baja el índice
@@ -70,7 +70,7 @@ stateDiagram-v2
       GOOD --> EXCELLENT
     }
     Evaluado --> Bloqueado : posible falla de sensor
-    Bloqueado --> Evaluado : lecturas coherentes
+    Blocked --> Evaluated : Consistent readings restored
   }
 
   state "Automatic Mode" as automatico {
@@ -112,7 +112,7 @@ stateDiagram-v2
 
   state "Virtual Crop Simulation" as virtual {
     direction LR
-    [*] --> Encendida : crear el cultivo con kind VIRTUAL
+    [*] --> Encendida : crear el crop con kind VIRTUAL
     EnPausa --> Encendida : PUT virtual-device (reanuda · la API la recrea si falta)
     state Encendida {
       direction LR
@@ -121,5 +121,5 @@ stateDiagram-v2
       WEATHER --> AUTO
     }
     Encendida --> Paused : DELETE virtual-device (pauses and preserves configuration)
-    Encendida --> [*] : borrar el cultivo
+    Encendida --> [*] : borrar el crop
   }

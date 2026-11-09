@@ -5,7 +5,7 @@ sequenceDiagram
   participant API as SmartPot-API-Go
   participant DB as TimescaleDB
   participant BROKER as EMQX 5.8.9
-  participant SIM as Simulador Rust
+  participant SIM as Rust Simulator
   participant AI as SmartPot-AI
 
   SDET->>API: GET /health
@@ -18,7 +18,7 @@ sequenceDiagram
   API->>DB: INSERT INTO crops (...)
   API->>SIM: PUT /v1/pots/{id} (Provisions Simulation)
   SIM-->>API: 200 OK (Active simulation)
-  API-->>SDET: 201 Created (ID CHAR(24), sin credenciales al usuario)
+  API-->>SDET: 201 Created (ID CHAR(24), sin credenciales al user)
 
   SIM->>BROKER: CONNECT / SUBSCRIBE smartpot/v1/{id}/commands
   BROKER->>API: POST /internal/mqtt/authn (x-smartpot-broker-token)
@@ -26,7 +26,7 @@ sequenceDiagram
   BROKER-->>SIM: CONNACK (Aceptado)
 
   SIM->>BROKER: PUBLISH smartpot/v1/{id}/telemetry (QoS 1)
-  BROKER->>API: Entrega mensaje de telemetría
+  BROKER->>API: Deliver telemetry message
   API->>DB: INSERT INTO readings (...) [Hipertabla]
 
   SDET->>API: GET /api/v1/crops/{id}/insights
@@ -37,7 +37,7 @@ sequenceDiagram
   SDET->>API: POST /api/v1/crops/{id}/commands (FAN ACTIVATE)
   API-->>SDET: 202 Accepted (Comando SENT)
   SDET->>API: POST /api/v1/crops/{id}/commands (FAN DEACTIVATE)
-  API-->>SDET: 409 Conflict ("Orden en curso")
+  API-->>SDET: 409 Conflict ("In-flight command active")
 
   SDET->>API: DELETE /api/v1/crops/{id}
   API->>SIM: DELETE /v1/pots/{id}
