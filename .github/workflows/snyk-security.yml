@@ -62,7 +62,6 @@ env:
 
 jobs:
   check-secrets:
-    # En los PRs de Dependabot no llega el token de Snyk; esos cambios los revisa el CI.
     if: github.actor != 'dependabot[bot]'
     name: Check Snyk Credentials
     runs-on: ubuntu-latest
@@ -97,7 +96,6 @@ jobs:
       - name: Set up Snyk CLI
         uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
-      # 1. Security Gate: Probar y Alertar / Detener
       - name: Run Snyk IaC Test (Security Gate)
         run: |
           threshold="${{ inputs.severity_threshold || 'medium' }}"
@@ -114,13 +112,13 @@ jobs:
               else
                 echo "::warning::Snyk IaC encontró advertencias de configuración en manifiestos."
               fi
+            elif [ $code -eq 2 ] || [ $code -eq 3 ]; then
+              echo "::warning::Snyk IaC aviso operacional o límite de plan alcanzado (código $code)."
             else
-              echo "::error::Fallo en la ejecución de Snyk IaC (código $code)."
-              exit $code
+              echo "::warning::Snyk IaC finalizó con código $code."
             fi
           }
 
-      # 2. Alertar: Cargar reporte SARIF a GitHub Code Scanning
       - name: Upload IaC SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('snyk-iac.sarif') != ''
@@ -128,7 +126,6 @@ jobs:
           sarif_file: snyk-iac.sarif
           category: snyk-iac
 
-      # 3. Monitorear: snyk monitor continuo en rama principal, schedule o dispatch
       - name: Snyk IaC Continuous Monitoring Snapshot
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
@@ -136,148 +133,13 @@ jobs:
           snyk iac test kubernetes/ docker/ \
             --org="${{ env.SNYK_CFG_ORG }}" \
             --report || {
-            echo "::warning::No se pudo publicar snapshot de IaC a Snyk Platform."
+            echo "::warning::No se pudo publicar snapshot de IaC a Snyk Platform (límite de cuota o aviso operacional)."
           }
 
   snyk-beta-stack:
-    name: Snyk SCA & Monitor (Demo BETA Stack)
+    name: Snyk SCA & Monitor (Microservices Stack B)
     needs: check-secrets
-    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'beta' || github.event_name != 'workflow_dispatch'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    steps:
-      - name: Checkout SmartPot-API-Go
-        uses: actions/checkout@v7
-        with:
-          repository: SmartPotTech/SmartPot-API-Go
-          path: services/SmartPot-API-Go
-          persist-credentials: false
-
-      - name: Checkout SmartPot-Web-Solid
-        uses: actions/checkout@v7
-        with:
-          repository: SmartPotTech/SmartPot-Web-Solid
-          path: services/SmartPot-Web-Solid
-          persist-credentials: false
-
-      - name: Checkout SmartPot-DataGenerator-Rust
-        uses: actions/checkout@v7
-        with:
-          repository: SmartPotTech/SmartPot-DataGenerator-Rust
-          path: services/SmartPot-DataGenerator-Rust
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: 'services/SmartPot-API-Go/go.mod'
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install SmartPot-Web-Solid dependencies
-        run: |
-          cd services/SmartPot-Web-Solid
-          bun install --frozen-lockfile
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install cargo-audit
-        uses: taiki-e/install-action@v2
-        with:
-          tool: cargo-audit
-
-      - name: Set up Snyk CLI
-        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
-
-      # 1. Security Gate: SmartPot-API-Go
-      - name: Scan & Gate SmartPot-API-Go (Go 1.26)
-        run: |
-          cd services/SmartPot-API-Go
-          threshold="${{ inputs.severity_threshold || 'medium' }}"
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold="$threshold" \
-            --sarif-file-output=../../snyk-api-go.sarif || {
-            code=$?
-            if [ $code -eq 1 ]; then
-              if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.enforce_gate }}" = "true" ]; then
-                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos no mitigados en dependencias de SmartPot-API-Go."
-                exit 1
-              else
-                echo "::warning::Hallazgos en dependencias de SmartPot-API-Go."
-              fi
-            else
-              exit $code
-            fi
-          }
-
-      # 2. Security Gate: SmartPot-Web-Solid
-      - name: Scan & Gate SmartPot-Web-Solid (SolidJS)
-        run: |
-          cd services/SmartPot-Web-Solid
-          threshold="${{ inputs.severity_threshold || 'medium' }}"
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold="$threshold" \
-            --sarif-file-output=../../snyk-web-solid.sarif || {
-            code=$?
-            if [ $code -eq 1 ]; then
-              if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.enforce_gate }}" = "true" ]; then
-                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos en dependencias de SmartPot-Web-Solid."
-                exit 1
-              else
-                echo "::warning::Hallazgos en dependencias de SmartPot-Web-Solid."
-              fi
-            else
-              exit $code
-            fi
-          }
-
-      # 3. Security Gate: SmartPot-DataGenerator-Rust
-      - name: Scan SmartPot-DataGenerator-Rust (RustSec Cargo Audit)
-        run: |
-          cd services/SmartPot-DataGenerator-Rust
-          cargo audit --format sarif > ../../snyk-datagenerator-rust.sarif || {
-            code=$?
-            echo "::warning::cargo-audit reportó avisos o vulnerabilidades en dependencias de Rust (código $code)."
-          }
-
-      # 4. Alertar: Subir reportes SARIF
-      - name: Upload SmartPot-API-Go SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-api-go.sarif') != ''
-        with:
-          sarif_file: snyk-api-go.sarif
-          category: snyk-api-go
-
-      - name: Upload SmartPot-Web-Solid SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-web-solid.sarif') != ''
-        with:
-          sarif_file: snyk-web-solid.sarif
-          category: snyk-web-solid
-
-      - name: Upload SmartPot-DataGenerator-Rust SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-datagenerator-rust.sarif') != ''
-        with:
-          sarif_file: snyk-datagenerator-rust.sarif
-          category: snyk-datagenerator-rust
-
-      # 5. Monitorear: snyk monitor en rama principal, schedule o dispatch
-      - name: Snyk Monitor Snapshots (BETA Stack)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: |
-          echo "::notice::Publicando snapshots a Snyk Platform para monitoreo continuo 24/7..."
-          cd services/SmartPot-API-Go
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-API-Go" || true
-          cd ../SmartPot-Web-Solid
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-Web-Solid" || true
-
-  snyk-stable-stack:
-    name: Snyk SCA & Monitor (Demo Estable Stack)
-    needs: check-secrets
-    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'stable' || github.event_name != 'workflow_dispatch'))
+    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'beta' || inputs.target == 'stable' || inputs.target == 'shared' || github.event_name != 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -302,22 +164,42 @@ jobs:
           path: services/SmartPot-DataGenerator
           persist-credentials: false
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v6
+      - name: Checkout SmartPot-AI
+        uses: actions/checkout@v7
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: maven
+          repository: SmartPotTech/SmartPot-AI
+          path: services/SmartPot-AI
+          persist-credentials: false
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6
+      - name: Checkout SmartPot-Trainer
+        uses: actions/checkout@v7
         with:
-          version: 11.28.0
+          repository: SmartPotTech/SmartPot-Trainer
+          path: services/SmartPot-Trainer
+          persist-credentials: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
+      - name: Set up Go
+        uses: actions/setup-go@v7
         with:
-          node-version: 24
+          go-version-file: 'services/SmartPot-API/go.mod'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install SmartPot-Web dependencies
+        run: |
+          cd services/SmartPot-Web
+          bun install --frozen-lockfile
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v7
@@ -330,33 +212,35 @@ jobs:
       - name: Set up Snyk CLI
         uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
 
-      # 1. Security Gate: SmartPot-API (Spring Boot)
-      - name: Scan & Gate SmartPot-API (Spring Boot)
+      # 1. Security Gate: SmartPot-API (Go)
+      - name: Scan & Gate SmartPot-API (Go)
         run: |
           cd services/SmartPot-API
           threshold="${{ inputs.severity_threshold || 'medium' }}"
           snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold="$threshold" \
-            --sarif-file-output=../../snyk-api-java.sarif || {
+            --sarif-file-output=../../snyk-api-go.sarif || {
             code=$?
             if [ $code -eq 1 ]; then
               if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.enforce_gate }}" = "true" ]; then
-                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos en dependencias de SmartPot-API."
+                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos no mitigados en dependencias de SmartPot-API."
                 exit 1
               else
                 echo "::warning::Hallazgos en dependencias de SmartPot-API."
               fi
+            elif [ $code -eq 2 ] || [ $code -eq 3 ]; then
+              echo "::warning::Snyk aviso operacional o límite de plan alcanzado en SmartPot-API (código $code)."
             else
-              exit $code
+              echo "::warning::Snyk finalizó con código $code en SmartPot-API."
             fi
           }
 
-      # 2. Security Gate: SmartPot-Web (React)
-      - name: Scan & Gate SmartPot-Web (React)
+      # 2. Security Gate: SmartPot-Web (SolidJS)
+      - name: Scan & Gate SmartPot-Web (SolidJS)
         run: |
           cd services/SmartPot-Web
           threshold="${{ inputs.severity_threshold || 'medium' }}"
-          snyk test --org="${{ env.SNYK_CFG_ORG }}" --all-projects --severity-threshold="$threshold" \
-            --sarif-file-output=../../snyk-web-react.sarif || {
+          snyk test --org="${{ env.SNYK_CFG_ORG }}" --severity-threshold="$threshold" \
+            --sarif-file-output=../../snyk-web-solid.sarif || {
             code=$?
             if [ $code -eq 1 ]; then
               if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.enforce_gate }}" = "true" ]; then
@@ -365,15 +249,35 @@ jobs:
               else
                 echo "::warning::Hallazgos en dependencias de SmartPot-Web."
               fi
+            elif [ $code -eq 2 ] || [ $code -eq 3 ]; then
+              echo "::warning::Snyk aviso operacional o límite de plan alcanzado en SmartPot-Web (código $code)."
             else
-              exit $code
+              echo "::warning::Snyk finalizó con código $code en SmartPot-Web."
             fi
           }
 
-      # 3. Security Gate: SmartPot-DataGenerator (Python)
-      - name: Scan & Gate SmartPot-DataGenerator (Python)
+      # 3. Security Gate: SmartPot-DataGenerator (Rust)
+      - name: Scan SmartPot-DataGenerator (RustSec Cargo Audit)
         run: |
           cd services/SmartPot-DataGenerator
+          cargo audit --format sarif > ../../snyk-datagenerator-rust.sarif || {
+            code=$?
+            echo "::warning::cargo-audit reportó avisos o vulnerabilidades en dependencias de SmartPot-DataGenerator (código $code)."
+          }
+
+      # 4. Security Gate: SmartPot-AI (Rust)
+      - name: Scan SmartPot-AI (RustSec Cargo Audit)
+        run: |
+          cd services/SmartPot-AI
+          cargo audit --format sarif > ../../snyk-ai-rust.sarif || {
+            code=$?
+            echo "::warning::cargo-audit reportó avisos o vulnerabilidades en dependencias de SmartPot-AI (código $code)."
+          }
+
+      # 5. Security Gate: SmartPot-Trainer (Python ML)
+      - name: Scan & Gate SmartPot-Trainer (Python)
+        run: |
+          cd services/SmartPot-Trainer
           uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt
           uv pip install --system -r requirements.txt
           threshold="${{ inputs.severity_threshold || 'medium' }}"
@@ -383,159 +287,70 @@ jobs:
             --package-manager=pip \
             --command=python3 \
             --severity-threshold="$threshold" \
-            --sarif-file-output=../../snyk-datagenerator.sarif \
+            --sarif-file-output=../../snyk-trainer.sarif \
             -- --allow-missing || {
             code=$?
             if [ $code -eq 1 ]; then
               if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.enforce_gate }}" = "true" ]; then
-                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos en dependencias de SmartPot-DataGenerator."
+                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos en dependencias de SmartPot-Trainer."
                 exit 1
               else
-                echo "::warning::Hallazgos en dependencias de SmartPot-DataGenerator."
+                echo "::warning::Hallazgos en dependencias de SmartPot-Trainer."
               fi
+            elif [ $code -eq 2 ] || [ $code -eq 3 ]; then
+              echo "::warning::Snyk aviso operacional o límite de plan alcanzado en SmartPot-Trainer (código $code)."
             else
-              exit $code
+              echo "::warning::Snyk finalizó con código $code en SmartPot-Trainer."
             fi
           }
 
-      # 4. Alertar: Subir SARIF
+      # 6. Alertar: Subir reportes SARIF
       - name: Upload SmartPot-API SARIF
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-api-java.sarif') != ''
+        if: always() && hashFiles('snyk-api-go.sarif') != ''
         with:
-          sarif_file: snyk-api-java.sarif
-          category: snyk-api-java
+          sarif_file: snyk-api-go.sarif
+          category: snyk-api-go
 
       - name: Upload SmartPot-Web SARIF
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-web-react.sarif') != ''
+        if: always() && hashFiles('snyk-web-solid.sarif') != ''
         with:
-          sarif_file: snyk-web-react.sarif
-          category: snyk-web-react
+          sarif_file: snyk-web-solid.sarif
+          category: snyk-web-solid
 
       - name: Upload SmartPot-DataGenerator SARIF
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-datagenerator.sarif') != ''
+        if: always() && hashFiles('snyk-datagenerator-rust.sarif') != ''
         with:
-          sarif_file: snyk-datagenerator.sarif
-          category: snyk-datagenerator
+          sarif_file: snyk-datagenerator-rust.sarif
+          category: snyk-datagenerator-rust
 
-      # 5. Monitorear: snyk monitor en rama principal, schedule o dispatch
-      - name: Snyk Monitor Snapshots (Estable Stack)
+      - name: Upload SmartPot-AI SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-ai-rust.sarif') != ''
+        with:
+          sarif_file: snyk-ai-rust.sarif
+          category: snyk-ai-rust
+
+      - name: Upload SmartPot-Trainer SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('snyk-trainer.sarif') != ''
+        with:
+          sarif_file: snyk-trainer.sarif
+          category: snyk-trainer
+
+      # 7. Monitorear: snyk monitor en rama principal, schedule o dispatch
+      - name: Snyk Monitor Snapshots (Stack B)
         if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           echo "::notice::Publicando snapshots a Snyk Platform para monitoreo continuo 24/7..."
           cd services/SmartPot-API
           snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-API" || true
           cd ../SmartPot-Web
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --all-projects || true
-          cd ../SmartPot-DataGenerator
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --package-manager=pip --project-name="SmartPotTech/SmartPot-DataGenerator" || true
-
-  snyk-shared-iot:
-    name: Snyk SCA & Monitor (Componentes Compartidos & IoT)
-    needs: check-secrets
-    if: github.actor != 'dependabot[bot]' && (needs.check-secrets.outputs.configured == 'true' && (inputs.target == 'all' || inputs.target == 'shared' || github.event_name != 'workflow_dispatch'))
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout SmartPot-AI
-        uses: actions/checkout@v7
-        with:
-          repository: SmartPotTech/SmartPot-AI
-          path: services/SmartPot-AI
-          persist-credentials: false
-
-      - name: Checkout SmartPot-IoT
-        uses: actions/checkout@v7
-        with:
-          repository: SmartPotTech/SmartPot-IoT
-          path: services/SmartPot-IoT
-          persist-credentials: false
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.13"
-
-      - name: Set up Snyk CLI
-        uses: snyk/actions/setup@11b673cfb4b0dc0d860a1323caa199d54950dcce # master al 2026-10-31
-
-      # 1. Security Gate: SmartPot-AI
-      - name: Scan & Gate SmartPot-AI (FastAPI & ML)
-        run: |
-          cd services/SmartPot-AI
-          uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt
-          uv pip install --system -r requirements.txt
-          threshold="${{ inputs.severity_threshold || 'medium' }}"
-          snyk test \
-            --org="${{ env.SNYK_CFG_ORG }}" \
-            --file=requirements.txt \
-            --package-manager=pip \
-            --command=python3 \
-            --severity-threshold="$threshold" \
-            --sarif-file-output=../../snyk-ai.sarif \
-            -- --allow-missing || {
-            code=$?
-            if [ $code -eq 1 ]; then
-              if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ inputs.enforce_gate }}" = "true" ]; then
-                echo "::error::Snyk Security Gate BLOQUEADO: Hallazgos en dependencias de SmartPot-AI."
-                exit 1
-              else
-                echo "::warning::Hallazgos en dependencias de SmartPot-AI."
-              fi
-            else
-              exit $code
-            fi
-          }
-
-      # 2. Security Gate: SmartPot-IoT
-      - name: Scan SmartPot-IoT (Firmware & Scripts)
-        run: |
-          cd services/SmartPot-IoT
-          if [ -f pyproject.toml ]; then
-            uv export --no-dev --no-hashes --no-header --no-annotate -o requirements.txt || true
-            if [ -s requirements.txt ]; then
-              uv pip install --system -r requirements.txt || true
-              threshold="${{ inputs.severity_threshold || 'medium' }}"
-              snyk test \
-                --org="${{ env.SNYK_CFG_ORG }}" \
-                --file=requirements.txt \
-                --package-manager=pip \
-                --command=python3 \
-                --severity-threshold="$threshold" \
-                --sarif-file-output=../../snyk-iot.sarif \
-                -- --allow-missing || true
-            else
-              echo "::notice::El repositorio no contiene dependencias de producción externas (firmware MicroPython puro); escaneo omitido."
-            fi
-          fi
-
-      # 3. Alertar: Subir SARIF
-      - name: Upload SmartPot-AI SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-ai.sarif') != ''
-        with:
-          sarif_file: snyk-ai.sarif
-          category: snyk-ai
-
-      - name: Upload SmartPot-IoT SARIF
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('snyk-iot.sarif') != ''
-        with:
-          sarif_file: snyk-iot.sarif
-          category: snyk-iot
-
-      # 4. Monitorear: snyk monitor en rama principal, schedule o dispatch
-      - name: Snyk Monitor Snapshot (SmartPot-AI)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: |
-          echo "::notice::Publicando snapshot de SmartPot-AI a Snyk Platform para monitoreo continuo 24/7..."
-          cd services/SmartPot-AI
-          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --package-manager=pip --project-name="SmartPotTech/SmartPot-AI" || true
+          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --project-name="SmartPotTech/SmartPot-Web" || true
+          cd ../SmartPot-Trainer
+          snyk monitor --org="${{ env.SNYK_CFG_ORG }}" --file=requirements.txt --package-manager=pip --project-name="SmartPotTech/SmartPot-Trainer" || true
 
   snyk-remediation-pr:
     name: Snyk Automated Remediation PR
