@@ -43,6 +43,7 @@ GLOBAL_LIMITS = {"maxTextSize": 5_000_000, "maxEdges": 20_000}
 
 # Versión fija: mermaid cambia el motor de diseño entre versiones mayores.
 MERMAID_CLI = "@mermaid-js/mermaid-cli@11"
+LOCAL_MMDC = DOCS.parent.parent / "tools" / "node_modules" / ".bin" / ("mmdc.cmd" if sys.platform == "win32" else "mmdc")
 CHROME_CANDIDATES = (
     "C:/Program Files/Google/Chrome/Application/chrome.exe",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -64,7 +65,8 @@ def find_chrome(explicit: str | None) -> str:
 
 
 def mmdc(source: pathlib.Path, target: pathlib.Path, puppeteer: pathlib.Path, extra: str) -> list[str]:
-    command = f'npx -y {MERMAID_CLI} -i "{source}" -o "{target}" -p "{puppeteer}" -b white {extra}'
+    cli = f'"{LOCAL_MMDC}"' if LOCAL_MMDC.exists() else f'npx -y {MERMAID_CLI}'
+    command = f'{cli} -i "{source}" -o "{target}" -p "{puppeteer}" -b white {extra}'
     result = subprocess.run(command, shell=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
     lines = (result.stdout + result.stderr).splitlines()
     errors = [line for line in lines if "rror" in line or "Parse" in line or "Expecting" in line]
@@ -144,7 +146,7 @@ def main() -> None:
         with tempfile.TemporaryDirectory() as tmp:
             workdir = pathlib.Path(tmp)
             puppeteer = workdir / "puppeteer.json"
-            puppeteer.write_text(json.dumps({"executablePath": find_chrome(args.chrome), "args": ["--no-sandbox"]}),
+            puppeteer.write_text(json.dumps({"executablePath": find_chrome(args.chrome), "pipe": True, "args": ["--no-sandbox", "--disable-gpu", "--remote-debugging-pipe"]}),
                                  encoding="utf-8")
             for source in sources:
                 draw = render_global if source.stem.startswith(GLOBAL_PREFIX) else render

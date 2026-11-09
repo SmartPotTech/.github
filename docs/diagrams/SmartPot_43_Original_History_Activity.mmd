@@ -2,18 +2,18 @@
 flowchart TB
   subgraph persona["Usuario"]
     direction TB
-    inicio(["Inicio"]) --> entra["Ingresa a la página<br/>de datos históricos"]
-    ve["Ve los datos históricos<br/>en una tabla"] --> elige{"¿Tabla o gráfica?"}
+    inicio(["Inicio"]) --> entra["Ingresa a la página<br/>of historical data"]
+    ve["Ve historical dataset<br/>en una tabla"] --> elige{"¿Tabla o gráfica?"}
     recibe["Recibe el mensaje<br/>y se le notifica"] --> fin1(["Fin"])
   end
   subgraph api["API"]
     direction TB
     tiene{"¿Tiene un cultivo?"}
     hay{"¿Hay datos históricos?"}
-    obtiene["Obtiene y envía<br/>los datos históricos"]
+    obtiene["Obtiene y envía<br/>historical dataset"]
     sinCultivo["Envía «No cuenta con cultivo»"]
     sinDatos["Envía «No se han tomado lecturas»"]
-    cambia["Cambia la visualización<br/>y la envía"] --> fin2(["Fin"])
+    cambia["Cambia la visualización<br/>and dispatches it"] --> fin2(["Fin"])
   end
   entra --> tiene
   tiene -->|"Sí"| hay

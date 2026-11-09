@@ -2,10 +2,10 @@
 stateDiagram-v2
   direction LR
 
-  state "Sesión de la persona" as sesion {
+  state "User Session" as sesion {
     direction LR
     [*] --> Anonima
-    Anonima --> Autenticada : ingreso o registro (JWT 7 días)
+    Anonima --> Authenticated : Login or Register (7-day session)
     Autenticada --> Anonima : cierre de sesión o JWT vencido
     Anonima --> Recuperando : olvidé mi contraseña
     Recuperando --> Anonima : enlace vencido (30 min)
@@ -14,15 +14,15 @@ stateDiagram-v2
     Limitada --> Anonima : pasa el minuto (429 con Retry-After)
   }
 
-  state "Dispositivo y su cuenta MQTT" as maceta {
+  state "Device and MQTT Tenant Account" as maceta {
     direction LR
-    [*] --> Aprovisionada : crear cultivo (createClient)
+    [*] --> Provisioned : Create crop (createClient)
     Aprovisionada --> EnLinea : CONNECT con la clave · status online
     EnLinea --> Desconectada : última voluntad offline
     Desconectada --> EnLinea : reconecta
     EnLinea --> Rotada : rotar la clave (disableClient y enableClient)
     Rotada --> EnLinea : reconecta con la clave nueva
-    Aprovisionada --> Retirada : borrar el cultivo (deleteClient)
+    Aprovisionada --> Retired : Delete crop (deleteClient)
     Desconectada --> Retirada : borrar el cultivo
     Retirada --> [*]
   }
@@ -36,25 +36,25 @@ stateDiagram-v2
     SENT --> FAILED : ACK FAILED
     SENT --> EXPIRED : sin ACK en 2 min
     EXECUTED --> [*]
-    FAILED --> [*] : alerta al dueño
-    EXPIRED --> [*] : alerta al dueño
+    FAILED --> [*] : Alerts owner
+    EXPIRED --> [*] : Alerts owner
   }
 
-  state "Switch de un actuador" as switch {
+  state "Actuator Switch" as switch {
     direction LR
-    state "Apagado" as SwitchOff
+    state "Off (OFF)" as SwitchOff
     state "Encendido por un tiempo" as SwitchTimed
-    state "Encendido sin límite" as SwitchUnlimited
+    state "Indefinite On" as SwitchUnlimited
     [*] --> SwitchOff
-    SwitchOff --> SwitchTimed : encender con duración, al confirmar
-    SwitchOff --> SwitchUnlimited : encender sin límite, al confirmar
-    SwitchTimed --> SwitchOff : apagar o vence runningUntil
+    SwitchOff --> SwitchTimed : Turn on with duration, al confirmsr
+    SwitchOff --> SwitchUnlimited : encender sin límite, al confirmsr
+    SwitchTimed --> SwitchOff : Turn off o vence runningUntil
     SwitchTimed --> SwitchUnlimited : encender sin límite
-    SwitchUnlimited --> SwitchTimed : encender con duración
-    SwitchUnlimited --> SwitchOff : apagar, al confirmar
+    SwitchUnlimited --> SwitchTimed : Turn on with duration
+    SwitchUnlimited --> SwitchOff : Turn off, al confirmsr
   }
 
-  state "Evaluación del cultivo" as salud {
+  state "Crop Evaluation" as salud {
     direction LR
     [*] --> SinLecturas
     SinLecturas --> Evaluado : primera lectura válida
@@ -73,10 +73,10 @@ stateDiagram-v2
     Bloqueado --> Evaluado : lecturas coherentes
   }
 
-  state "Modo automático" as automatico {
+  state "Automatic Mode" as automatico {
     direction LR
     [*] --> Sugerencias
-    Sugerencias --> Automatico : la persona lo activa (uno o varios cultivos)
+    Sugerencias --> Automatic : User activates (single or bulk crops)
     Automatico --> Sugerencias : la persona lo desactiva
     state Automatico {
       direction LR
@@ -85,11 +85,11 @@ stateDiagram-v2
     }
   }
 
-  state "Aprendizaje por especie" as aprendizaje {
+  state "Species-Specific Learning" as aprendizaje {
     direction LR
     [*] --> JuntandoDatos
     JuntandoDatos --> Entrenando : 200 lecturas etiquetadas
-    Entrenando --> AlDia : el retador supera a la línea base y al campeón
+    Entrenando --> AlDia : el retador supera a la baseline y al campeón
     Entrenando --> Pendiente : faltan casos positivos
     Entrenando --> AlDia : se conserva el campeón
     AlDia --> Entrenando : 300 lecturas nuevas
@@ -98,9 +98,9 @@ stateDiagram-v2
     Reentrenar --> Entrenando
   }
 
-  state "Vínculo de Telegram" as telegram {
+  state "Telegram Link" as telegram {
     direction LR
-    [*] --> CodigoEmitido : pedir código (10 min)
+    [*] --> CodeIssued : Request Code (10 min)
     CodigoEmitido --> [*] : vence sin usarse
     CodigoEmitido --> Activo : /start código en un chat privado
     Activo --> Desactivado : la persona lo apaga
@@ -110,7 +110,7 @@ stateDiagram-v2
     Activo --> [*] : /desvincular o desde la PWA
   }
 
-  state "Simulación de un cultivo virtual" as virtual {
+  state "Virtual Crop Simulation" as virtual {
     direction LR
     [*] --> Encendida : crear el cultivo con kind VIRTUAL
     EnPausa --> Encendida : PUT virtual-device (reanuda · la API la recrea si falta)
@@ -120,6 +120,6 @@ stateDiagram-v2
       MANUAL --> WEATHER
       WEATHER --> AUTO
     }
-    Encendida --> EnPausa : DELETE virtual-device (pausa y conserva la configuración)
+    Encendida --> Paused : DELETE virtual-device (pauses and preserves configuration)
     Encendida --> [*] : borrar el cultivo
   }

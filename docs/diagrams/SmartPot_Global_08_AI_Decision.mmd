@@ -2,7 +2,7 @@
 flowchart LR
   subgraph entrada["Entrada · POST /v1/insights"]
     direction TB
-    req["InsightRequest<br/>especie · medidas actuales<br/>historial de 48 lecturas con hora<br/>actuadores del cultivo · hora local<br/>lugar y clima de afuera"]
+    req["InsightRequest<br/>especie · medidas actuales<br/>history of 48 timestamped readings<br/>crop actuators · local time<br/>lugar y weather de afuera"]
     profile["Perfil de la especie<br/>rango ideal por variable<br/>tolerancias: 5 °C · 15 % · 300 lux<br/>0.8 de pH · 400 ppm · 15 % de sustrato"]
     rest{"¿22:00 a 6:00?<br/>descanso nocturno"}
   end
@@ -10,23 +10,23 @@ flowchart LR
   subgraph diagnostico["1 · Diagnóstico por variable"]
     direction TB
     status["LOW · OPTIMAL · HIGH · REST<br/>distancia al rango en tolerancias"]
-    severity["Severidad<br/>crítica desde una tolerancia completa"]
+    severity["Severidad<br/>critical state beyond full tolerance"]
     status --> severity
   end
 
   subgraph pronostico["2 · Pronóstico Theil-Sen"]
     direction TB
-    theil["Mediana de pendientes entre pares<br/>6 lecturas en 20 min como mínimo<br/>la luz no se pronostica"]
+    theil["Mediana de pendientes entre pares<br/>minimum 6 readings in 20 minutes<br/>light is not forecasted"]
     fout["trend RISING · FALLING · STABLE<br/>expectedIn3h · hoursToLimit (menos de 24 h)<br/>limit MIN o MAX · confidence"]
     theil --> fout
   end
 
   subgraph modelos["3 · Modelos"]
     direction TB
-    norm["Normalización al perfil<br/>0 = mínimo ideal · 1 = máximo ideal"]
+    norm["Normalización al perfil<br/>0 = ideal minimum · 1 = ideal maximum"]
     vent["Ventilación · regresión logística · 89.5 %"]
     ph["Corrección de pH · MLP · 94.3 %"]
-    anom["Lectura atípica · Isolation Forest<br/>y detección de saltos"]
+    anom["Lectura atípica · Isolation Forest<br/>and step-change detection"]
     ldry["Aprendido: ¿el sustrato bajará del mínimo en 1 h?"]
     lheat["Aprendido: ¿la temperatura pasará el máximo en 1 h?"]
     lmoist["Aprendido: humedad del sustrato en 1 h"]
@@ -37,7 +37,7 @@ flowchart LR
 
   subgraph experto["4 · Sistema experto · encadenamiento hacia adelante por prioridad"]
     direction TB
-    subgraph primer["Hechos de primer nivel"]
+    subgraph primer["First-Order Facts"]
       direction TB
       r1["heat_stress · calor y aire seco"]
       r2["fungal_risk · humedad alta y calor templado"]
@@ -55,9 +55,9 @@ flowchart LR
       r14["unusual_pattern · poco habitual para la especie"]
       r15["night_rest · luz baja de noche"]
       r20["rain_outside · 0,5 mm o más al aire libre"]
-      r21["sensor_vs_outside · 8 °C de diferencia con el clima"]
+      r21["sensor_vs_outside · 8 °C de diferencia con el weather"]
     end
-    subgraph segundo["Hechos de segundo nivel"]
+    subgraph segundo["Second-Order Derived Facts"]
       direction TB
       r16["sensor_fault · atípica y 2 o más críticas<br/>bloquea todas las acciones"]
       r17["critical_state · 2 o más críticas sin falla de sensor"]
@@ -67,47 +67,47 @@ flowchart LR
     primer --> segundo
   end
 
-  subgraph difusa["5 · Índice de salud · lógica difusa Sugeno"]
+  subgraph difusa["5 · Health Index · Sugeno Fuzzy Logic"]
     direction TB
-    sets["Conjuntos trapezoidales por variable<br/>ideal 100 · aceptable 75 · desviada 45 · crítica 10"]
-    weights["Pesos agronómicos<br/>pH 1.3 · temperatura 1.2 · sustrato 1.2<br/>nutrientes 1.1 · humedad 0.9 · luz 0.8"]
-    worst["Regla de peor caso<br/>limita el índice si hay una variable crítica"]
+    sets["Trapezoidal Sets per Variable<br/>Ideal 100 · Acceptable 75 · Deviated 45 · Critical 10"]
+    weights["Agronomic Weights<br/>pH 1.3 · Temp 1.2 · Soil 1.2<br/>Nutrients 1.1 · Humidity 0.9 · Light 0.8"]
+    worst["Worst-Case Floor Rule<br/>Caps Index if Any Variable is Critical"]
     levels["EXCELLENT 85–100 · GOOD 70–84 · FAIR 50–69<br/>POOR 30–49 · CRITICAL 0–29"]
     sets --> weights --> worst --> levels
   end
 
-  subgraph agente["6 · Agente reactivo · solo actuadores que el cultivo tiene"]
+  subgraph agente["6 · Reactive Agent · Only Supported Crop Actuators"]
     direction TB
-    a1["Sustrato seco → WATER_PUMP 15 s (30 s si es crítico)"]
-    a2["Llegará al mínimo en menos de 1 h → WATER_PUMP 10 s"]
-    a3["Poca luz de día → UV_LIGHT 15 min"]
-    a4["Exceso de luz o luz de noche → apagar UV_LIGHT"]
-    a5["Calor, humedad alta o ventilación → FAN 10 min"]
-    a6["Pasará el máximo en menos de 1 h → FAN 10 min"]
-    a7["Aprendido 85 % o más → WATER_PUMP 10 s (no de noche) o FAN 10 min"]
-    a8["Temperatura baja → apagar FAN"]
-    a9["Aire seco → HUMIDIFIER 5 min"]
-    a10["pH alto → PH_DOSER 3 s"]
-    a11["Nutrientes bajos sin bloqueo → NUTRIENT_DOSER 3 s"]
-    a0["Falla de sensor → ninguna acción"]
-    a12["Llueve al aire libre → no riega"]
+    a1["Dry Soil → WATER_PUMP 15s (30s if Critical)"]
+    a2["Reaches Minimum in <1h → WATER_PUMP 10s"]
+    a3["Low Daylight → UV_LIGHT 15m"]
+    a4["Exceso de luz o luz de noche → Turn off UV_LIGHT"]
+    a5["High Heat, Humidity or High Stale Air → FAN 10m"]
+    a6["Exceeds Maximum in <1h → FAN 10m"]
+    a7["Learned Pattern >= 85% → WATER_PUMP 10s (Day only) or FAN 10m"]
+    a8["Temperatura baja → Turn off FAN"]
+    a9["Dry Atmosphere → HUMIDIFIER 5m"]
+    a10["High pH → PH_DOSER 3s"]
+    a11["Low Nutrients (No Lockout) → NUTRIENT_DOSER 3s"]
+    a0["Sensor Anomaly Fault → Suppress All Actions"]
+    a12["Outdoor Rain Detected → Suppress Irrigation"]
   end
 
-  subgraph lugar["7 · Consejo de lugar"]
+  subgraph lugar["7 · Placement Recommendation"]
     direction TB
     need["Luz que pide la especie<br/>pleno sol o media sombra"]
     advice["OK · UNKNOWN · TIP · MOVE<br/>sube de tono si el lugar ya se nota"]
     need --> advice
   end
 
-  subgraph api["En la API"]
+  subgraph api["In API Pipeline"]
     direction TB
     health_save["crops.health"]
-    alert["Hallazgo crítico → alerta (1 por hora y variable)"]
-    auto{"¿Modo automático?"}
+    alert["Critical Finding → Alert (1/hr per Variable)"]
+    auto{"Automatic mode enabled?"}
     cool{"¿agent:cultivo:actuador:acción<br/>libre? (10 min)"}
-    cmd["Comando PENDING → MQTT QoS 1"]
-    suggest["Sugerencias en la PWA<br/>y en Acciones (aplicables en bloque)"]
+    cmd["Command PENDING → MQTT QoS 1"]
+    suggest["Suggestions in PWA<br/>& Fleet Actions Tab (Bulk Applicable)"]
     auto -->|"sí"| cool -->|"sí"| cmd
     auto -->|"no"| suggest
   end

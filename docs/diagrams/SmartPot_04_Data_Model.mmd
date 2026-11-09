@@ -1,6 +1,6 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 erDiagram
-  USERS ||--o{ CROPS : "es dueño de"
+  USERS ||--o{ CROPS : "es owner de"
   USERS ||--o{ NOTIFICATIONS : "recibe"
   USERS ||--o{ PASSWORD_RESET_TOKENS : "solicita"
   USERS ||--o{ CHANNEL_LINKS : "vincula"
@@ -15,7 +15,7 @@ erDiagram
     ObjectId _id
     string name
     string lastName
-    string email "único"
+    string email "single"
     string passwordHash "BCrypt 12"
     string role "USER o ADMIN"
   }
@@ -26,7 +26,7 @@ erDiagram
     string type "LETTUCE, TOMATO, …"
     string kind "REAL o VIRTUAL, fijo"
     string form "POT, NFT, TOWER, RAFT"
-    object placement "INDOOR u OUTDOOR, sol, ubicación"
+    object placement "INDOOR or OUTDOOR, Sun Exposure, Location"
     bool automationEnabled
     object device "keyCiphertext AES-GCM, online, lastSeenAt"
     object health "index, level, label, evaluatedAt"
@@ -34,7 +34,7 @@ erDiagram
   READINGS {
     ObjectId _id
     ObjectId cropId
-    date measuredAt "TTL 365 días"
+    date measuredAt "TTL 365 days"
     object measures "7 variables"
     string source "MQTT o HTTP"
   }
@@ -42,7 +42,7 @@ erDiagram
     ObjectId _id
     ObjectId cropId
     string type "WATER_PUMP, UV_LIGHT, FAN, …"
-    bool active "encendido sin límite"
+    bool active "indefinite activation"
     date runningUntil "si corre por tiempo"
   }
   COMMANDS {
@@ -80,11 +80,11 @@ erDiagram
   }
   VIRTUAL_DEVICES {
     ObjectId _id
-    ObjectId cropId "único"
+    ObjectId cropId "single"
     ObjectId ownerId
     string mode "AUTO, MANUAL, WEATHER"
     object manual "medidores"
-    object location "anterior al lugar del cultivo"
+    object location "prior to crop location"
     bool active "false en pausa"
   }
   PASSWORD_RESET_TOKENS {

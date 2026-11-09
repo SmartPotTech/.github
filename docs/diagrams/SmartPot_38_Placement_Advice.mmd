@@ -1,20 +1,20 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  eval(["Evaluación del cultivo"]) --> known{"¿Se sabe si está bajo techo<br/>o al aire libre y cuánto sol recibe?"}
-  known -->|"No"| unknown["UNKNOWN<br/>preguntar en Ajustes"]
-  known -->|"Sí"| sun["Sol que recibe<br/>de 0 sin luz natural a 3 pleno sol"]
+  eval(["Crop Evaluation"]) --> known{"Is environment known<br/>(indoor/outdoor and sun exposure)?"}
+  known -->|"No"| unknown["UNKNOWN<br/>preguntar en Settings"]
+  known -->|"Sí"| sun["Sun Exposure<br/>0 (No Natural) to 3 (Full Sun)"]
   sun --> fits{"¿Es lo que pide la especie?<br/>pleno sol o media sombra"}
-  fits -->|"Sí"| ok["OK<br/>el lugar le sienta bien"]
-  fits -->|"Le falta sol"| dark{"¿Luz baja de día<br/>en el diagnóstico?"}
-  dark -->|"Sí"| more["MOVE · Le falta sol<br/>llevarla a pleno sol o a la ventana más soleada"]
-  dark -->|"No"| tipMore["TIP<br/>estaría mejor con más sol"]
-  fits -->|"Le sobra sol"| hot{"¿Calor, exceso de luz<br/>o aire seco?"}
-  hot -->|"Sí"| less["MOVE · Le sobra sol<br/>media sombra o malla en las horas fuertes"]
-  hot -->|"No"| tipLess["TIP<br/>estaría mejor con menos sol"]
-  subgraph outside["Al aire libre, con el clima de afuera"]
+  fits -->|"Sí"| ok["OK<br/>Placement fits species"]
+  fits -->|"Le falta sol"| dark{"Low daytime light<br/>in diagnosis?"}
+  dark -->|"Sí"| more["MOVE · Sun Deficit<br/>Relocate to full sun or sunniest window"]
+  dark -->|"No"| tipMore["TIP<br/>Would thrive with more sunlight"]
+  fits -->|"Le sobra sol"| hot{"Excess heat, intense light<br/>or dry air?"}
+  hot -->|"Sí"| less["MOVE · Sun Excess<br/>Provide partial shade or netting at peak hours"]
+  hot -->|"No"| tipLess["TIP<br/>Would thrive with less direct sun"]
+  subgraph outside["Al aire libre, con el weather de afuera"]
     direction LR
-    rain{"¿Llueve 0,5 mm o más?"} -->|"Sí"| norain["rain_outside<br/>el agente no riega"]
-    gap{"¿El sensor se aleja 8 °C<br/>o más del clima?"} -->|"Sí"| check["sensor_vs_outside<br/>darle sombra o revisarlo"]
+    rain{"Rainfall >= 0.5 mm?"} -->|"Sí"| norain["rain_outside<br/>Agent suppresses watering"]
+    gap{"¿El sensor se aleja 8 °C<br/>or more from weather station?"} -->|"Sí"| check["sensor_vs_outside<br/>Provide shade or inspect probe"]
   end
   eval --> rain
   eval --> gap

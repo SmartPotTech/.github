@@ -1,29 +1,29 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  root["<b>SmartPot</b> · Estructura de desglose del trabajo"]
-  subgraph g["1 · Gestión"]
+  root["<b>SmartPot</b> · Work Breakdown Structure"]
+  subgraph g["1 · Project Management"]
     direction TB
-    g1["Acta y alcance"] ~~~ g2["EDT y diccionario"] ~~~ g3["Cronograma, PERT<br/>y ruta crítica"] ~~~ g4["Riesgos, comunicaciones<br/>y Definition of Done"]
+    g1["Charter & Scope"] ~~~ g2["WBS & Dictionary"] ~~~ g3["Schedule, PERT<br/>& Critical Path"] ~~~ g4["Risks, Communications<br/>& Definition of Done"]
   end
-  subgraph a["2 · Análisis"]
+  subgraph a["2 · Analysis"]
     direction TB
-    a1["Requisitos RF y RNF"] ~~~ a2["Casos de uso"] ~~~ a3["Matriz de trazabilidad"]
+    a1["Functional & Non-Functional Req."] ~~~ a2["Use Cases"] ~~~ a3["Traceability Matrix"]
   end
-  subgraph d["3 · Diseño"]
+  subgraph d["3 · Design"]
     direction TB
-    d1["Arquitectura C4"] ~~~ d2["Contratos API y MQTT"] ~~~ d3["Modelo de datos"] ~~~ d4["Prototipo de interfaz"] ~~~ d5["Patrones de diseño"]
+    d1["C4 Architecture"] ~~~ d2["API & MQTT Contracts"] ~~~ d3["Data Model"] ~~~ d4["UI Prototype"] ~~~ d5["Design Patterns"]
   end
-  subgraph c["4 · Construcción"]
+  subgraph c["4 · Construction"]
     direction TB
-    c1["IoT y simulación"] ~~~ c2["Backend y seguridad"] ~~~ c3["Frontend PWA"] ~~~ c4["Asistente de IA"] ~~~ c5["Infraestructura<br/>y CI/CD"]
+    c1["IoT & Simulation"] ~~~ c2["Backend & Security"] ~~~ c3["PWA Frontend"] ~~~ c4["AI Assistant"] ~~~ c5["Infrastructure<br/>& CI/CD"]
   end
-  subgraph p["5 · Pruebas"]
+  subgraph p["5 · Testing"]
     direction TB
-    p1["Unitarias y<br/>de componentes"] ~~~ p2["Integración y E2E"] ~~~ p3["Aceptación"] ~~~ p4["Seguridad"]
+    p1["Unit &<br/>Component Tests"] ~~~ p2["Integration & E2E"] ~~~ p3["User Acceptance"] ~~~ p4["AppSec & Vulnerability"]
   end
-  subgraph x["6 · Documentación y cierre"]
+  subgraph x["6 · Documentation & Closure"]
     direction TB
-    x1["Documentación técnica"] ~~~ x2["Despliegue"] ~~~ x3["Presentación y<br/>lecciones aprendidas"]
+    x1["Technical Documentation"] ~~~ x2["Production Deployment"] ~~~ x3["Presentation &<br/>Lessons Learned"]
   end
   root --> g & a & d & c & p & x
   classDef leaf fill:#DDF5EA,stroke:#067A52,color:#17261F

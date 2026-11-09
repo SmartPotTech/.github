@@ -2,22 +2,22 @@
 flowchart TB
   subgraph prep["1 · Datos"]
     direction LR
-    lect["Lecturas reales<br/>lotes cada minuto"] --> alm[("SQLite en /data<br/>cultivo seudonimizado")]
+    lect["Lecturas reales<br/>lotes cada minuto"] --> alm[("SQLite en /data<br/>pseudonymized crop")]
     alm --> cal["Calidad de datos<br/>completitud · validez · IQR"]
-    cal --> var["Variables<br/>posición en el rango, hora circular,<br/>tendencia de 30 min"]
+    cal --> var["Variables<br/>position in range, circular hour,<br/>tendencia de 30 min"]
   end
   subgraph sup["2 · Supervisado"]
     direction LR
-    eti["Etiquetas autosupervisadas<br/>¿qué pasó en la hora siguiente?"] --> cv["7 modelos con<br/>TimeSeriesSplit<br/>+ línea base"]
+    eti["Etiquetas autosupervisadas<br/>outcome in subsequent hour?"] --> cv["7 modelos con<br/>TimeSeriesSplit<br/>+ baseline"]
     cv --> gs["GridSearchCV<br/>del mejor"]
-    gs --> cc{"¿Supera a la línea base<br/>y al vigente en lo<br/>más reciente?"}
-    cc -->|"Sí"| nuevo["Campeón nuevo<br/>versión + joblib"]
+    gs --> cc{"¿Supera a la baseline<br/>y al vigente en lo<br/>most recent?"}
+    cc -->|"Sí"| nuevo["Campeón nuevo<br/>version + joblib artifact"]
     cc -->|"No"| vig["Se conserva<br/>el vigente"]
   end
   subgraph nosup["3 · No supervisado"]
     direction LR
-    km["K-Means por silueta<br/>estados de operación"]
-    iso["Isolation Forest<br/>lecturas poco habituales"]
+    km["K-Means por silueta<br/>operational states"]
+    iso["Isolation Forest<br/>atypical / anomalous readings"]
   end
   var --> eti
   var --> km

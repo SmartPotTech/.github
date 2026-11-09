@@ -2,7 +2,7 @@
 flowchart TB
   subgraph esp["ESP32"]
     direction LR
-    lee(["Lectura de sensores"]) --> pila["Pasa a la pila<br/>de comunicación"] --> publica["Envía la lectura<br/>al broker"]
+    lee(["Lectura de sensores"]) --> pila["Pasa a la pila<br/>of communication"] --> publica["Envía la lectura<br/>al broker"]
     recibe["Recibe el comando"] --> procesa["Procesa el actuador<br/>asignado"] --> activa["Activa el actuador"] --> estado["Envía el estado<br/>del comando"]
   end
   subgraph broker["Broker MQTT"]
@@ -13,10 +13,10 @@ flowchart TB
   end
   subgraph api["API"]
     direction LR
-    guarda["Guarda el registro"] --> limites{"¿Las lecturas pasan<br/>los límites?"}
+    guarda["Guarda el registro"] --> limites{"¿Las lecturas pasan<br/>the boundary thresholds?"}
     limites -->|"No"| fin1(["Fin"])
     limites -->|"Sí"| alerta["Genera una alerta"]
-    limites -->|"Sí"| genera["Genera el comando para el actuador<br/>del parámetro excedido"]
+    limites -->|"Sí"| genera["Genera el comando para el actuador<br/>of the exceeded threshold"]
     guardaEstado["Guarda el estado"] --> fin2(["Fin"])
   end
   publica --> reparte --> guarda

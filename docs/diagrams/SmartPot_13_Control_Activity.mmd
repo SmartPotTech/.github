@@ -1,23 +1,23 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TB
-  inicio(["El dispositivo o la simulación<br/>publica una lectura"]) --> valida{"¿Valores dentro de<br/>la escala física?"}
-  valida -->|"No"| descarta["Se descarta y se registra"]
-  valida -->|"Sí"| guarda["Guardar la lectura<br/>y marcar el cultivo en línea"]
-  guarda --> aprende["Si el cultivo es real, encolar<br/>para el aprendizaje continuo"]
-  guarda --> evalua{"¿Toca evaluar?<br/>30 s en automático · 5 min si no"}
+  inicio(["Device or Simulator<br/>Publishes Reading"]) --> valida{"Values within<br/>physical bounds?"}
+  valida -->|"No"| descarta["Discarded and logged"]
+  valida -->|"Sí"| guarda["Persist reading to hypertable<br/>and mark crop online"]
+  guarda --> aprende["If real crop, enqueue<br/>for continuous learning"]
+  guarda --> evalua{"Evaluation trigger?<br/>30s in auto · 5min in manual"}
   evalua -->|"No"| fin(["Fin"])
-  evalua -->|"Sí"| ia["El asistente evalúa:<br/>diagnóstico, pronóstico, modelos,<br/>sistema experto y agente"]
-  ia --> critico{"¿Hallazgo crítico?"}
-  critico -->|"Sí"| alerta["Notificación en la PWA<br/>y en los canales elegidos"]
+  evalua -->|"Sí"| ia["Assistant evaluates:<br/>Diagnosis, forecast, models,<br/>expert system & reactive agent"]
+  ia --> critico{"Critical finding?"}
+  critico -->|"Sí"| alerta["Notification in PWA<br/>and linked channels"]
   critico -->|"No"| auto
-  alerta --> auto{"¿Modo automático?"}
+  alerta --> auto{"Automatic mode enabled?"}
   auto -->|"No"| fin
-  auto -->|"Sí"| enfria{"¿Actuador fuera<br/>del enfriamiento?"}
+  auto -->|"Sí"| enfria{"Actuator off<br/>cooldown period?"}
   enfria -->|"No"| fin
-  enfria -->|"Sí"| comando["Comando por MQTT (QoS 1)"]
-  comando --> ack{"¿ACK en 2 minutos?"}
-  ack -->|"EXECUTED"| ok["Comando ejecutado<br/>y aviso de la acción"]
-  ack -->|"Sin respuesta"| vence["EXPIRED y aviso al dueño"]
+  enfria -->|"Sí"| comando["Command via MQTT (QoS 1)"]
+  comando --> ack{"ACK received within 2 min?"}
+  ack -->|"EXECUTED"| ok["Command EXECUTED<br/>and action confirmation recorded"]
+  ack -->|"Sin respuesta"| vence["EXPIRED and owner alerted"]
   ok --> fin
   vence --> fin
   classDef start fill:#067A52,stroke:#0B3D2B,color:#FFFFFF

@@ -2,12 +2,12 @@
 sequenceDiagram
   autonumber
   actor U as Usuario
-  participant I as Interfaz de datos históricos
+  participant I as Interfaz of historical data
   participant A as API
   participant C as Cultivo
   participant R as Registro
-  U->>I: Ingresa a la página de datos históricos
-  I->>A: Solicita los datos históricos del cultivo
+  U->>I: Ingresa a la página of historical data
+  I->>A: Solicita historical dataset del cultivo
   A->>C: Verifica que el cultivo exista
   alt Existe el cultivo con registros
     C->>R: Verifica los registros históricos

@@ -4,7 +4,7 @@ sequenceDiagram
   participant SDET as SDET Harness (CI/CD)
   participant API as SmartPot-API-Go
   participant DB as TimescaleDB
-  participant BROKER as EMQX 5.8
+  participant BROKER as EMQX 5.8.9
   participant SIM as Simulador Rust
   participant AI as SmartPot-AI
 
@@ -16,13 +16,13 @@ sequenceDiagram
 
   SDET->>API: POST /api/v1/crops (kind: VIRTUAL, form: TOWER)
   API->>DB: INSERT INTO crops (...)
-  API->>SIM: PUT /v1/pots/{id} (Aprovisiona simulación)
-  SIM-->>API: 200 OK (Simulación activa)
+  API->>SIM: PUT /v1/pots/{id} (Provisions Simulation)
+  SIM-->>API: 200 OK (Active simulation)
   API-->>SDET: 201 Created (ID CHAR(24), sin credenciales al usuario)
 
   SIM->>BROKER: CONNECT / SUBSCRIBE smartpot/v1/{id}/commands
   BROKER->>API: POST /internal/mqtt/authn (x-smartpot-broker-token)
-  API-->>BROKER: 200 OK (result: allow, acl: acotado al cultivo)
+  API-->>BROKER: 200 OK (result: allow, acl: scoped to crop tenant)
   BROKER-->>SIM: CONNACK (Aceptado)
 
   SIM->>BROKER: PUBLISH smartpot/v1/{id}/telemetry (QoS 1)
@@ -30,8 +30,8 @@ sequenceDiagram
   API->>DB: INSERT INTO readings (...) [Hipertabla]
 
   SDET->>API: GET /api/v1/crops/{id}/insights
-  API->>AI: POST /v1/insights (Variables agronómicas)
-  AI-->>API: 200 OK (Índice Sugeno + Resumen en español)
+  API->>AI: POST /v1/insights (Agronomic variables)
+  AI-->>API: 200 OK (Sugeno Index + English summary)
   API-->>SDET: 200 OK (Health score 0-100)
 
   SDET->>API: POST /api/v1/crops/{id}/commands (FAN ACTIVATE)

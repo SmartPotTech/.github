@@ -2,28 +2,28 @@
 flowchart LR
   subgraph origen["Origen del dato"]
     direction TB
-    sensors["Sensores del ESP32<br/>DHT22: temperatura y humedad<br/>ADC: luz 0–2000 · pH 0–14<br/>TDS 0–3000 ppm · sustrato 0–100 %"]
-    physics["Física del simulador<br/>AUTO · MANUAL · WEATHER<br/>los actuadores cambian el entorno"]
-    climate["Clima de Open-Meteo<br/>temperatura · humedad · radiación<br/>lluvia · presión"]
+    sensors["Sensores del ESP32<br/>DHT22: temperatura y humedad<br/>ADC: Light 0–2000 · pH 0–14<br/>TDS 0–3000 ppm · sustrato 0–100 %"]
+    physics["Física del simulador<br/>AUTO · MANUAL · WEATHER<br/>actuators modulate the environment"]
+    weatherte["Clima de Open-Meteo<br/>temperature · humidity · solar radiation<br/>rainfall · pressure"]
     manual["Lectura manual<br/>POST /crops/{id}/readings<br/>origen HTTP"]
-    person(["Persona<br/>órdenes · modo automático · lugar<br/>medidores · avisos por cultivo"])
-    climate --> physics
+    person(["Persona<br/>commands · automatic mode · location<br/>meters · per-crop notification channels"])
+    weatherte --> physics
   end
 
   subgraph transporte["Transporte"]
     direction TB
     telemetry["MQTT smartpot/v1/{cropId}/telemetry · QoS 0<br/>temperature · humidity · brightness · ph<br/>tds · atmosphere · soilMoisture"]
-    status["MQTT …/status · retenido<br/>online · offline (última voluntad)"]
+    status["MQTT …/status · retenido<br/>online · offline (LWT retained)"]
     ack["MQTT …/commands/ack · QoS 1<br/>id · status EXECUTED o FAILED · message"]
     cmdtopic["MQTT …/commands · QoS 1<br/>id · actuator · action · durationSeconds"]
-    rest["REST /api/v1 · JSON en español<br/>Bearer JWT · control de dueño"]
+    rest["REST /api/v1 · JSON en español<br/>Bearer / Cookie Auth · Tenant Control"]
   end
 
   subgraph ingesta["Ingesta en la API"]
     direction TB
     parser["TelemetryParser<br/>JSON → Measures"]
-    throttle{"reading:{cropId}<br/>¿pasaron 5 s?"}
-    ranges{"MeasureRanges<br/>¿todas las variables<br/>dentro del rango físico?"}
+    throttle{"reading:{cropId}<br/>5 seconds elapsed?"}
+    ranges{"MeasureRanges<br/>all telemetry variables<br/>within physical bounds?"}
     discard["Lectura descartada"]
     parser --> throttle
     throttle -->|"sí"| ranges
@@ -31,9 +31,9 @@ flowchart LR
     ranges -->|"no"| discard
   end
 
-  subgraph mongo["PostgreSQL 17 + TimescaleDB · base smartpot"]
+  subgraph mongo["PostgreSQL 17 + TimescaleDB 2.17.2 · base smartpot"]
     direction TB
-    readings[("readings (Hipertabla TimescaleDB)<br/>cropId · measuredAt · measures · source<br/>chunks 1 d · compresión 12 h · agregados continuos")]
+    readings[("readings (Hipertabla TimescaleDB)<br/>cropId · measuredAt · measures · source<br/>1-day chunks · 12h compression · continuous aggregates")]
     crops[("crops<br/>device: keyCiphertext · online · lastSeenAt<br/>health: index · level · label · evaluatedAt<br/>automationEnabled · type · kind · form<br/>placement: setting · exposure · location")]
     commands[("commands<br/>actuatorType · action · durationSeconds<br/>status · source USER o AGENT · reason<br/>createdAt · sentAt · completedAt · TTL 180 d")]
     actuators[("actuators<br/>type · active · runningUntil · lastChangedAt")]
@@ -49,15 +49,15 @@ flowchart LR
     rkeys[("reading · ai-eval · agent · notify<br/>rate · channel-link · crop-share · weather<br/>ai:learning-status · ai:crop-profiles")]
   end
 
-  subgraph ia["Asistente de IA"]
+  subgraph ia["AI Assistant"]
     direction TB
     request["InsightRequest<br/>cropType · measures · history (48)<br/>actuators · localHour · placement · weather"]
-    analysis["analyze()<br/>diagnóstico · pronóstico · modelos<br/>sistema experto · lógica difusa · agente"]
-    response["InsightResponse<br/>health (índice, nivel, byParameter)<br/>diagnosis · conclusions · predictions<br/>forecasts · learning · placement · actions · summary"]
+    analysis["analyze()<br/>diagnosis · forecast · models<br/>expert system · fuzzy logic · reactive agent"]
+    response["InsightResponse<br/>health (index, level, byParameter)<br/>diagnosis · conclusions · predictions<br/>forecasts · learning · placement · actions · summary"]
     feed["LearningFeed → POST /v1/learning/readings<br/>lotes de hasta 1000 cada minuto"]
-    sqlite[("SQLite · readings<br/>crop_key SHA-256 · crop_type · measured_at<br/>local_hour · 7 variables · received_at<br/>60 días · 200 000 filas")]
-    trainer["Entrenamiento por especie<br/>calidad · variables · etiquetas a 1 h<br/>7 modelos frente a la línea base"]
-    joblib[("models/{especie}.joblib<br/>campeón · estados K-Means<br/>Isolation Forest")]
+    sqlite[("SQLite · readings<br/>crop_key SHA-256 · crop_type · measured_at<br/>local_hour · 7 variables · received_at<br/>60 days · 200,000 rows")]
+    trainer["Entrenamiento por especie<br/>calidad · variables · etiquetas a 1 h<br/>7 models benchmarked vs baseline"]
+    joblib[("models/{especie}.joblib<br/>champion model · K-Means states<br/>Isolation Forest")]
     status_out["LearningStatus<br/>solo agregados por especie"]
     request --> analysis --> response
     feed --> sqlite --> trainer --> joblib
@@ -67,11 +67,11 @@ flowchart LR
 
   subgraph salidas["Uso del dato"]
     direction TB
-    pwa["PWA<br/>lecturas frente al rango ideal · gráficos con banda<br/>historial 6 h, 24 h y 7 días · CSV<br/>panel general y comparador · asistente<br/>página Aprendizaje"]
+    pwa["PWA<br/>readings vs ideal range · banded area charts<br/>history 6h, 24h, and 7d · CSV<br/>overview dashboard & fleet comparator · assistant<br/>Learning Page"]
     overview["Panel general<br/>KPIs · series $dateTrunc · flota K-Means"]
-    telegram["Telegram<br/>avisos por cultivo · resúmenes<br/>chats compartidos · /estado"]
-    device(["Dispositivo o simulación<br/>ejecuta la orden y confirma"])
-    browser[("Navegador<br/>JWT en sessionStorage o localStorage<br/>caché del app shell")]
+    telegram["Telegram<br/>per-crop alerts · digests<br/>chats compartidos · /estado"]
+    device(["Dispositivo o simulación<br/>executes command and confirms"])
+    browser[("Navegador<br/>JWT en sessionStorage o localStorage<br/>app shell cache")]
   end
 
   sensors --> telemetry
@@ -81,7 +81,7 @@ flowchart LR
   manual --> rest --> ranges
   ranges -->|"sí"| readings
   status --> crops
-  readings -->|"ReadingRecordedEvent<br/>solo cultivos reales"| feed
+  readings -->|"ReadingRecordedEvent<br/>physical crops only"| feed
   readings -->|"ventana reciente"| request
   crops --> request
   actuators --> request
@@ -93,8 +93,8 @@ flowchart LR
   rest --> vdevices
   rest --> links
   rest --> cropch
-  climate -->|"clima del lugar · 10 min"| request
-  climate -->|"clima de afuera"| pwa
+  weatherte -->|"Local Weather · 10 min"| request
+  weatherte -->|"weather de afuera"| pwa
   vdevices --> physics
   commands --> cmdtopic --> device
   device --> ack --> commands
@@ -124,7 +124,7 @@ flowchart LR
   classDef note fill:#FFFFFF,stroke:#D5E3DC,color:#5B6B63
   class person person
   class sensors,physics,device device
-  class climate ext
+  class weatherte ext
   class telemetry,status,ack,cmdtopic,rest edge
   class parser,throttle,ranges module
   class discard warn

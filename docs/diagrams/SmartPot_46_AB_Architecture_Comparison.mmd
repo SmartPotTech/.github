@@ -3,7 +3,7 @@ flowchart TB
   subgraph STACK_A["Stack A — Arquitectura Legada (Deprecada / Archivada)"]
     direction LR
     A_WEB["PWA React 19<br/>SmartPot-Web-React · 240 kB gzip<br/>Port 5173:80"]
-    A_API["API REST Spring Boot 4<br/>SmartPot-API-Java · Java 21 · 385 MB RAM<br/>Port 8091:8091"]
+    A_API["REST API Engine Spring Boot 4<br/>SmartPot-API-Java · Java 21 · 385 MB RAM<br/>Port 8091:8091"]
     A_DB[("MongoDB 8<br/>SmartPot-DB-Mongo<br/>BSON :27017")]
     A_CACHE[("Redis 8<br/>SmartPot-Cache-Redis<br/>RESP :6379")]
     A_BROKER["Mosquitto 2.1<br/>SmartPot-Broker-Mosquito<br/>DynSec :1883"]
@@ -19,10 +19,10 @@ flowchart TB
   subgraph STACK_B["Stack B — Arquitectura Canónica en Producción (Vigente)"]
     direction LR
     B_WEB["PWA SolidJS 1.9<br/>SmartPot-Web · Bun · Vite · 71 kB gzip (-70%)<br/>Port 5173:8080"]
-    B_API["API REST Go 1.26<br/>SmartPot-API · Scratch · 18 MB RAM (-95%)<br/>Port 8091:8091"]
+    B_API["REST API Engine Go 1.27.3<br/>SmartPot-API · Scratch · 18 MB RAM (-95%)<br/>Port 8091:8091"]
     B_DB[("TimescaleDB 2.17<br/>SmartPot-DB (PostgreSQL 17)<br/>SQL :5432")]
-    B_CACHE[("Valkey 9.1<br/>SmartPot-Cache<br/>RESP :6379")]
-    B_BROKER["EMQX 5.8<br/>SmartPot-Broker<br/>Auth delegada HTTP"]
+    B_CACHE[("Valkey 9.1.3.3<br/>SmartPot-Cache<br/>RESP :6379")]
+    B_BROKER["EMQX 5.8.9<br/>SmartPot-Broker<br/>Auth delegada HTTP"]
     B_SIM["Simulador Rust<br/>SmartPot-DataGenerator<br/>Tokio · v2 binario · 14.8 MB RAM (-82%)"]
     B_AI["Inferencia Rust<br/>SmartPot-AI<br/>Axum / Tonic gRPC"]
     B_TRAINER["Entrenador Python<br/>SmartPot-Trainer<br/>ADBC TimescaleDB"]
@@ -40,8 +40,8 @@ flowchart TB
 
   subgraph SHARED["Componentes de Soporte"]
     direction LR
-    S_MAIL["Servidor de Correo (SmartPot-Mail)<br/>Mailpit SMTP autenticado & Web UI<br/>SMTP :1025 · Web UI :8025"]
-    S_MCP["Servidor MCP (SmartPot-MCP)<br/>FastMCP para asistentes IA<br/>Port 8092:8092"]
+    S_MAIL["Host Server de Correo (SmartPot-Mail)<br/>Mailpit v1.33.0 SMTP autenticado & Web UI<br/>SMTP :1025 · Web UI :8025"]
+    S_MCP["Host Server MCP (SmartPot-MCP)<br/>FastMCP para asistentes IA<br/>Port 8092:8092"]
   end
 
   B_API -.->|SMTP :1025| S_MAIL

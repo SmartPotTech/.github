@@ -1,23 +1,23 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart BT
-  subgraph fines["Fines"]
-    f1["Mayor productividad"]
-    f2["Agua y nutrientes<br/>usados con precisión"]
-    f3["Menos cultivos perdidos"]
-    f4["Hidroponía al alcance<br/>de más personas"]
-    f5["Producción local<br/>de alimentos"]
+  subgraph fines["Objectives / Outcomes"]
+    f1["Higher Productivity"]
+    f2["Precision Water &<br/>Nutrient Usage"]
+    f3["Minimized Crop Losses"]
+    f4["Accessible Hydroponics<br/>for Broader Communities"]
+    f5["Resilient Local<br/>Food Production"]
   end
-  objetivo["<b>Objetivo central</b><br/>Gestión automatizada y basada en datos<br/>de cultivos hidropónicos"]
-  subgraph medios["Medios, y cómo los construyó SmartPot"]
-    m1["Monitoreo continuo y automatización<br/><i>MQTT v1, agente con modo automático</i>"]
-    m2["Plataforma centralizada<br/><i>API, PWA y panel general</i>"]
-    m3["Solución abierta y de bajo costo<br/><i>MIT, ESP32, servidor propio</i>"]
+  objetivo["<b>Core Objective</b><br/>Automated, Data-Driven Management<br/>of Hydroponic Crops"]
+  subgraph medios["Means, and How SmartPot Built Them"]
+    m1["Continuous Monitoring & Automation<br/><i>MQTT v1, Agent with Auto Mode</i>"]
+    m2["Centralized Platform<br/><i>API, PWA, and Overview Dashboard</i>"]
+    m3["Open, Low-Cost Solution<br/><i>MIT License, ESP32, Self-Hosted</i>"]
   end
-  subgraph apoyos["Medios de apoyo"]
-    a1["Aprendizaje práctico<br/><i>demo, documentación, Wokwi</i>"]
-    a2["IoT al alcance<br/><i>cultivos virtuales con clima real</i>"]
-    a3["Análisis de datos<br/><i>asistente de IA y aprendizaje continuo</i>"]
-    a4["Experiencia simple<br/><i>PWA en español y alertas por Telegram</i>"]
+  subgraph apoyos["Supporting Means"]
+    a1["Hands-on Learning<br/><i>Demo, Docs, Wokwi Simulation</i>"]
+    a2["IoT al alcance<br/><i>virtual crops with live weather feed</i>"]
+    a3["Data Analytics<br/><i>AI Assistant & Continuous Learning</i>"]
+    a4["Seamless UX<br/><i>Modern PWA & Telegram Alerts</i>"]
   end
   objetivo --> f1 & f2 & f3 & f4 & f5
   m1 & m2 & m3 --> objetivo

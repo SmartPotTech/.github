@@ -3,7 +3,7 @@ flowchart TB
   subgraph web["SmartPot-Web · SolidJS PWA"]
     w1["Panel general · Cultivos<br/>Control · Acciones"]
     w2["Asistente · Aprendizaje (SSE)"]
-    w3["Nuevo cultivo · Ilustración viva<br/>Simulación · Perfil y Conexiones MCP"]
+    w3["Nuevo cultivo · Ilustración viva<br/>Simulation · Profile & MCP Connections"]
   end
   subgraph api["SmartPot-API · Go (Echo)"]
     a1["security · auth (HttpOnly/CSRF) · users"]
@@ -14,17 +14,17 @@ flowchart TB
     a6["virtualdevices · overview · connections"]
   end
   subgraph ai["SmartPot-AI · Rust"]
-    i1["Inferencia: diagnóstico, 21 reglas,<br/>lógica difusa Sugeno, modelos nativos"]
+    i1["Inferencia: diagnóstico, 21 reglas,<br/>Sugeno fuzzy logic, native ML models"]
   end
   subgraph trainer["SmartPot-Trainer · Python"]
-    t1["Aprendizaje: lectura ADBC TimescaleDB,<br/>entrenamiento offline, firma Ed25519"]
+    t1["Aprendizaje: ADBC Reading TimescaleDB,<br/>entrenamiento offline, firma Ed25519"]
   end
   subgraph sim["SmartPot-DataGenerator · Rust"]
     s1["pots · environment · weather · api Axum"]
   end
   web -->|"REST + SSE"| api
   a3 <-->|"MQTT"| broker["SmartPot-Broker · EMQX"]
-  broker -.->|"delegación authn"| a3
+  broker -.->|"Delegated Authn"| a3
   s1 <-->|"MQTT"| broker
   a4 -->|"gRPC / REST"| ai
   t1 -.->|"modelos JSON"| ai

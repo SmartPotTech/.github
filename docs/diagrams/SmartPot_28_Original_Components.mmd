@@ -8,14 +8,14 @@ flowchart LR
     api["API"]
     comandos["Comandos"]
     controller["Controller de cultivo"]
-    historial["Historial"]
+    historial["History"]
     notificaciones["Notificaciones"]
   end
-  db[("Base de datos")]
+  db[("Database Architecture")]
   broker["Broker MQTT<br/>publicadores y suscriptores"]
   subgraph esp["Device controller · ESP32"]
     core0["Core 0 · sensores<br/>BME280, BH1750, pH, TDS"]
-    core1["Core 1 · actuadores<br/>bomba, humidificador, luz"]
+    core1["Core 1 · actuadores<br/>pump, humidifier, light"]
   end
   portal -->|"petición del usuario"| api
   gestor -->|"registro, sesión, perfil"| api

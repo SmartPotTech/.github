@@ -5,23 +5,23 @@ flowchart LR
       portal["«componente» Portal web"]
     end
   end
-  subgraph aplicacion["«dispositivo» Servidor de aplicación"]
+  subgraph aplicacion["«dispositivo» Host Server de aplicación"]
     direction TB
     controller["«componente» Controller cultivo"]
     gestor["«componente» Gestor usuarios"]
     notificaciones["«componente» Notificaciones"]
     comandos["«componente» Comandos"]
-    historial["«componente» Historial"]
+    historial["«componente» History"]
   end
-  subgraph servidorApi["«dispositivo» Servidor API"]
+  subgraph servidorApi["«dispositivo» Host Server API"]
     api["«componente» API"]
   end
   subgraph esp["«dispositivo» ESP32"]
     device["Device controller"]
   end
-  subgraph datos["«dispositivo» Servidor de base de datos"]
+  subgraph datos["«dispositivo» Host Server de base de datos"]
     subgraph mongo["«entorno de ejecución» MongoDB"]
-      bd["«componente» Base de datos"]
+      bd["«componente» Database Architecture"]
     end
   end
   cliente -->|"HTTP/HTTPS"| servidorApi

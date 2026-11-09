@@ -4,7 +4,7 @@ flowchart LR
     direction LR
     subgraph jardin["Jardín"]
       direction TB
-      dc["DeviceController<br/>sensores · actuadores · api · cultivo · token<br/>sincronizar_con_api() · procesar_comandos_api()<br/>monitorear_sensores() · ejecutar_actuador()"]
+      dc["DeviceController<br/>sensors · actuators · api · crop · token<br/>sincronizar_con_api() · procesar_comandos_api()<br/>monitorear_sensores() · ejecutar_actuador()"]
       lcd["LCDDisplay<br/>pinSDA · pinSCL<br/>imprimir() · desplazar()"]
     end
     sensores["Sensores"]
@@ -18,7 +18,7 @@ flowchart LR
     bd["BD"]
     usuario["Usuario"]
     cultivo["Cultivo"]
-    notificacion["Notificacion<br/>mensaje · tipo · fecha · usuario<br/>enviarNotificacion() · crearNotificacion()"]
+    notificacion["Notificacion<br/>message · type · timestamp · user<br/>enviarNotificacion() · crearNotificacion()"]
   end
   dc -->|"importa"| sensores
   dc -->|"importa"| actuadores

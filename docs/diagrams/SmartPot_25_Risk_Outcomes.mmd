@@ -11,11 +11,11 @@ flowchart LR
     r6["Curva de aprendizaje"]
     r7["Deuda técnica"]
     r8["Cuotas de capas gratuitas"]
-    r9["Seguridad y acceso a actuadores"]
+    r9["AppSec & Vulnerability y acceso a actuadores"]
     r10["Saturación por datos IoT"]
   end
   subgraph desenlace["Desenlace"]
-    ok["Resuelto con una decisión técnica<br/>contrato MQTT v1, servidor propio,<br/>control de dueño, límites y Redis"]
+    ok["Resuelto con una decisión técnica<br/>MQTT v1 contract, self-hosted infrastructure,<br/>tenant control, rate limits, and cache"]
     parcial["Absorbido por la gestión<br/>alcance ampliado por ciclos,<br/>plan reprogramado"]
   end
   r1 & r8 & r9 & r10 & r7 --> ok

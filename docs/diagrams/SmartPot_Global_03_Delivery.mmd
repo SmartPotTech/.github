@@ -5,8 +5,8 @@ flowchart TB
     dev(["Desarrollador"])
     tooling["Herramientas por lenguaje<br/>Java: Maven Wrapper · Python: uv · Web: pnpm"]
     devenv["docker/dev<br/>toda la plataforma compilada<br/>desde los repositorios locales"]
-    commitrule["Commits en inglés, en imperativo<br/>un propósito · uno o dos archivos"]
-    inject["secrets/inject_secrets.py (no versionado)<br/>gh secret set por la entrada estándar"]
+    commitrule["Commits en inglés, en imperativo<br/>single responsibility · 1-2 files per concern"]
+    inject["secrets/inject_secrets.py (no versionado)<br/>gh secret set via standard input"]
     dev --> tooling --> devenv
     dev --> commitrule
   end
@@ -16,11 +16,11 @@ flowchart TB
     subgraph services["Repositorios de servicio"]
       direction TB
       repos["SmartPot-API · SmartPot-Web · SmartPot-AI<br/>SmartPot-DataGenerator · SmartPot-Broker<br/>SmartPot-DB · SmartPot-Cache · SmartPot-Mail"]
-      iot["SmartPot-IoT<br/>firmware · pruebas con MicroPython simulado"]
+      iot["SmartPot-IoT<br/>firmware · simulated MicroPython tests"]
       proxy["SmartPot-Proxy<br/>archivado"]
       ci["CI por repositorio<br/>maven.yml · node.js.yml · ci.yml"]
       codeql["codeql.yml · dependency-review.yml<br/>stale.yml · Dependabot semanal"]
-      packaging["packaging.yml<br/>imagen endurecida · SBOM · atestación<br/>push a GHCR y réplica en Docker Hub"]
+      packaging["packaging.yml<br/>hardened image · SBOM · provenance attestation<br/>push to GHCR and mirrored on Docker Hub"]
       request["deploy.yml del servicio<br/>request-deploy.yml · workflow_dispatch<br/>espera el resultado del despliegue central"]
       svcsecrets["Secrets del servicio<br/>DEPLOY_DISPATCH_TOKEN (Actions: read y write en .github)<br/>DOCKER_USERNAME · DOCKER_PASSWORD (opcionales)"]
       repos --> ci
@@ -32,9 +32,9 @@ flowchart TB
 
     subgraph central[".github · plataforma"]
       direction TB
-      qa["qa.yml · en cada cambio a main, cada lunes 11:00 UTC y a mano<br/>API: mvn verify · Web: lint, tipos, pruebas y build<br/>Python: AI, DataGenerator e IoT (ruff y pytest)<br/>Contenedores: Broker, DB, Cache y Mail (build y humo)"]
-      e2e["End-to-End<br/>construye las 8 imágenes · levanta la demo con --wait<br/>scripts/e2e.py: 35 comprobaciones<br/>registro · cultivo real · MQTT · ACK · IA · flota · bloque<br/>tipo fijo · cultivo virtual y pausa · aprendizaje · canales · borrado"]
-      deploy["deploy.yml central<br/>concurrency smartpot-production<br/>uno en curso · solo el último en espera"]
+      qa["qa.yml · en cada cambio a main, cada lunes 11:00 UTC y a mano<br/>API: Go Test & Verify · Web: Lint, Types, Tests & Build<br/>Python: AI, DataGenerator e IoT (ruff y pytest)<br/>Contenedores: Broker, DB, Cache y Mail (build y humo)"]
+      e2e["End-to-End<br/>builds 8 images · boots demo with --wait<br/>scripts/e2e.py: 35 comprobaciones<br/>registration · physical crop · MQTT · ACK · AI · fleet · bulk<br/>immutable crop type · virtual crop pause · learning · channels · deletion"]
+      deploy["deploy.yml central<br/>concurrency smartpot-production<br/>one executing · latest queued"]
       validate["Validaciones previas<br/>ENV_FILE: longitudes, llave AES de 32 bytes, perfiles<br/>certificado del broker firmado por la CA y llave que corresponde<br/>SIMULATOR_TOKEN · secreto del webhook"]
       censecrets["Secrets centrales<br/>SERVER_HOST · SERVER_PORT · SERVER_USER · SERVER_KNOWN_HOSTS<br/>SERVER_KEY · DEPLOY_PATH · ENV_FILE<br/>MQTT_CA_CERT · MQTT_SERVER_CERT · MQTT_SERVER_KEY"]
       docs["docs · Markdown, Mermaid, DOCX y PDF<br/>render_diagrams.py · md_to_docx.py"]
@@ -52,17 +52,17 @@ flowchart TB
 
   subgraph environments["Entornos"]
     direction TB
-    demo["docker/demo<br/>compose.yaml (GHCR) · compose.dockerhub.yaml<br/>datos de ejemplo · 2 cultivos reales simulados · cultivos virtuales<br/>Telegram opcional por sondeo largo"]
+    demo["docker/demo<br/>compose.yaml (GHCR) · compose.dockerhub.yaml<br/>seed fixtures · 2 simulated real crops · virtual crops<br/>Telegram opcional por sondeo largo"]
     k8s["kubernetes/k8s-deployment.yml<br/>namespace smartpot · Secret · ConfigMap<br/>PVC db-data, broker-data y ai-data<br/>8 Deployments y 8 Services · Pod Security restricted"]
-    subgraph server["Servidor de producción"]
+    subgraph server["Host Server de producción"]
       direction TB
       ssh["SSH :2222 con known_hosts<br/>carpeta .deploy-id temporal"]
       lock["flock /var/lock/smartpot-deploy.lock"]
       certs["SMARTPOT_CERTS_DIR · certificados TLS"]
-      compose["docker compose -p smartpot<br/>pull desde GHCR · up -d --wait<br/>migración de los esquemas de la base<br/>borra el .env al terminar"]
-      runtime["Contenedores endurecidos Stack B<br/>sin capacidades · no-new-privileges<br/>redes internal y public · volúmenes db_data, broker_data y ai_data"]
+      compose["docker compose -p smartpot<br/>pull desde GHCR · up -d --wait<br/>database schema migration<br/>borra el .env al terminar"]
+      runtime["Contenedores endurecidos Stack B<br/>sin capacidades · no-new-privileges<br/>internal and public networks · db_data, broker_data, ai_data volumes"]
       nginx["Nginx + Let's Encrypt · UFW"]
-      backup["backup_smartpot.sh<br/>pg_dump comprimido · 14 días"]
+      backup["backup_smartpot.sh<br/>compressed pg_dump · 14-day retention"]
       ssh --> lock --> certs --> compose --> runtime
       nginx --> runtime
       runtime --> backup

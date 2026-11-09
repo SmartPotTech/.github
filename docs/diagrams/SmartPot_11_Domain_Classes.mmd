@@ -80,7 +80,7 @@ classDiagram
     +send(link, message)
   }
   class TelegramChannel
-  User "1" --> "*" Crop : dueño
+  User "1" --> "*" Crop : owner
   Crop *-- Device
   Crop "1" --> "*" Reading
   Reading *-- Measures

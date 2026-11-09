@@ -1,29 +1,29 @@
 %%{init: {"theme": "base", "fontFamily": "Segoe UI, Arial, sans-serif", "themeVariables": {"fontFamily": "Segoe UI, Arial, sans-serif", "fontSize": "15px", "primaryColor": "#DDF5EA", "primaryTextColor": "#17261F", "primaryBorderColor": "#067A52", "secondaryColor": "#E3F2FB", "secondaryTextColor": "#17261F", "secondaryBorderColor": "#1F6FA0", "tertiaryColor": "#F2F7F4", "tertiaryTextColor": "#17261F", "tertiaryBorderColor": "#D5E3DC", "lineColor": "#5B6B63", "textColor": "#17261F", "mainBkg": "#DDF5EA", "nodeBorder": "#067A52", "clusterBkg": "#F7FAF8", "clusterBorder": "#D5E3DC", "edgeLabelBackground": "#FFFFFF", "actorBkg": "#067A52", "actorBorder": "#0B3D2B", "actorTextColor": "#FFFFFF", "actorLineColor": "#5B6B63", "signalColor": "#17261F", "signalTextColor": "#17261F", "labelBoxBkgColor": "#0B3D2B", "labelBoxBorderColor": "#0B3D2B", "labelTextColor": "#FFFFFF", "loopTextColor": "#0B3D2B", "noteBkgColor": "#FDF4DD", "noteBorderColor": "#C98D12", "noteTextColor": "#17261F", "activationBkgColor": "#DDF5EA", "activationBorderColor": "#067A52", "attributeBackgroundColorOdd": "#FFFFFF", "attributeBackgroundColorEven": "#F2F7F4"}}}%%
 flowchart TD
-  subgraph STACK_A["Stack A: Arquitectura Legada (Superficie Amplia y Deuda Técnica)"]
+  subgraph STACK_A["Stack A: Legacy Architecture (Broad Attack Surface & Tech Debt)"]
     direction TB
-    A_API["SmartPot-API-Java (Java 21 / Spring Boot 4.1)<br/>47 Vulnerabilidades SCA (8 Críticas, 14 Altas)<br/>Deserialización Jackson RCE (CVE-2026-110879)<br/>Tomcat Auth & Access Bypass (CVE-2026-101296)"]
+    A_API["SmartPot-API-Java (Java 21 / Spring Boot 4.1)<br/>47 SCA Vulnerabilities (8 Critical, 14 High)<br/>Jackson Deserialization RCE (CVE-2026-110879)<br/>Tomcat Auth & Access Bypass (CVE-2026-101296)"]
     A_SO["Contenedor Temurin / Debian 12<br/>42 Vulnerabilidades en paquetes de SO<br/>Shell sh/bash y utilidades disponibles"]
     A_BROKER["SmartPot-Broker-Mosquito (Mosquitto 2.1)<br/>dynamic-security.json en disco<br/>Condiciones de carrera en concurrencia"]
   end
 
-  subgraph CONTROLS["Controles Comunes y Mitigaciones Compartidas"]
+  subgraph CONTROLS["Shared Controls & Universal Mitigations"]
     direction LR
-    AUTH["Autenticación JWT HS256 / Cookies HttpOnly<br/>Algoritmo e Issuer Forzados"]
-    PASSWD["BCrypt Cost 12<br/>Validación 72-byte truncation"]
-    CRYPTO["AES-256-GCM<br/>IV Aleatorio 12B por operación"]
-    PORTS["Enlace Local Estricto<br/>127.0.0.1:8091 / 5173 / 1883"]
+    AUTH["Auth via HttpOnly Cookies + CSRF / Signed Tokens<br/>Forced Algorithm & Issuer"]
+    PASSWD["BCrypt Cost 12<br/>72-byte Truncation Guard"]
+    CRYPTO["AES-256-GCM<br/>12-Byte Random IV per Operation"]
+    PORTS["Strict Loopback Binding<br/>127.0.0.1:8091 / 5173 / 1883"]
   end
 
-  subgraph STACK_B["Stack B: Producción Canónica (Arquitectura Hexagonal & Aislamiento Máximo)"]
+  subgraph STACK_B["Stack B: Canonical Production (Hexagonal Architecture & Zero Trust Isolation)"]
     direction TB
-    B_API["SmartPot-API (Go 1.26 / Echo / pgx v5)<br/>4 Vulnerabilidades SCA (0 Críticas, 1 Alta en x509)<br/>Zero-alloc parser · DTOs fuertemente tipados<br/>Parametrización SQL nativa $1..$11"]
+    B_API["SmartPot-API (Go 1.27.3 / Echo / pgx v5)<br/>4 SCA Vulnerabilities (0 Critical, 1 High in x509)<br/>Zero-alloc parser · DTOs fuertemente tipados<br/>Native SQL Parameterization $1..$11"]
     B_SO["Contenedor scratch (12.2 MB)<br/>0 Vulnerabilidades de SO en runtime<br/>Sin shell, sin paquetes, sin utilidades"]
-    B_BROKER["SmartPot-Broker (EMQX 5.8.9)<br/>Webhook Authn en memoria con Valkey<br/>Aislamiento ACL dinámico por cultivo<br/>Desconexión REST activa en rotación/baja"]
+    B_BROKER["SmartPot-Broker (EMQX 5.8.9.9)<br/>Webhook Authn en memoria con Valkey<br/>Dynamic Per-Crop Tenant ACL Isolation<br/>Active REST Disconnect on Key Rotation/Deletion"]
   end
 
-  STACK_A -.->|"Migración Hexagonal"| CONTROLS
-  CONTROLS -.->|"Postura Reforzada"| STACK_B
+  STACK_A -.->|"Hexagonal Modernization"| CONTROLS
+  CONTROLS -.->|"Hardened Security Posture"| STACK_B
 
   classDef core fill:#DDF5EA,stroke:#067A52,color:#17261F
   classDef platform fill:#E3F2FB,stroke:#1F6FA0,color:#17261F

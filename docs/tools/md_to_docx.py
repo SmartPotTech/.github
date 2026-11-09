@@ -815,12 +815,14 @@ def build(markdown: pathlib.Path, output: pathlib.Path) -> None:
             'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" '
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'
             f'<dc:title>{esc(title)}</dc:title><dc:subject>{esc(meta.get("subtitulo", ""))}</dc:subject>'
-            '<dc:creator>SmartPotTech</dc:creator><dc:language>es-CO</dc:language>'
+            '<dc:creator>Sebastián López Osorno</dc:creator>'
+            '<cp:lastModifiedBy>Sebastián López Osorno</cp:lastModifiedBy>'
+            '<dc:language>en-US</dc:language>'
             f'<dcterms:created xsi:type="dcterms:W3CDTF">{now}</dcterms:created>'
             f'<dcterms:modified xsi:type="dcterms:W3CDTF">{now}</dcterms:modified></cp:coreProperties>')
     app = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
            '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">'
-           '<Application>SmartPot docs</Application><Company>SmartPotTech</Company></Properties>')
+           '<Application>SmartPot Documentation Suite</Application><Company>SmartPotTech</Company></Properties>')
     content_types = (
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
@@ -887,7 +889,21 @@ def to_pdf(docx: pathlib.Path, soffice: str | None) -> None:
             check=True,
             capture_output=True,
         )
-    print(f"PDF:  {docx.with_suffix('.pdf')}")
+    pdf_path = docx.with_suffix('.pdf')
+    if pdf_path.exists():
+        try:
+            import pymupdf as fitz
+            doc = fitz.open(str(pdf_path))
+            meta = doc.metadata or {}
+            meta['author'] = 'Sebastián López Osorno'
+            meta['creator'] = 'Sebastián López Osorno (SmartPotTech)'
+            meta['producer'] = 'SmartPotTech'
+            doc.set_metadata(meta)
+            doc.saveIncr()
+            doc.close()
+        except Exception:
+            pass
+    print(f"PDF:  {pdf_path}")
 
 
 def main() -> None:

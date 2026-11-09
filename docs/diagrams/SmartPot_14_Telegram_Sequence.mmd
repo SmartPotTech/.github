@@ -8,13 +8,13 @@ sequenceDiagram
   participant T as Telegram
   P->>W: Perfil › Vincular Telegram
   W->>A: POST /channels/telegram/link
-  A->>C: código de un solo uso (10 min) → cuenta
+  A->>C: single-use code (10 min) → cuenta
   A-->>W: url t.me/bot?start=código
   W->>T: abre el chat del bot
-  P->>T: Iniciar (/start código)
+  P->>T: Start (/start code)
   T->>A: novedad (webhook firmado o sondeo)
   A->>C: toma y borra el código
   A->>A: guarda channel_links (chat, eventos)
   A->>T: «Listo, este chat quedó vinculado»
-  Note over A,T: Desde aquí, cada notificación elegida<br/>se reenvía con un botón al cultivo
+  Note over A,T: Desde aquí, each notification elegida<br/>se reenvía con un botón al cultivo
   A->>T: ⚠️ Atención en Lechugas del balcón

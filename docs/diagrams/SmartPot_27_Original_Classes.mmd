@@ -8,14 +8,14 @@ classDiagram
     -bool estado
     +calibrar(medida)
     +encender()
-    +apagar()
+    +Turn off()
     +medir()
   }
   class Actuador {
     <<interface>>
     -int pin
     -encender()
-    -apagar()
+    -Turn off()
   }
   class DeviceController {
     -Brightness brightness
@@ -49,7 +49,7 @@ classDiagram
     -string estadoSalud
     +evaluarSalud()
   }
-  class HistorialCultivo {
+  class HistoryCultivo {
     -List registros
     +agregarRegistro()
     +promediarMedidas()
@@ -97,8 +97,8 @@ classDiagram
   DeviceController o-- LCDDisplay
   DeviceController --> Api
   DeviceController --> Cultivo
-  Cultivo --> HistorialCultivo
-  HistorialCultivo o-- RegistroCultivo
+  Cultivo --> HistoryCultivo
+  HistoryCultivo o-- RegistroCultivo
   FabricaCultivos --> Cultivo
   Usuario --> Cultivo
   Sesion --> Usuario
