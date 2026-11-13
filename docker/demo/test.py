@@ -28,6 +28,7 @@ import subprocess
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Optional, Tuple, Union
 
@@ -347,70 +348,67 @@ def check_capabilities(token: WebSession, crop_id: str) -> None:
            "Capabilities preserve the declared actuators")
 
 
+def clear_recipient_inbox(email: str) -> int:
+    """Borra en Mailpit solo los mensajes dirigidos al destinatario indicado."""
+    search_query = urllib.parse.urlencode({"query": f'to:"{email}"', "limit": 50})
+    status, inbox = mailpit_call("GET", f"/api/v1/search?{search_query}")
+    if status != 200:
+        return status
+    if isinstance(inbox, dict) and inbox.get("messages_count", 0) == 0:
+        return 200
+    delete_query = urllib.parse.urlencode({"query": f'to:"{email}"'})
+    del_status, _ = mailpit_call("DELETE", f"/api/v1/search?{delete_query}")
+    return del_status
+
+
 def check_password_recovery() -> None:
-    """Envía el correo de recuperación, lo lee en Mailpit y restablece la clave demo."""
-    status, _ = mailpit_call("DELETE", "/api/v1/messages")
-    expect(status in (200, 204), "Mailpit inbox cleared before password recovery")
-
-    status, _ = call("POST", "/api/v1/auth/password/forgot", {"email": DEMO_EMAIL})
-    expect(status == 202, "Forgot password accepts the demo email (202)")
-
-    email = wait_for_reset_email(DEMO_EMAIL)
-    expect(bool(email.get("token")), "Recovery email arrives in Mailpit with its token")
-    token = email["token"]
-
+    """Usa una cuenta efímera para validar el ciclo de recuperación sin mutar demo@smartpot.app."""
+    email = f"qa-recovery-{secrets.token_hex(4)}@smartpot.test"
+    password = f"Qa{secrets.token_hex(6)}9z"
     replacement = f"Qa{secrets.token_hex(6)}9z"
-    status, _ = call("POST", "/api/v1/auth/password/reset", {"token": token, "password": replacement})
-    expect(status == 204, "Password reset with the emailed token (204)")
-    changed = status == 204
+    reg_session: Optional[WebSession] = WebSession()
+    session: Optional[WebSession] = None
 
     try:
+        status, _ = call("POST", "/api/v1/auth/register",
+                         {"name": "Recuperacion", "lastName": "Demo", "email": email, "password": password},
+                         token=reg_session)
+        expect(status == 201 and reg_session.has_http_only_session(),
+               "Recovery test account registered with an HttpOnly session")
+
+        inbox_status = clear_recipient_inbox(email)
+        expect(inbox_status in (200, 204), "Mailpit recipient inbox cleared before password recovery")
+
+        status, _ = call("POST", "/api/v1/auth/password/forgot", {"email": email})
+        expect(status == 202, "Forgot password accepts the test account email (202)")
+
+        reset_mail = wait_for_reset_email(email)
+        expect(bool(reset_mail.get("token")), "Recovery email arrives in Mailpit with its token")
+        token = reset_mail["token"]
+
+        status, _ = call("POST", "/api/v1/auth/password/reset", {"token": token, "password": replacement})
+        expect(status == 204, "Password reset with the emailed token (204)")
+
         status, _ = call("POST", "/api/v1/auth/password/reset", {"token": token, "password": replacement})
         expect(status == 400, "Recovery token cannot be reused (400)")
-        status, _ = call("POST", "/api/v1/auth/login", {"email": DEMO_EMAIL, "password": DEMO_PASSWORD})
-        expect(status == 401, "Old demo password stops working after the reset (401)")
+
+        status, _ = call("POST", "/api/v1/auth/login", {"email": email, "password": password})
+        expect(status == 401, "Old password stops working after the reset (401)")
+
         session = WebSession()
-        status, _ = call("POST", "/api/v1/auth/login", {"email": DEMO_EMAIL, "password": replacement}, token=session)
+        status, _ = call("POST", "/api/v1/auth/login", {"email": email, "password": replacement}, token=session)
         expect(status == 200 and session.has_http_only_session(),
-               "New demo password logs in with an HttpOnly session")
-    except BaseException:
-        if changed:
-            restore_demo_password()
-        raise
+               "New password logs in with an HttpOnly session")
 
-    if changed:
-        try:
-            mailpit_call("DELETE", "/api/v1/messages")
-            call("POST", "/api/v1/auth/password/forgot", {"email": DEMO_EMAIL})
-            restored = wait_for_reset_email(DEMO_EMAIL)
-            status, _ = call("POST", "/api/v1/auth/password/reset",
-                             {"token": restored["token"], "password": DEMO_PASSWORD})
-            expect(status == 204, "Demo password restored from a fresh email token")
-            status, _ = call("POST", "/api/v1/auth/login", {"email": DEMO_EMAIL, "password": DEMO_PASSWORD})
-            expect(status == 200, "Demo account logs in with its original password")
-        except BaseException:
-            restore_demo_password()
-            raise
-
-
-def restore_demo_password() -> None:
-    """Restaura la clave demo tras un fallo, sin enmascarar el error original."""
-    try:
-        mailpit_call("DELETE", "/api/v1/messages")
-        status, _ = call("POST", "/api/v1/auth/password/forgot", {"email": DEMO_EMAIL})
-        if status == 429:
-            time.sleep(60)
-            call("POST", "/api/v1/auth/password/forgot", {"email": DEMO_EMAIL})
-        email = wait_for_reset_email(DEMO_EMAIL)
-        status, _ = call("POST", "/api/v1/auth/password/reset",
-                         {"token": email["token"], "password": DEMO_PASSWORD})
-        if status == 429:
-            time.sleep(60)
-            status, _ = call("POST", "/api/v1/auth/password/reset",
-                             {"token": email["token"], "password": DEMO_PASSWORD})
-        print(f"  ℹ demo password restore returned HTTP {status}")
-    except Exception as err:  # noqa: BLE001 - la restauración es best effort
-        print(f"  ! could not restore the demo password: {err!r}")
+        status, _ = call("DELETE", "/api/v1/users/me", token=session)
+        expect(status == 204, "Recovery test account deleted cleanly")
+        session = None
+        reg_session = None
+    finally:
+        for active in (session, reg_session):
+            if active is not None:
+                call("DELETE", "/api/v1/users/me", token=active)
+        clear_recipient_inbox(email)
 
 
 def run_beta_suite():
