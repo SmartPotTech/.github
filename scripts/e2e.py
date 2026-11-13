@@ -628,66 +628,93 @@ def check_capabilities(token: str, crop_id: str, username: str, key: str, topics
 
 
 def check_connections_mcp(token: str, crop_id: str) -> None:
-    status, created = call("POST", "/api/v1/connections",
-                           {"name": "E2E read", "scope": "READ"}, token)
-    expect(status == 201 and created["token"].startswith("spt_") and created["connection"]["scope"] == "READ",
-           "read-only connection token created")
-    read_token, read_id = created["token"], created["connection"]["id"]
+    read_id = None
+    control_id = None
+    virtual_id = None
+    try:
+        status, created = call("POST", "/api/v1/connections",
+                               {"name": "E2E read", "scope": "READ"}, token)
+        expect(status == 201 and created["token"].startswith("spt_") and created["connection"]["scope"] == "READ",
+               "read-only connection token created")
+        read_token, read_id = created["token"], created["connection"]["id"]
 
-    status, crops = call("GET", "/api/v1/crops", token=read_token)
-    expect(status == 200 and any(crop["id"] == crop_id for crop in crops),
-           "read-only connection lists the account crops")
-    status, _ = call("POST", f"/api/v1/crops/{crop_id}/readings", {"ph": 6.1}, token=read_token)
-    expect(status == 403, "read-only connection cannot write readings (403)")
+        status, control = call("POST", "/api/v1/connections",
+                               {"name": "E2E control", "scope": "CONTROL"}, token)
+        expect(status == 201 and control["connection"]["scope"] == "CONTROL",
+               "control connection token created")
+        control_token, control_id = control["token"], control["connection"]["id"]
 
-    status, control = call("POST", "/api/v1/connections",
-                           {"name": "E2E control", "scope": "CONTROL"}, token)
-    expect(status == 201 and control["connection"]["scope"] == "CONTROL",
-           "control connection token created")
-    control_token, control_id = control["token"], control["connection"]["id"]
+        virt_status, virt_body = call("POST", "/api/v1/crops", {
+            "name": "MCP virtual", "type": "LETTUCE", "kind": "VIRTUAL", "form": "TOWER",
+            "virtual": {"mode": "MANUAL", "intervalSeconds": 60,
+                        "manual": {"soilMoisture": 42, "ph": 6.6, "temperature": 21}}}, token)
+        expect(virt_status == 201 and virt_body.get("crop", {}).get("id"), "virtual crop created for MCP write checks")
+        virtual_id = virt_body["crop"]["id"]
 
-    status, _ = mcp_request("tools/list")
-    expect(status == 401, "MCP tools/list requires a connection token (401)")
+        call("DELETE", f"/api/v1/crops/{virtual_id}/virtual-device", token=token)
 
-    status, listing = mcp_request("tools/list", token=read_token)
-    tools = {tool["name"] for tool in (listing or {}).get("result", {}).get("tools", [])
-             if isinstance(tool, dict)} if status == 200 else set()
-    expect(status == 200 and {"list_crops", "record_reading"} <= tools,
-           "MCP tools/list exposes crop and reading tools")
+        status, crops = call("GET", "/api/v1/crops", token=read_token)
+        expect(status == 200 and any(crop["id"] == crop_id for crop in crops),
+               "read-only connection lists the account crops")
+        status, _ = call("POST", f"/api/v1/crops/{virtual_id}/readings", {"ph": 6.1}, token=read_token)
+        expect(status == 403, "read-only connection cannot write readings (403)")
 
-    status, listing = mcp_request("tools/call", {"name": "list_crops", "arguments": {}}, read_token)
-    listed = mcp_result(listing)
-    expect(status == 200 and not mcp_failed(listing)
-           and any(crop.get("id") == crop_id for crop in listed or [] if isinstance(crop, dict)),
-           "MCP list_crops returns the account crops")
+        status, _ = mcp_request("tools/list")
+        expect(status == 401, "MCP tools/list requires a connection token (401)")
 
-    status, blocked = mcp_request("tools/call",
-                                  {"name": "record_reading",
-                                   "arguments": {"crop_id": crop_id, "ph": 6.6}}, read_token)
-    expect(status == 200 and mcp_failed(blocked), "MCP write with a READ connection is blocked")
+        status, listing = mcp_request("tools/list", token=read_token)
+        tools = {tool["name"] for tool in (listing or {}).get("result", {}).get("tools", [])
+                 if isinstance(tool, dict)} if status == 200 else set()
+        expect(status == 200 and {"list_crops", "record_reading"} <= tools,
+               "MCP tools/list exposes crop and reading tools")
 
-    status, written = mcp_request("tools/call",
-                                  {"name": "record_reading",
-                                   "arguments": {"crop_id": crop_id, "ph": 6.6}}, control_token)
-    reading = mcp_result(written)
-    expect(status == 200 and not mcp_failed(written)
-           and isinstance(reading, dict) and reading.get("measures", {}).get("ph") == 6.6,
-           "MCP write with a CONTROL connection is allowed")
+        status, listing = mcp_request("tools/call", {"name": "list_crops", "arguments": {}}, read_token)
+        listed = mcp_result(listing)
+        expect(status == 200 and not mcp_failed(listing)
+               and any(crop.get("id") == crop_id for crop in listed or [] if isinstance(crop, dict)),
+               "MCP list_crops returns the account crops")
 
-    status, latest = call("GET", f"/api/v1/crops/{crop_id}/readings/latest", token=token)
-    expect(status == 200 and latest["measures"]["ph"] == 6.6, "MCP write is persisted in the API")
+        status, blocked = mcp_request("tools/call",
+                                      {"name": "record_reading",
+                                       "arguments": {"crop_id": virtual_id, "ph": 6.6}}, read_token)
+        expect(status == 200 and mcp_failed(blocked), "MCP write with a READ connection is blocked")
 
-    status, _ = call("DELETE", f"/api/v1/connections/{read_id}", token=token)
-    expect(status == 204, "read-only connection revoked")
+        status, blocked_real = mcp_request("tools/call",
+                                           {"name": "record_reading",
+                                            "arguments": {"crop_id": crop_id, "ph": 6.6}}, control_token)
+        expect(status == 200 and mcp_failed(blocked_real), "MCP manual reading on real crop is blocked")
 
-    status, _ = mcp_request("tools/list", token=read_token)
-    expect(status == 401, "revoked connection token is rejected by MCP (401)")
+        status, written = mcp_request("tools/call",
+                                      {"name": "record_reading",
+                                       "arguments": {"crop_id": virtual_id, "ph": 6.6}}, control_token)
+        reading = mcp_result(written)
+        expect(status == 200 and not mcp_failed(written)
+               and isinstance(reading, dict) and reading.get("measures", {}).get("ph") == 6.6,
+               "MCP write with a CONTROL connection is allowed")
 
-    status, _ = call("GET", "/api/v1/crops", token=read_token)
-    expect(status == 401, "revoked connection token is rejected by the API (401)")
+        status, latest = call("GET", f"/api/v1/crops/{virtual_id}/readings/latest", token=token)
+        expect(status == 200 and latest["measures"]["ph"] == 6.6, "MCP write is persisted in the API")
 
-    status, _ = call("DELETE", f"/api/v1/connections/{control_id}", token=token)
-    expect(status == 204, "control connection revoked")
+        status, _ = call("DELETE", f"/api/v1/connections/{read_id}", token=token)
+        expect(status == 204, "read-only connection revoked")
+        read_id = None
+
+        status, _ = mcp_request("tools/list", token=read_token)
+        expect(status == 401, "revoked connection token is rejected by MCP (401)")
+
+        status, _ = call("GET", "/api/v1/crops", token=read_token)
+        expect(status == 401, "revoked connection token is rejected by the API (401)")
+
+        status, _ = call("DELETE", f"/api/v1/connections/{control_id}", token=token)
+        expect(status == 204, "control connection revoked")
+        control_id = None
+    finally:
+        if read_id:
+            call("DELETE", f"/api/v1/connections/{read_id}", token=token)
+        if control_id:
+            call("DELETE", f"/api/v1/connections/{control_id}", token=token)
+        if virtual_id:
+            call("DELETE", f"/api/v1/crops/{virtual_id}", token=token)
 
 
 def check_isolation(token: str) -> None:

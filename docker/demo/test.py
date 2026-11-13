@@ -559,11 +559,15 @@ def run_beta_suite():
                    "MCP server lists the account crops")
 
             status, blocked = mcp_call(mcp_url, conn_token, "record_reading",
-                                       {"crop_id": lettuce["id"], "ph": 6.5})
+                                       {"crop_id": v_id, "ph": 6.5})
             expect(status == 200 and mcp_failed(blocked), "Read-only connection cannot write through MCP")
 
+            status, blocked_real = mcp_call(mcp_url, control_token, "record_reading",
+                                            {"crop_id": lettuce["id"], "ph": 6.5})
+            expect(status == 200 and mcp_failed(blocked_real), "MCP manual reading rejects real physical crop")
+
             status, written = mcp_call(mcp_url, control_token, "record_reading",
-                                       {"crop_id": lettuce["id"], "ph": 6.5})
+                                       {"crop_id": v_id, "ph": 6.5})
             reading = mcp_result(written)
             expect(status == 200 and not mcp_failed(written)
                    and isinstance(reading, dict) and reading.get("measures", {}).get("ph") == 6.5,
